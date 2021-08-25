@@ -6,6 +6,13 @@ describe('create', () => {
 
     expect(Object.keys(instance)).toEqual([]);
   });
+
+  it('can create instances of models with default data', () => {
+    const model = Madrone.Model.create({ foo: false });
+    const instance = model.create({ foo: true });
+
+    expect(instance.foo).toEqual(true);
+  }); 
 });
 
 describe('$options', () => {

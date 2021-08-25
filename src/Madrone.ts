@@ -13,30 +13,23 @@ Madrone.Model = Model;
 Madrone.isMadrone = (instance) => !!instance?.$isMadrone;
 
 const proto = {
-  /** @private */
-  $isMadrone: true,
   $options: undefined,
   $init: undefined as (...any) => any,
-  $root: undefined,
-  /** The application this node is a part of */
+  /**
+   * The application this node is a part of
+   * @deprecated
+   */
   $app: undefined,
-  /** Compiled type */
-  $type: undefined,
-  /** Model definition for this type */
-  $model: undefined as typeof Model,
-  $dataSet: undefined as typeof Set,
   get $dataKeys() {
     return Array.from(this.$dataSet);
   },
-  $createNode(model, data, options) {
-    return Madrone.create({
-      type: model?.type,
-      model,
-      data,
+  /** @deprecated */
+  $createNode(madroneModel, data, options) {
+    return madroneModel?.create?.(data, {
       app: this.$app,
       root: this.$root,
       parent: this,
-      options,
+      ...(options || {}),
     });
   },
   /**
@@ -127,6 +120,7 @@ Madrone.create = function create<T extends object>({
   Object.defineProperties(ctx, {
     ...protoDescriptors,
     ...getDefaultDescriptors({
+      $isMadrone: true,
       $parent: parent,
       $options: options,
       $model: model,
@@ -136,6 +130,7 @@ Madrone.create = function create<T extends object>({
         return root || parent || ctx;
       },
       get $app() {
+        // @ts-ignore
         return app || ctx.$root;
       }
     })

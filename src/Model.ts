@@ -97,12 +97,15 @@ function createModel<ModelShape extends object>(shape: (ModelShape | MadroneType
       return model;
     },
     /** Create an instance of this model type */
-    create(data?: object) {
+    create(data?: object, { app = null, root = null, parent = null } = {}) {
       compileType();
       compileFeats();
       return Madrone.create({
         model,
         data,
+        app,
+        root,
+        parent,
         options: model.feats,
         type: model.mixed,
         install: (ctx) => installPlugins(ctx, featureCache, allPlugins()),
@@ -115,7 +118,6 @@ function createModel<ModelShape extends object>(shape: (ModelShape | MadroneType
 
   return model;
 }
-
 Model.create = createModel;
 Model.isModel = function isModel(model) {
   return !!model?.$isModel;
