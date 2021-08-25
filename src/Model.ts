@@ -1,7 +1,7 @@
 import { uniqueId } from 'lodash';
 import Madrone from './Madrone';
-import { getPlugins, installPlugins, analyzeObject } from './plugins';
-import { merge } from './util';
+import { getPlugins, mixPlugins, installPlugins, analyzeObject } from './plugins';
+import { merge, flattenOptions } from './util';
 
 function Model() {};
 
@@ -10,14 +10,18 @@ function createModel<ModelShape extends object>(shape: ModelShape | (() => Model
   const id = uniqueId('madrone_model');
   /** Output of the mixed models */
   let mixinCache = {} as ModelShape;
+  /** Output of mixed features */
+  let featureCache = null;
+  /** Queue of model features to install */
+  const featureQueue = [] as Array<Function>;
+  /** The features to install */
+  const features = [] as Array<object>;
   /** Queue of tasks to compile */
   const mixQueue = [] as Array<Function>;
   /** The shapes to compose */
   const mixins = [] as Array<object>;
   /** Plugins to integrate with other frameworks or extend functionality */
   const plugins = [];
-  /** The model options */
-  let options = null;
   /** Mix shapes together */
   const mix = (...items) => {
     mixQueue.push(() => mixins.push(...items));
@@ -30,17 +34,29 @@ function createModel<ModelShape extends object>(shape: ModelShape | (() => Model
       }
       
       mixinCache = merge(...mixins) as ModelShape;
-
       return true;
     }
+    return false;
+  };
+  const getMergedFeats = (...feats) => mixPlugins(flattenOptions(feats), allPlugins());
+  const compileFeats = () => {
+    if (featureQueue.length || !featureCache) {
+      while(featureQueue.length) {
+        let def = featureQueue.shift();
+        features.push(typeof def === 'function' ? def() : def);
+      }
 
+      // @ts-ignore
+      const { $options, ...rest } = mixinCache;
+      featureCache = getMergedFeats(...features, $options, analyzeObject(rest));
+      return true;
+    }
     return false;
   };
   const allPlugins = () => [...getPlugins(), ...plugins];
-  const compile = () => {
-    if (compileType() || !options) {
-      options = analyzeObject(mixinCache);
-    }
+  const feats = () => {
+    compileFeats();
+    return featureCache;
   };
   /** The output in function form */
   const mixin = () => {
@@ -49,7 +65,7 @@ function createModel<ModelShape extends object>(shape: ModelShape | (() => Model
   };
   /** Extend a model definition by creating a new one */
   const extend = <A extends object>(shape: A | ModelShape) => {
-    return createModel(() => merge(mixin, shape) as A & ModelShape).withPlugins(plugins);
+    return createModel(() => merge(mixin, shape) as A & ModelShape).withFeatures(feats).withPlugins(plugins);
   };
 
   const model = { 
@@ -66,25 +82,25 @@ function createModel<ModelShape extends object>(shape: ModelShape | (() => Model
     get plugins() {
       return plugins;
     },
-    /** Add options to this model */
-    withOptions(opts) {
-      Object.assign(options, opts || {});
-      return model;
-    },
     /** Add plugins to this model */
     withPlugins(...items) {
       plugins.push(...items);
       return model;
     },
+    /** Add features to this model */
+    withFeatures(...items) {
+      featureQueue.push(...items);
+      return model;
+    },
     /** Create an instance of this model type */
     create(data?: object) {
-      compile();
+      compileType();
+      compileFeats();
       return Madrone.create({
         model,
         data,
-        options,
         type: model.mixed,
-        install: (ctx) => installPlugins(ctx, options, allPlugins()),
+        install: (ctx) => installPlugins(ctx, featureCache, allPlugins()),
       });
     },
   };

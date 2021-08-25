@@ -56,6 +56,20 @@ export function toArrayPath(path) {
   return toPath(path);
 }
 
+export function toFlatObject(toMix) {
+  const base = {};
+
+  for (let i = 0; i < toMix.length; i += 1) {
+    const baseMix = toMix[i];
+
+    if (baseMix && typeof baseMix === 'object') {
+      Object.assign(base, baseMix);
+    }
+  }
+
+  return base;
+}
+
 export function toFunctionArray(toMix) {
   const endData = [];
 
@@ -74,4 +88,25 @@ export function toFunctionArray(toMix) {
   }
 
   return endData.flat();
+}
+
+export function flattenOptions(options) {
+  const flatItem = {};
+  const optionArray = [].concat(options || []).filter((item) => !!item);
+
+  optionArray.forEach((item) => {
+    if (item && typeof item === 'object') {
+      Object.entries(item).forEach(([key, val]) => {
+        if (!flatItem[key]) {
+          flatItem[key] = [];
+        }
+
+        if (val !== undefined) {
+          flatItem[key].push(val);
+        }
+      });
+    }
+  });
+
+  return flatItem;
 }

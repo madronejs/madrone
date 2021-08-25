@@ -48,8 +48,23 @@ export function analyzeObject(obj) {
   return model;
 }
 
+export function mixPlugins(flatOptions: object, plugins: Array<Plugin>) {
+  const mixedModel = { ...(flatOptions || {}) };
+
+  plugins.forEach(({ name, mix }) => {
+    const val = mixedModel[name];
+
+    if (typeof mix === 'function' && val) {
+      mixedModel[name] = mix(val);
+    } else if (Array.isArray(val)) {
+      mixedModel[name] = mixedModel[name][mixedModel[name].length - 1];
+    }
+  });
+
+  return mixedModel;
+}
+
 export function installPlugins(ctx: MadroneType, mixedOptions: object = {}, plugins: Array<Plugin>) {
-  console.log('mixed options:', mixedOptions)
   plugins.forEach(({ name, install }) => {
     if (typeof install === 'function') {
       install(ctx, mixedOptions[name]);

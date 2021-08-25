@@ -94,6 +94,7 @@ const proto = {
         descriptor.get = get;
       } else {
         descriptor.value = value;
+        descriptor.writable = true;
       }
 
       Object.defineProperty(this, name, descriptor);
