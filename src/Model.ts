@@ -1,5 +1,6 @@
 import { uniqueId } from 'lodash';
 import Madrone from './Madrone';
+import { getPlugins, installPlugins, analyzeObject } from './plugins';
 import { merge } from './util';
 
 function Model() {};
@@ -16,31 +17,39 @@ function createModel<ModelShape extends object>(shape: ModelShape | (() => Model
   /** Plugins to integrate with other frameworks or extend functionality */
   const plugins = [];
   /** The model options */
-  const options = {};
+  let options = null;
   /** Mix shapes together */
   const mix = (...items) => {
     mixQueue.push(() => mixins.push(...items));
   };
   /** Lazily compile the mixins */
-  const compile = () => {
+  const compileType = () => {
     if (mixQueue.length) {
       while(mixQueue.length) {
         mixins.push(mixQueue.shift()());
       }
       
       mixinCache = merge(...mixins) as ModelShape;
+
+      return true;
     }
-    
-    return mixinCache;
+
+    return false;
+  };
+  const allPlugins = () => [...getPlugins(), ...plugins];
+  const compile = () => {
+    if (compileType() || !options) {
+      options = analyzeObject(mixinCache);
+    }
   };
   /** The output in function form */
   const mixin = () => {
-    compile();
+    compileType();
     return mixinCache;
   };
   /** Extend a model definition by creating a new one */
   const extend = <A extends object>(shape: A | ModelShape) => {
-    return createModel(() => merge(mixin, shape) as A & ModelShape);
+    return createModel(() => merge(mixin, shape) as A & ModelShape).withPlugins(plugins);
   };
 
   const model = { 
@@ -73,8 +82,9 @@ function createModel<ModelShape extends object>(shape: ModelShape | (() => Model
       return Madrone.create({
         model,
         data,
-        options: this.options,
+        options,
         type: model.mixed,
+        install: (ctx) => installPlugins(ctx, options, allPlugins()),
       });
     },
   };

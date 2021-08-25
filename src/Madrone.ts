@@ -18,8 +18,11 @@ const proto = {
   $options: undefined,
   $init: undefined as (...any) => any,
   $root: undefined,
+  /** The application this node is a part of */
   $app: undefined,
+  /** Compiled type */
   $type: undefined,
+  /** Model definition for this type */
   $model: undefined as typeof Model,
   /** @deprecated */
   $models: undefined as object,
@@ -29,6 +32,7 @@ const proto = {
   },
   $createNode(model, data, options) {
     return Madrone.create({
+      type: model?.type,
       model,
       data,
       app: this.$app,
@@ -97,9 +101,28 @@ const proto = {
   },
 };
 
+export type MadroneType = typeof proto;
 const protoDescriptors = getDefaultDescriptors(proto);
 
-Madrone.create = function create<T extends object>({ model = null, data = null, options = {}, app = null, root = null, parent = null, type = null } = {} as { type?: T, model: object, data?: object, options?: object, app?: object, root?: object, parent?: object }) {
+Madrone.create = function create<T extends object>({
+  model = null,
+  data = null,
+  options = {},
+  app = null,
+  root = null,
+  parent = null,
+  type = null,
+  install,
+} = {} as {
+  type?: T,
+  model: object,
+  data?: object,
+  options?: object,
+  app?: object,
+  root?: object,
+  parent?: object,
+  install?: Function,
+}) {
   let ctx = {} as typeof proto;
 
   Object.defineProperties(ctx, {
@@ -120,7 +143,7 @@ Madrone.create = function create<T extends object>({ model = null, data = null, 
     })
   });
 
-  Object.assign(ctx, type || {});
+  install?.(ctx);
 
   if (typeof ctx.$init === 'function') {
     ctx = ctx.$init(data) || ctx;

@@ -56,3 +56,22 @@ export function toArrayPath(path) {
   return toPath(path);
 }
 
+export function toFunctionArray(toMix) {
+  const endData = [];
+
+  for (let i = 0; i < toMix.length; i += 1) {
+    const baseMix = toMix[i];
+
+    if (typeof baseMix === 'function') {
+      endData.push(baseMix);
+    } else if (Array.isArray(baseMix)) {
+      endData.push(...baseMix);
+    } else if (baseMix && typeof baseMix === 'object') {
+      endData.push(() => baseMix);
+    } else {
+      endData.push(undefined);
+    }
+  }
+
+  return endData.flat();
+}
