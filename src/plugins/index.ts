@@ -1,6 +1,7 @@
 import cloneDeep from 'lodash/cloneDeep';
 import lodashSet from 'lodash/set';
 import { MadroneType } from '../Madrone';
+import Computed from './Computed';
 import Data from './Data';
 import Methods from './Methods';
 
@@ -18,6 +19,7 @@ export function addPlugin(plugin) {
 
 addPlugin(Methods);
 addPlugin(Data);
+addPlugin(Computed);
 
 export function getPlugins() {
   return Array.from(GLOBAL_PLUGINS);
@@ -29,6 +31,8 @@ export function analyzeObject(obj) {
   const data = {};
 
   Object.entries(descriptors).forEach(([key, descriptor]) => {
+    if (key === '$options') return;
+
     const { get, set, value } = descriptor;
 
     if (typeof get === 'function') {

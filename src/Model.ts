@@ -5,7 +5,7 @@ import { merge, flattenOptions } from './util';
 
 function Model() {};
 
-function createModel<ModelShape extends object>(shape: (ModelShape | MadroneType) | (() => (ModelShape | MadroneType))) {
+function createModel<ModelShape extends object>(shape: (ModelShape | MadroneType)) {
   /** Unique model identifier */
   const id = uniqueId('madrone_model');
   /** Output of the mixed models */
@@ -47,8 +47,7 @@ function createModel<ModelShape extends object>(shape: (ModelShape | MadroneType
       }
 
       // @ts-ignore
-      const { $options, ...rest } = mixinCache;
-      featureCache = getMergedFeats(...features, $options, analyzeObject(rest));
+      featureCache = getMergedFeats(...features, mixinCache.$options, analyzeObject(mixinCache));
       return true;
     }
     return false;
@@ -77,6 +76,11 @@ function createModel<ModelShape extends object>(shape: (ModelShape | MadroneType
     /** The compiled output */
     get mixed() {
       return mixin() as ModelShape;
+    },
+    /** The compiled features */
+    get feats() {
+      compileType();
+      return feats();
     },
     /** The plugins added to this model */
     get plugins() {
