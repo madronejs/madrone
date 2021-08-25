@@ -6,7 +6,7 @@
   "license": "MIT",
   "scripts": {
     "lint": "eslint src/ --ext .js,.jsx,.ts,.tsx",
-    "test": "jest",
+    "test": "jest --watch",
     "docs": "typedoc --entryPoints src/index.ts",
     "build": "tsc -p tsconfig.json"
   },
