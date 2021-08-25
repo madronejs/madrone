@@ -103,6 +103,7 @@ function createModel<ModelShape extends object>(shape: (ModelShape | MadroneType
       return Madrone.create({
         model,
         data,
+        feats: model.feats,
         type: model.mixed,
         install: (ctx) => installPlugins(ctx, featureCache, allPlugins()),
       });
