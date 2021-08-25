@@ -127,5 +127,32 @@ describe('Computed', () => {
       expect(instance.boo).toEqual('world');
       expect(instance.overrideMe).toEqual(true);
     });
+
+    it('only has keys from defined methods', () => {
+      const model = Madrone.Model.create({
+        $options: {
+          computed: {
+            get first() {
+              return 1;
+            },
+          },
+        },
+      }).extend({
+        $options: {
+          computed: {
+            get second() {
+              return 2;
+            },
+          },
+        },
+        get third() {
+          return 3;
+        },
+      });
+
+      const instance = model.create();
+
+      expect(Object.keys(instance)).toEqual(['first', 'second', 'third']);
+    });
   });
 });

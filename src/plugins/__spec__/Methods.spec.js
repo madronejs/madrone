@@ -97,5 +97,32 @@ describe('Methods', () => {
       expect(instance.second()).toEqual(2);
       expect(instance.third()).toEqual(3);
     });
+
+    it('only has keys from defined methods', () => {
+      const model = Madrone.Model.create({
+        $options: {
+          methods: {
+            first() {
+              return 1;
+            },
+          },
+        },
+      }).extend({
+        $options: {
+          methods: {
+            second() {
+              return 2;
+            },
+          },
+        },
+        third() {
+          return 3;
+        },
+      });
+
+      const instance = model.create();
+
+      expect(Object.keys(instance)).toEqual(['first', 'second', 'third']);
+    });
   });
 });

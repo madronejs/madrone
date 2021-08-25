@@ -9,6 +9,13 @@ describe('Data', () => {
       expect(instance.bar).toEqual('hello');
     });
 
+    it('only has keys from defined properties', () => {
+      const model = Madrone.Model.create({ bar: 'hello' });
+      const instance = model.create();
+
+      expect(Object.keys(instance)).toEqual(['bar']);
+    });
+
     it('can set data on an instance from a basic model', () => {
       const model = Madrone.Model.create({ bar: 'hello' });
       const instance = model.create({ bar: 'world' });
@@ -74,6 +81,24 @@ describe('Data', () => {
       expect(instance.test).toEqual('123');
       expect(instance.bar).toEqual('hello');
       expect(instance.boo).toEqual('world');
+    });
+
+    it('only has keys from defined properties', () => {
+      const model = Madrone.Model.create({
+        $options: {
+          data: () => ({ bar: 'hello' }),
+        },
+        test: '123',
+      }).extend({
+        $options: {
+          data: () => ({ boo: 'world' }),
+        },
+        baz: true,
+      });
+
+      const instance = model.create();
+
+      expect(Object.keys(instance)).toEqual(['bar', 'test', 'boo', 'baz']);
     });
   });
 });
