@@ -1,4 +1,4 @@
-import Madrone from '../Madrone';
+import Madrone from '../../Madrone';
 
 describe('Methods', () => {
   describe('object methods', () => {
@@ -10,72 +10,92 @@ describe('Methods', () => {
       });
       const instance = model.create();
 
-      expect(instance).toEqual('hello');
+      expect(instance.bar()).toEqual('hello');
     });
 
-    it('can set data on an instance from a basic model', () => {
-      const model = Madrone.Model.create({ bar: 'hello' });
-      const instance = model.create({ bar: 'world' });
-
-      expect(instance.bar).toEqual('world');
-    });
-
-    it('deep clones data so instances do not overwrite other instance data', () => {
-      const model = Madrone.Model.create({ bar: { baz: 'hello' } });
-      const instance = model.create();
-
-      instance.bar.baz = 'world';
-
-      const instance2 = model.create();
-
-      expect(instance2.bar.baz).toEqual('hello');
-    });
-  });
-
-  describe('$options', () => {
-    it('can make an instance from model defined in $options', () => {
+    it('has the correct "this" context', () => {
       const model = Madrone.Model.create({
-        $options: {
-          data: () => ({ bar: 'hello' }),
+        name: 'myName',
+        greet() {
+          return `Hello ${this.name}`;
         },
       });
       const instance = model.create();
 
-      expect(instance.bar).toEqual('hello');
+      expect(instance.greet()).toEqual('Hello myName');
+    });
+  });
+
+  describe('$options', () => {
+    it('can call methods from model defined in $options', () => {
+      const model = Madrone.Model.create({
+        $options: {
+          methods: {
+            bar() {
+              return 'hello';
+            },
+          },
+        },
+      });
+      const instance = model.create();
+
+      expect(instance.bar()).toEqual('hello');
     });
 
     it('top level properties override $options', () => {
       const model = Madrone.Model.create({
         $options: {
-          data: () => ({ bar: 'hello' }),
+          methods: {
+            inOpts() {
+              return true;
+            },
+            bar() {
+              return 'hello';
+            },
+          },
         },
 
-        bar: 'world',
-        foo: 'test',
+        bar() {
+          return 'world';
+        },
+        inModel() {
+          return true;
+        }
       });
       const instance = model.create();
 
-      expect(instance.bar).toEqual('world');
-      expect(instance.foo).toEqual('test');
+      expect(instance.bar()).toEqual('world');
+      expect(instance.inOpts()).toEqual(true);
+      expect(instance.inModel()).toEqual(true);
     });
 
-    it('gets properties from extended model', () => {
+    it('gets methods from extended model', () => {
       const model = Madrone.Model.create({
         $options: {
-          data: () => ({ bar: 'hello' }),
+          methods: {
+            first() {
+              return 1;
+            },
+          },
         },
       }).extend({
         $options: {
-          data: () => ({ boo: 'world' }),
+          methods: {
+            second() {
+              return 2;
+            },
+          },
         },
-        baz: true,
+        third() {
+          return 3;
+        }
       });
 
       const instance = model.create();
 
-      expect(instance.baz).toEqual(true);
-      expect(instance.bar).toEqual('hello');
-      expect(instance.boo).toEqual('world');
+      expect(instance.first()).toEqual(1);
+      expect(instance.second()).toEqual(2);
+      expect(instance.third()).toEqual(3);
     });
   });
 });

@@ -1,9 +1,9 @@
-import Madrone from '../Madrone';
+import Madrone from '../../Madrone';
 
 describe('Data', () => {
   describe('object properties', () => {
     it('can make an instance from a basic model', () => {
-      const model = Madrone.Model.create({ bar: 'hello' })
+      const model = Madrone.Model.create({ bar: 'hello' });
       const instance = model.create();
 
       expect(instance.bar).toEqual('hello');
