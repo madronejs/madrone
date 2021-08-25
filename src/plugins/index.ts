@@ -1,17 +1,20 @@
 import cloneDeep from 'lodash/cloneDeep';
+import difference from 'lodash/difference';
 import lodashSet from 'lodash/set';
 import { MadroneType } from '../Madrone';
+import Plugin from './Plugin';
 import Computed from './Computed';
 import Created from './Created';
 import Data from './Data';
 import Methods from './Methods';
 import Watch from './Watch';
 
-export interface Plugin {
-  readonly name: string,
-  mix?: (toMix: Array<any>) => any,
-  install?: (ctx: MadroneType, values: any) => void
-}
+export { Plugin };
+export { Computed as ComputedPlugin };
+export { Created as CreatedPlugin };
+export { Data as DataPlugin };
+export { Methods as MethodsPlugin };
+export { Watch as WatchPlugin };
 
 const GLOBAL_PLUGINS = new Set();
 
@@ -62,14 +65,24 @@ export function analyzeObject(obj) {
 
 export function mixPlugins(flatOptions: object, plugins: Array<Plugin>) {
   const mixedModel = { ...(flatOptions || {}) };
+  const nonPluginKeys = difference(Object.keys(flatOptions), plugins.map(({ name }) => name));
 
+  // mix based on the plugin definition
   plugins.forEach(({ name, mix }) => {
     const val = mixedModel[name];
 
     if (typeof mix === 'function' && val) {
       mixedModel[name] = mix(val);
     } else if (Array.isArray(val)) {
-      mixedModel[name] = mixedModel[name][mixedModel[name].length - 1];
+      mixedModel[name] = val[val.length - 1];
+    }
+  });
+  // take the last item for every non-plugin based keyword
+  nonPluginKeys.forEach((key) => {
+    const val = mixedModel[key];
+
+    if (Array.isArray(val)) {
+      mixedModel[key] = val[val.length - 1];
     }
   });
 

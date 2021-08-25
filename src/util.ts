@@ -24,7 +24,7 @@ export function merge<A extends object[]>(...types: [...A]) {
   types.forEach((type) => {
     // @ts-ignore
     const theType = typeof type === 'function' ? type() : type;
-    Object.assign(defs, Object.getOwnPropertyDescriptors(theType ?? type))
+    Object.assign(defs, Object.getOwnPropertyDescriptors(theType ?? type ?? {}))
   });
   Object.defineProperties(newVal, defs);
 

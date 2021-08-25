@@ -107,7 +107,6 @@ Madrone.create = function create<T extends object>({
   model = null,
   data = null,
   options = {},
-  feats,
   app = null,
   root = null,
   parent = null,
@@ -116,9 +115,8 @@ Madrone.create = function create<T extends object>({
 } = {} as {
   type?: T,
   model: object,
-  feats?: any,
   data?: object,
-  options?: object,
+  options?: any,
   app?: object,
   root?: object,
   parent?: object,
@@ -152,8 +150,8 @@ Madrone.create = function create<T extends object>({
   }
 
   // call created hook
-  if (Array.isArray(feats?.created)) {
-    feats.created.forEach((cb) => cb?.call(ctx));
+  if (Array.isArray(options.created)) {
+    options.created.forEach((cb) => cb?.call(ctx));
   }
 
   return ctx as T & typeof proto;
