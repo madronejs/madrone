@@ -2,6 +2,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import lodashSet from 'lodash/set';
 import { MadroneType } from '../Madrone';
 import Data from './Data';
+import Methods from './Methods';
 
 export interface Plugin {
   readonly name: string,
@@ -14,6 +15,9 @@ const GLOBAL_PLUGINS = new Set();
 export function addPlugin(plugin) {
   GLOBAL_PLUGINS.add(plugin);
 }
+
+addPlugin(Methods);
+addPlugin(Data);
 
 export function getPlugins() {
   return Array.from(GLOBAL_PLUGINS);
@@ -71,5 +75,3 @@ export function installPlugins(ctx: MadroneType, mixedOptions: object = {}, plug
     }
   });
 }
-
-addPlugin(Data);

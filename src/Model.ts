@@ -1,11 +1,11 @@
 import { uniqueId } from 'lodash';
-import Madrone from './Madrone';
+import Madrone, { MadroneType } from './Madrone';
 import { getPlugins, mixPlugins, installPlugins, analyzeObject } from './plugins';
 import { merge, flattenOptions } from './util';
 
 function Model() {};
 
-function createModel<ModelShape extends object>(shape: ModelShape | (() => ModelShape)) {
+function createModel<ModelShape extends object>(shape: (ModelShape | MadroneType) | (() => (ModelShape | MadroneType))) {
   /** Unique model identifier */
   const id = uniqueId('madrone_model');
   /** Output of the mixed models */
@@ -64,7 +64,7 @@ function createModel<ModelShape extends object>(shape: ModelShape | (() => Model
     return mixinCache;
   };
   /** Extend a model definition by creating a new one */
-  const extend = <A extends object>(shape: A | ModelShape) => {
+  const extend = <A extends object>(shape: A | ModelShape | MadroneType) => {
     return createModel(() => merge(mixin, shape) as A & ModelShape).withFeatures(feats).withPlugins(plugins);
   };
 

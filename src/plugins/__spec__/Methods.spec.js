@@ -1,12 +1,16 @@
 import Madrone from '../Madrone';
 
-describe('Model', () => {
-  describe('object properties', () => {
-    it('can make an instance from a basic model', () => {
-      const model = Madrone.Model.create({ bar: 'hello' })
+describe('Methods', () => {
+  describe('object methods', () => {
+    it('can make methods from a basic model', () => {
+      const model = Madrone.Model.create({
+        bar() {
+          return 'hello';
+        },
+      });
       const instance = model.create();
 
-      expect(instance.bar).toEqual('hello');
+      expect(instance).toEqual('hello');
     });
 
     it('can set data on an instance from a basic model', () => {
@@ -32,7 +36,7 @@ describe('Model', () => {
     it('can make an instance from model defined in $options', () => {
       const model = Madrone.Model.create({
         $options: {
-          data: () => ({ bar: 'hello'}),
+          data: () => ({ bar: 'hello' }),
         },
       });
       const instance = model.create();
@@ -58,13 +62,13 @@ describe('Model', () => {
     it('gets properties from extended model', () => {
       const model = Madrone.Model.create({
         $options: {
-          data: () => ({ bar: 'hello'}),
+          data: () => ({ bar: 'hello' }),
         },
       }).extend({
         $options: {
           data: () => ({ boo: 'world' }),
         },
-        baz: true
+        baz: true,
       });
 
       const instance = model.create();
