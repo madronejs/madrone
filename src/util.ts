@@ -8,7 +8,7 @@ type SpreadProperties<L, R, K extends keyof L & keyof R> =
 
 type Id<T> = T extends infer U ? { [K in keyof U]: U[K] } : never
 
-type SpreadTwo<L, R> = Id<
+export type SpreadTwo<L, R> = Id<
   & Pick<L, Exclude<keyof L, keyof R>>
   & Pick<R, Exclude<keyof R, OptionalPropertyNames<R>>>
   & Pick<R, Exclude<OptionalPropertyNames<R>, keyof L>>

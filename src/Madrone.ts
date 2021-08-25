@@ -19,6 +19,7 @@ const proto = {
   $init: undefined as (...any) => any,
   $root: undefined,
   $app: undefined,
+  $type: undefined,
   $model: undefined as typeof Model,
   /** @deprecated */
   $models: undefined as object,
@@ -27,7 +28,9 @@ const proto = {
     return Array.from(this.$dataSet);
   },
   $createNode(model, data, options) {
-    return Madrone.create(model, data, {
+    return Madrone.create({
+      model,
+      data,
       app: this.$app,
       root: this.$root,
       parent: this,
@@ -96,7 +99,7 @@ const proto = {
 
 const protoDescriptors = getDefaultDescriptors(proto);
 
-Madrone.create = function create<T>(model: T, data?, { options = {}, app = null, root = null, parent = null } = {}) {
+Madrone.create = function create<T extends object>({ model = null, data = null, options = {}, app = null, root = null, parent = null, type = null } = {} as { type?: T, model: object, data?: object, options?: object, app?: object, root?: object, parent?: object }) {
   let ctx = {} as typeof proto;
 
   Object.defineProperties(ctx, {
@@ -105,6 +108,7 @@ Madrone.create = function create<T>(model: T, data?, { options = {}, app = null,
       $parent: parent,
       $options: options,
       $model: model,
+      $type: type,
       $models: {},
       $dataSet: new Set(),
       get $root() {
@@ -116,7 +120,7 @@ Madrone.create = function create<T>(model: T, data?, { options = {}, app = null,
     })
   });
 
-  Object.assign(ctx, model);
+  Object.assign(ctx, type || {});
 
   if (typeof ctx.$init === 'function') {
     ctx = ctx.$init(data) || ctx;
