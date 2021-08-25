@@ -20,6 +20,7 @@ export function addPlugin(plugin) {
 addPlugin(Methods);
 addPlugin(Data);
 addPlugin(Computed);
+addPlugin(Created);
 
 export function getPlugins() {
   return Array.from(GLOBAL_PLUGINS);

@@ -24,8 +24,6 @@ const proto = {
   $type: undefined,
   /** Model definition for this type */
   $model: undefined as typeof Model,
-  /** @deprecated */
-  $models: undefined as object,
   $dataSet: undefined as typeof Set,
   get $dataKeys() {
     return Array.from(this.$dataSet);
@@ -109,6 +107,7 @@ Madrone.create = function create<T extends object>({
   model = null,
   data = null,
   options = {},
+  feats,
   app = null,
   root = null,
   parent = null,
@@ -117,6 +116,7 @@ Madrone.create = function create<T extends object>({
 } = {} as {
   type?: T,
   model: object,
+  feats?: any,
   data?: object,
   options?: object,
   app?: object,
@@ -133,7 +133,6 @@ Madrone.create = function create<T extends object>({
       $options: options,
       $model: model,
       $type: type,
-      $models: {},
       $dataSet: new Set(),
       get $root() {
         return root || parent || ctx;
@@ -150,6 +149,11 @@ Madrone.create = function create<T extends object>({
     ctx = ctx.$init(data) || ctx;
   } else if (data && typeof data === 'object') {
     Object.assign(ctx, data);
+  }
+
+  // call created hook
+  if (Array.isArray(feats?.created)) {
+    feats.created.forEach((cb) => cb?.call(ctx));
   }
 
   return ctx as T & typeof proto;
