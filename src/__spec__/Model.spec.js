@@ -1,39 +1,30 @@
 import Madrone from '../Madrone';
 
-const somethingElse = {
-  hello: 'world',
-  world: 'true'
-};
-
-const instance = Object.create(somethingElse)
-
-
 describe('Model', () => {
   describe('custom features', () => {
-    it('can make models', () => {
-      const model = Madrone.Model.create({
-        bar: 'hello'
-      }, {
-        foo: true
-      }).extend({
-        baz: true,
-        greet() {
-          return this.baz + this.foo + this.hello;
-        }
-      });
-
+    it('can make an instance from a basic model', () => {
+      const model = Madrone.Model.create({ bar: 'hello' })
       const instance = model.create();
 
-      //   .withOptions({ foo: [1, 2, 3] }, { foo: [4, 5, 6] })
-      //   .withPlugins({
-      //     name: 'foo',
-      //     mix: (toMix) => toMix.flat(),
-      //     install: (ctx, values) => {
-      //       ctx.foo = values;
-      //     }
-      //   });
+      expect(instance.bar).toEqual('hello');
+    });
 
-      // expect(model.mixed.foo).toEqual([1, 2, 3, 4, 5, 6]);
+    it('can set data on an instance from a basic model', () => {
+      const model = Madrone.Model.create({ bar: 'hello' });
+      const instance = model.create({ bar: 'world' });
+
+      expect(instance.bar).toEqual('world');
+    });
+
+    it('deep clones data so instances do not overwrite other instance data', () => {
+      const model = Madrone.Model.create({ bar: { baz: 'hello' } });
+      const instance = model.create();
+
+      instance.bar.baz = 'world';
+
+      const instance2 = model.create();
+
+      expect(instance2.bar.baz).toEqual('hello');
     });
   });
 });
