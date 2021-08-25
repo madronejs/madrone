@@ -1,5 +1,5 @@
 import { toFlatObject } from '../util';
-import { Plugin } from './index';
+import Plugin from './Plugin';
 
 const MethodsPlugin: Plugin = {
   name: 'methods',

@@ -2,8 +2,10 @@ import cloneDeep from 'lodash/cloneDeep';
 import lodashSet from 'lodash/set';
 import { MadroneType } from '../Madrone';
 import Computed from './Computed';
+import Created from './Created';
 import Data from './Data';
 import Methods from './Methods';
+import Watch from './Watch';
 
 export interface Plugin {
   readonly name: string,
@@ -20,6 +22,7 @@ export function addPlugin(plugin) {
 addPlugin(Methods);
 addPlugin(Data);
 addPlugin(Computed);
+addPlugin(Watch);
 addPlugin(Created);
 
 export function getPlugins() {
