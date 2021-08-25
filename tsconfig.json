@@ -6,7 +6,8 @@
     "moduleResolution": "node",
     "esModuleInterop": true,
     "declaration": true,
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "baseUrl": "./"
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "**/__spec__/*"]
