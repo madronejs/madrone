@@ -1,29 +1,17 @@
-import Model from './Model';
 import { getDefaultDescriptors, toArrayPath } from './util';
-import { Integration } from './integrations'
-import { addPlugin } from './plugins'
 
 type DefinePropertyType = { value?: any, get?: () => any, set?: (any) => void, cache?: Boolean, enumerable?: Boolean, configurable?: Boolean };
 
-function Madrone() {}
-Madrone.Model = Model;
-/**
- * Check if an object is Madrone
- * @param instance the instance to check
- * @returns if the given object is a Madrone instance or not
- */
-Madrone.isMadrone = (instance) => !!instance?.$isMadrone;
-Madrone.use = addPlugin;
-
 const proto = {
   $options: undefined,
+  /** Hook into the initialization process */
   $init: undefined as (...any) => any,
-  $state: undefined as Integration | undefined,
   /**
    * The application this node is a part of
    * @deprecated
    */
   $app: undefined,
+  /** The data properties that have been added */
   get $dataKeys() {
     return Array.from(this.$dataSet);
   },
@@ -62,7 +50,6 @@ const proto = {
    * @param options.get the getter method
    * @param options.set the setter method
    * @param options.cache whether or not to cache the property
-   * @returns {void}
    */
   $defineProperty(
     name: string,
@@ -101,7 +88,7 @@ const proto = {
 export type MadroneType = typeof proto;
 const protoDescriptors = getDefaultDescriptors(proto);
 
-Madrone.create = function create<T extends object>({
+export function makeMadrone<T extends object>({
   model = null,
   data = null,
   options = {},
@@ -125,6 +112,7 @@ Madrone.create = function create<T extends object>({
   Object.defineProperties(ctx, {
     ...protoDescriptors,
     ...getDefaultDescriptors({
+      $state: undefined,
       $isMadrone: true,
       $parent: parent,
       $options: options,
@@ -156,5 +144,3 @@ Madrone.create = function create<T extends object>({
 
   return ctx as T & typeof proto;
 }
-
-export default Madrone;

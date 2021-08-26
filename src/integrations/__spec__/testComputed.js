@@ -1,5 +1,5 @@
 import lodashSet from 'lodash/set';
-import Madrone from '../../Madrone';
+import Madrone from '../../index';
 
 export default function testComputed(name, integration) {
   Madrone.use(integration);

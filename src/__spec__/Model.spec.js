@@ -1,4 +1,5 @@
-import Madrone from '../Madrone';
+import Madrone from '../index';
+
 describe('create', () => {
   it('can create models with empty type', () => {
     const model = Madrone.Model.create();
@@ -12,7 +13,7 @@ describe('create', () => {
     const instance = model.create({ foo: true });
 
     expect(instance.foo).toEqual(true);
-  }); 
+  });
 });
 
 describe('extend', () => {
@@ -88,7 +89,7 @@ describe('extend', () => {
       foo: true,
       get bar() {
         return this.foo;
-      }
+      },
     });
     const model2 = Madrone.Model.create({
       foo: false,
@@ -103,7 +104,7 @@ describe('extend', () => {
       const instance1 = model.create();
       const instance2 = model2.create();
       const instance3 = model3.create();
-  
+
       expect(Object.keys(instance1)).toEqual(['foo', 'bar']);
       expect(Object.keys(instance2)).toEqual(['foo', 'boo', 'baz']);
       expect(Object.keys(instance3)).toEqual(['foo', 'boo', 'bar', 'baz']);
@@ -127,7 +128,7 @@ describe('extend', () => {
       expect(instance3.boo).toEqual('123');
       expect(instance3.baz).toEqual('hello');
     });
-  })
+  });
 });
 
 describe('$init', () => {
@@ -150,7 +151,7 @@ describe('Model.type', () => {
       foo: true,
       get bar() {
         return this.foo;
-      }
+      },
     });
 
     expect(model.options).toEqual(model.type.$options);
@@ -176,6 +177,6 @@ describe('Model.type', () => {
     expect(model.type.$options.computed).toBeDefined();
     expect(model.type.foo).toEqual(true);
     expect(model.type.bar).toEqual(model.type.foo);
-    expect(model.type.$options.baz).toEqual(true)
+    expect(model.type.$options.baz).toEqual(true);
   });
 });

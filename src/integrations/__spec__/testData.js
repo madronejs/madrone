@@ -1,4 +1,4 @@
-import Madrone from '../../Madrone';
+import Madrone from '../../index';
 
 function testModel(model) {
   it('adds a property', () => {

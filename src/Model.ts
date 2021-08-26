@@ -1,5 +1,5 @@
 import { uniqueId } from 'lodash';
-import Madrone, { MadroneType } from './Madrone';
+import { makeMadrone, MadroneType } from './Madrone';
 import { getPlugins, getIntegrations, mixPlugins, installPlugins, analyzeObject } from './plugins';
 import { merge, flattenOptions } from './util';
 
@@ -137,7 +137,7 @@ function createModel<ModelShape extends object>(shape: (ModelShape | MadroneType
     create(data?: object, { app = null, root = null, parent = null } = {}) {
       compileShape();
       compileOptions();
-      return Madrone.create({
+      return makeMadrone({
         model,
         data,
         app,

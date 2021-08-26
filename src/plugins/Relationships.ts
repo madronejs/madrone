@@ -2,7 +2,7 @@ import difference from 'lodash/difference';
 import intersection from 'lodash/intersection';
 import lodashSet from 'lodash/set';
 import uniqueId from 'lodash/uniqueId';
-import Madrone from '../Madrone';
+import Madrone from '../index';
 import { toFlatObject } from '../util';
 import ComputedPlugin from './Computed';
 import DataPlugin from './Data';

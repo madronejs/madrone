@@ -1,4 +1,4 @@
-import Madrone from '../../Madrone';
+import Madrone from '../../index';
 
 export default function testData(name, integration) {
   Madrone.use(integration);

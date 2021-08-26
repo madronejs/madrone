@@ -1,4 +1,4 @@
-import Madrone from '../../Madrone';
+import Madrone from '../../index';
 
 describe('Computed', () => {
   describe('object properties', () => {
