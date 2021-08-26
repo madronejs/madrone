@@ -17,33 +17,6 @@ export { Data as DataPlugin };
 export { Methods as MethodsPlugin };
 export { Watch as WatchPlugin };
 
-const GLOBAL_PLUGINS = new Set();
-const GLOBAL_INTEGRATIONS = new Set();
-
-export function addPlugin(plugin: Plugin) {
-  if (plugin.integrate) {
-    GLOBAL_INTEGRATIONS.add(plugin);
-  }
-
-  if (plugin.mix || plugin.install) {
-    GLOBAL_PLUGINS.add(plugin);
-  }
-}
-
-addPlugin(Methods);
-addPlugin(Data);
-addPlugin(Computed);
-addPlugin(Watch);
-addPlugin(Created);
-
-export function getPlugins() {
-  return Array.from(GLOBAL_PLUGINS) as Array<Plugin>;
-}
-
-export function getIntegrations() {
-  return Array.from(GLOBAL_INTEGRATIONS) as Array<Plugin>;
-}
-
 export function analyzeObject(obj) {
   const descriptors = Object.getOwnPropertyDescriptors(obj || {});
   let model = {} as { computed?: object, methods?: object, data?: Function };

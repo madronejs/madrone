@@ -1,6 +1,7 @@
 import { uniqueId } from 'lodash';
 import { makeMadrone, MadroneType } from './Madrone';
-import { getPlugins, getIntegrations, mixPlugins, installPlugins, analyzeObject } from './plugins';
+import { getPlugins, getIntegrations } from './global';
+import { mixPlugins, installPlugins, analyzeObject } from './plugins';
 import { merge, flattenOptions } from './util';
 
 function Model() {};

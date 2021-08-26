@@ -1,6 +1,13 @@
 import Model from './Model';
-import { addPlugin } from './plugins'
+import { addPlugin, removePlugin } from './global'
+import { CreatedPlugin, ComputedPlugin, DataPlugin, MethodsPlugin, WatchPlugin } from './plugins';
 
+// minimum required plugins
+addPlugin(MethodsPlugin);
+addPlugin(DataPlugin);
+addPlugin(ComputedPlugin);
+addPlugin(WatchPlugin);
+addPlugin(CreatedPlugin);
 function Madrone() {}
 Madrone.Model = Model;
 /**
@@ -11,6 +18,8 @@ Madrone.Model = Model;
 Madrone.isMadrone = (instance) => !!instance?.$isMadrone;
 /** Configure a global plugin */
 Madrone.use = addPlugin;
+/** Remove a global plugin */
+Madrone.unuse = removePlugin;
 
 export default Madrone;
 export * from './integrations';
