@@ -1,6 +1,7 @@
 import Model from './Model';
 import { getDefaultDescriptors, toArrayPath } from './util';
 import { Integration } from './integrations'
+import { addPlugin } from './plugins'
 
 type DefinePropertyType = { value?: any, get?: () => any, set?: (any) => void, cache?: Boolean, enumerable?: Boolean, configurable?: Boolean };
 
@@ -12,6 +13,7 @@ Madrone.Model = Model;
  * @returns if the given object is a Madrone instance or not
  */
 Madrone.isMadrone = (instance) => !!instance?.$isMadrone;
+Madrone.use = addPlugin;
 
 const proto = {
   $options: undefined,
@@ -88,6 +90,7 @@ const proto = {
       } else {
         descriptor.value = value;
         descriptor.writable = true;
+        this.$dataSet.add(name);
       }
 
       Object.defineProperty(this, name, descriptor);

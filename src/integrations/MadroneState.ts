@@ -91,4 +91,6 @@ MadroneStateIntegration.prototype = {
   },
 };
 
-export default MadroneStateIntegration.create;
+export default {
+  integrate: MadroneStateIntegration.create,
+};

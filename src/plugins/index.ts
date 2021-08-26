@@ -7,15 +7,18 @@ import Computed from './Computed';
 import Created from './Created';
 import Data from './Data';
 import Methods from './Methods';
+import Relationships from './Relationships';
 import Watch from './Watch';
 
 export interface Plugin {
   readonly name: string
   mix?: (toMix: Array<any>) => any
+  mergeValues?: (shape: any) => void
   install?: (ctx: MadroneType, values: any) => void
   integrate?: (ctx: MadroneType) => Integration
 }
 
+export const RelationshipsPlugin = Relationships({ computed: Computed });
 export { Computed as ComputedPlugin };
 export { Created as CreatedPlugin };
 export { Data as DataPlugin };
@@ -79,9 +82,10 @@ export function analyzeObject(obj) {
 export function mixPlugins(flatOptions: object, plugins: Array<Plugin>) {
   const mixedModel = { ...(flatOptions || {}) };
   const nonPluginKeys = difference(Object.keys(flatOptions), plugins.map(({ name }) => name));
+  const mergeArray = [];
 
   // mix based on the plugin definition
-  plugins.forEach(({ name, mix }) => {
+  plugins.forEach(({ name, mix, mergeValues }) => {
     const val = mixedModel[name];
 
     if (typeof mix === 'function' && val) {
@@ -89,7 +93,18 @@ export function mixPlugins(flatOptions: object, plugins: Array<Plugin>) {
     } else if (Array.isArray(val)) {
       mixedModel[name] = val[val.length - 1];
     }
+
+    if (typeof mergeValues === 'function') {
+      // keep track of all the features that have "mergeValues" so we can
+      // call those after we finish mixin the initial features
+      mergeArray.push(mergeValues);
+    }
   });
+
+  mergeArray.forEach((mergeValues) => {
+    mergeValues(mixedModel);
+  });
+
   // take the last item for every non-plugin based keyword
   nonPluginKeys.forEach((key) => {
     const val = mixedModel[key];
