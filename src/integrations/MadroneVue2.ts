@@ -1,7 +1,7 @@
 import MadroneVue from './MadroneVue';
 
 export default (Vue) => {
-  const Integration = MadroneVue({
+  return MadroneVue({
     reactive: Vue.observable,
     set: Vue.set,
     init: (ctx) => {
@@ -14,8 +14,4 @@ export default (Vue) => {
       });
     },
   });
-
-  return {
-    integrate: (ctx) => Integration.create(ctx),
-  };
 }

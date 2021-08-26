@@ -200,15 +200,13 @@ export default function testComputed(name, integration) {
       let count = 0;
       const obj1 = Madrone.Model.create({ value: 'hello' }).create();
       const obj2 = Madrone.Model.create({ value: 'world' }).create();
-      const objCobmine = makeModel()
-        .mixObject({
-          get test() {
-            count += 1;
+      const objCobmine = Madrone.Model.create({
+        get test() {
+          count += 1;
 
-            return `${obj1.value} ${obj2.value}`;
-          },
-        })
-        .create();
+          return `${obj1.value} ${obj2.value}`;
+        },
+      }).create();
 
       expect(objCobmine.test).toEqual('hello world');
       expect(objCobmine.test).toEqual('hello world');

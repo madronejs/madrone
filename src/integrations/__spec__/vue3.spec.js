@@ -1,9 +1,9 @@
 import * as Vue from 'vue3';
-import MadroneVue from '../MadroneVue';
+import MadroneVue3 from '../MadroneVue3';
 import testAll from './testAll';
 import testVue from './testVue';
 
-const integration = MadroneVue(Vue);
+const integration = MadroneVue3(Vue);
 
 testAll('Vue3', integration);
 testVue('Vue3', integration, {

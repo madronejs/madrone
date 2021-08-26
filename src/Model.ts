@@ -1,6 +1,6 @@
 import { uniqueId } from 'lodash';
 import Madrone, { MadroneType } from './Madrone';
-import { getPlugins, mixPlugins, installPlugins, analyzeObject } from './plugins';
+import { getPlugins, getIntegrations, mixPlugins, installPlugins, analyzeObject } from './plugins';
 import { merge, flattenOptions } from './util';
 
 function Model() {};
@@ -108,7 +108,15 @@ function createModel<ModelShape extends object>(shape: (ModelShape | MadroneType
         parent,
         options: model.feats,
         type: model.mixed,
-        install: (ctx) => installPlugins(ctx, featureCache, allPlugins()),
+        install: (ctx) => {
+          const [pl] = getIntegrations();
+
+          if (typeof pl?.integrate === 'function') {
+            ctx.$state = pl.integrate(ctx);
+          }
+
+          installPlugins(ctx, featureCache, allPlugins());
+        },
       });
     },
   };

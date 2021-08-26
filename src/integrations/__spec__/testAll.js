@@ -9,14 +9,14 @@ import toJSON from './testToJSON';
 import watch from './testWatch';
 
 const testObj = {
-  // created,
-  // data,
+  created,
+  data,
   computed,
-  // watch, --
-  // relationships,
-  // createNode,
-  // toJSON,
-  // proxy,
+  watch,
+  relationships,
+  createNode,
+  toJSON,
+  proxy,
 };
 
 export default function testAll(name, integration, { blacklist = [] } = {}) {

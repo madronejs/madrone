@@ -45,7 +45,11 @@ addPlugin(Watch);
 addPlugin(Created);
 
 export function getPlugins() {
-  return Array.from(GLOBAL_PLUGINS);
+  return Array.from(GLOBAL_PLUGINS) as Array<Plugin>;
+}
+
+export function getIntegrations() {
+  return Array.from(GLOBAL_INTEGRATIONS) as Array<Plugin>;
 }
 
 export function analyzeObject(obj) {

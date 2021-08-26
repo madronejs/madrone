@@ -81,11 +81,11 @@ export default function MadroneVueFactory({ reactive, set, init } = {} as any) {
     this.watch = this.watch.bind(this);
   }
 
-  MadroneVue.create = (ctx) => new MadroneVue(ctx);
-
   MadroneVue.prototype = {
     ...MadroneStateIntegration.prototype,
   };
 
-  return MadroneVue;
+  return {
+    integrate: (ctx) => new MadroneVue(ctx),
+  };
 }
