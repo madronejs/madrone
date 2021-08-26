@@ -1,12 +1,10 @@
 module.exports = {
   roots: ['<rootDir>/src'],
-  testMatch: ['**/__spec__/**/*.+(ts|tsx|js)', '**/?(*.)+(spec|test).+(ts|tsx|js)'],
-  testPathIgnorePatterns: [
-    '/node_modules/',
-    '/dist/',
-  ],
+  setupFiles: ['<rootDir>/node_modules/regenerator-runtime/runtime'],
+  testMatch: [`<rootDir>/src/**/?(*.)spec.js`],
+  testPathIgnorePatterns: ['/node_modules/', '/dist/'],
   transform: {
-    '^.+\\.(ts|tsx)$': 'ts-jest',
     '^.+\\.(js|jsx)$': 'babel-jest',
+    '^.+\\.(ts|tsx)$': 'ts-jest',
   },
 };
