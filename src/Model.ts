@@ -5,10 +5,18 @@ import { merge, flattenOptions } from './util';
 
 function Model() {};
 
-Model.isModel = function isModel(model) {
+/**
+ * @param model the model to check
+ * @returns if the model is a Madrone.Model
+ */
+Model.isModel = function isModel(model): boolean {
   return !!model?.$isModel;
 };
 
+/**
+ * Create a factory model
+ * @param shape The shape to create a model for
+ */
 function createModel<ModelShape extends object>(shape: (ModelShape | MadroneType) | (() => ModelShape | MadroneType)) {
   /** Unique model identifier */
   const id = uniqueId('madrone_model');
@@ -106,6 +114,7 @@ function createModel<ModelShape extends object>(shape: (ModelShape | MadroneType
       compile();
       return optionCache;
     },
+    /** The shape and options combined into a final "type" */
     get type() {
       compile();
       return typeCache as ModelShape & { $options: any };
