@@ -8,7 +8,7 @@ function Computed() {}
  * @returns the created instance
  */
 Computed.create = (options) => {
-  return Observer.create(options);
+  return Observer(options);
 };
 
 export default Computed;

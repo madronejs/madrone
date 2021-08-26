@@ -58,7 +58,7 @@ MadroneStateIntegration.prototype = {
 
   defineProperty(name, value) {
     const target = { value };
-    const atom = Reactive.create(target, {
+    const atom = Reactive(target, {
       name,
       onGet: this.options.reactive?.onGet,
       onHas: this.options.reactive?.onHas,
@@ -87,7 +87,7 @@ MadroneStateIntegration.prototype = {
   },
 
   watch(path, { handler = undefined, deep = false } = {}) {
-    return Watcher.create(() => lodashGet(this.ctx, path), handler, { deep });
+    return Watcher(() => lodashGet(this.ctx, path), handler, { deep });
   },
 };
 

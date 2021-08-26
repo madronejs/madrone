@@ -1,8 +1,6 @@
 import cloneDeep from 'lodash/cloneDeep';
 import Observer from './Observer';
 
-function Watcher() {}
-
 /**
  * Watch an observable for changes
  * @param get the getter function returning the item to watch
@@ -10,14 +8,14 @@ function Watcher() {}
  * @param {Boolean} [options.deep] deeply watch the value
  * @returns a disposer
  */
-Watcher.create = (get, handler, { deep = false } = {}) => {
+export default function Watcher(get, handler, { deep = false } = {}) {
   let getter = get;
 
   if (deep) {
     getter = () => cloneDeep(get());
   }
 
-  const obs = Observer.create({
+  const obs = Observer({
     get: getter,
     onChange: ({ value, prev }) => handler(value, prev),
   });
@@ -27,6 +25,4 @@ Watcher.create = (get, handler, { deep = false } = {}) => {
 
   // return disposer to stop watching
   return () => obs.dispose();
-};
-
-export default Watcher;
+}

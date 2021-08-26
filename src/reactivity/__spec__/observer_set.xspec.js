@@ -5,8 +5,8 @@ describe('set', () => {
   it('busts cache on Set add', () => {
     let counter = 0;
     const item = new Set();
-    const tracked = Reactive.create(item);
-    const obs = Observer.create({
+    const tracked = Reactive(item);
+    const obs = Observer({
       get: () => {
         counter += 1;
 
@@ -26,8 +26,8 @@ describe('set', () => {
   it('busts cache on Set delete', () => {
     let counter = 0;
     const item = new Set(['foo']);
-    const tracked = Reactive.create(item);
-    const obs = Observer.create({
+    const tracked = Reactive(item);
+    const obs = Observer({
       get: () => {
         counter += 1;
 
@@ -45,8 +45,8 @@ describe('set', () => {
   it('busts cache on Set clear', () => {
     let counter = 0;
     const item = new Set(['foo']);
-    const tracked = Reactive.create(item);
-    const obs = Observer.create({
+    const tracked = Reactive(item);
+    const obs = Observer({
       get: () => {
         counter += 1;
 

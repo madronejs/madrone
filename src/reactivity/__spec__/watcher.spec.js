@@ -5,11 +5,11 @@ import Reactive from '../Reactive';
 describe('Watcher', () => {
   it('has callback when tracked value changed', async () => {
     const object = { test: null };
-    const tracked = Reactive.create(object);
+    const tracked = Reactive(object);
     const newValues = [];
     const oldValues = [];
 
-    Watcher.create(
+    Watcher(
       () => tracked.test,
       (val, old) => {
         newValues.push(val);
@@ -27,14 +27,14 @@ describe('Watcher', () => {
 
   it('has callback when computed value changed', async () => {
     const object = { test: null };
-    const tracked = Reactive.create(object);
+    const tracked = Reactive(object);
     const newValues = [];
     const oldValues = [];
     const computed = Computed.create({
       get: () => tracked.test,
     });
 
-    Watcher.create(
+    Watcher(
       () => computed.value,
       (val, old) => {
         newValues.push(val);
@@ -52,14 +52,14 @@ describe('Watcher', () => {
 
   it('can stop watching when disposer called', async () => {
     const object = { test: null };
-    const tracked = Reactive.create(object);
+    const tracked = Reactive(object);
     const newValues = [];
     const oldValues = [];
     const computed = Computed.create({
       get: () => tracked.test,
     });
 
-    const dispose = Watcher.create(
+    const dispose = Watcher(
       () => computed.value,
       (val, old) => {
         newValues.push(val);
@@ -78,11 +78,11 @@ describe('Watcher', () => {
 
   it('can deep watch changes', async () => {
     const object = { test: { nested: true } };
-    const tracked = Reactive.create(object);
+    const tracked = Reactive(object);
     const newValues = [];
     const oldValues = [];
 
-    Watcher.create(
+    Watcher(
       () => tracked,
       (val, old) => {
         newValues.push(val);
