@@ -18,6 +18,11 @@ export type SpreadTwo<L, R> = Id<
 export type Spread<A extends readonly [...any]> = A extends [infer L, ...infer R] ?
   SpreadTwo<L extends (...any) => any ? ReturnType<L> : L, Spread<R>> : unknown
 
+/**
+ * Merge multiple object definitions into a single new object definition
+ * @param types 
+ * @returns The new object definition
+ */
 export function merge<A extends object[]>(...types: [...A]) {
   const defs = {} as PropertyDescriptorMap;
   const newVal = {};

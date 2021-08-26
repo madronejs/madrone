@@ -8,19 +8,25 @@ addPlugin(DataPlugin);
 addPlugin(ComputedPlugin);
 addPlugin(WatchPlugin);
 addPlugin(CreatedPlugin);
-function Madrone() {}
-Madrone.Model = Model;
+
 /**
- * Check if an object is Madrone
- * @param instance the instance to check
- * @returns if the given object is a Madrone instance or not
+ * @namespace
  */
-Madrone.isMadrone = (instance) => !!instance?.$isMadrone;
-/** Configure a global plugin */
-Madrone.use = addPlugin;
-/** Remove a global plugin */
-Madrone.unuse = removePlugin;
+const Madrone = {
+  Model,
+  /**
+   * Check if an object is Madrone
+   * @param instance the instance to check
+   * @returns if the given object is a Madrone instance or not
+   */
+  isMadrone: (instance) => !!instance?.$isMadrone,
+  /** Configure a global plugin */
+  use: addPlugin,
+  /** Remove a global plugin */
+  unuse: removePlugin,
+};
 
 export default Madrone;
 export * from './integrations';
 export * from './plugins';
+export { merge } from './util';
