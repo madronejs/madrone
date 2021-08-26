@@ -1,5 +1,6 @@
 import Model from './Model';
 import { getDefaultDescriptors, toArrayPath } from './util';
+import { Integration } from './integrations'
 
 type DefinePropertyType = { value?: any, get?: () => any, set?: (any) => void, cache?: Boolean, enumerable?: Boolean, configurable?: Boolean };
 
@@ -15,6 +16,7 @@ Madrone.isMadrone = (instance) => !!instance?.$isMadrone;
 const proto = {
   $options: undefined,
   $init: undefined as (...any) => any,
+  $state: undefined as Integration | undefined,
   /**
    * The application this node is a part of
    * @deprecated

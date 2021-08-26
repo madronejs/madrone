@@ -2,14 +2,20 @@ import cloneDeep from 'lodash/cloneDeep';
 import difference from 'lodash/difference';
 import lodashSet from 'lodash/set';
 import { MadroneType } from '../Madrone';
-import Plugin from './Plugin';
+import { Integration } from '../integrations';
 import Computed from './Computed';
 import Created from './Created';
 import Data from './Data';
 import Methods from './Methods';
 import Watch from './Watch';
 
-export { Plugin };
+export interface Plugin {
+  readonly name: string
+  mix?: (toMix: Array<any>) => any
+  install?: (ctx: MadroneType, values: any) => void
+  integrate?: (ctx: MadroneType) => Integration
+}
+
 export { Computed as ComputedPlugin };
 export { Created as CreatedPlugin };
 export { Data as DataPlugin };
@@ -17,9 +23,16 @@ export { Methods as MethodsPlugin };
 export { Watch as WatchPlugin };
 
 const GLOBAL_PLUGINS = new Set();
+const GLOBAL_INTEGRATIONS = new Set();
 
-export function addPlugin(plugin) {
-  GLOBAL_PLUGINS.add(plugin);
+export function addPlugin(plugin: Plugin) {
+  if (plugin.integrate) {
+    GLOBAL_INTEGRATIONS.add(plugin);
+  }
+
+  if (plugin.mix || plugin.install) {
+    GLOBAL_PLUGINS.add(plugin);
+  }
 }
 
 addPlugin(Methods);

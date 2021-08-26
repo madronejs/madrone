@@ -5,7 +5,7 @@ import { merge, flattenOptions } from './util';
 
 function Model() {};
 
-function createModel<ModelShape extends object>(shape: (ModelShape | MadroneType)) {
+function createModel<ModelShape extends object>(shape: (ModelShape | MadroneType) | (() => ModelShape | MadroneType)) {
   /** Unique model identifier */
   const id = uniqueId('madrone_model');
   /** Output of the mixed models */

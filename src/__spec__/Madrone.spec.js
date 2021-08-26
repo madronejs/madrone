@@ -1,5 +1,6 @@
 import Madrone from '../Madrone';
 
+
 describe('Madrone.isMadrone', () => {
   it('returns true if instance of model is Madrone', () => {
     const model = Madrone.Model.create({});

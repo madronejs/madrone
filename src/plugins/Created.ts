@@ -1,5 +1,5 @@
 import { toFunctionArray } from '../util';
-import Plugin from './Plugin';
+import { Plugin } from './index';
 
 const CreatedHookPlugin: Plugin = {
   name: 'created',
