@@ -4,8 +4,8 @@ import lodashSet from 'lodash/set';
 import uniqueId from 'lodash/uniqueId';
 import Madrone from '../index';
 import { toFlatObject } from '../util';
+import { Plugin } from '../interfaces';
 import ComputedPlugin from './Computed';
-import DataPlugin from './Data';
 
 const relationshipDescriptors = Object.getOwnPropertyDescriptors({
   /**
@@ -209,7 +209,7 @@ Object.keys(relationshipDescriptors).forEach((key) => {
   relationshipDescriptors[key].enumerable = false;
 });
 
-export default ({ computed = undefined, data = undefined } = {}) => ({
+const Relationships: Plugin = {
   name: 'relationships',
   mix: (vals) => {
     const merged = toFlatObject(vals);
@@ -251,7 +251,7 @@ export default ({ computed = undefined, data = undefined } = {}) => ({
       });
 
       model.data.push(() => toMixData);
-      model.computed = computed.mix([toMixComputed, allComputeds].filter((item) => !!item));
+      model.computed = ComputedPlugin.mix([toMixComputed, allComputeds].filter((item) => !!item));
     }
   },
   install: (ctx, allRelationships) => {
@@ -273,4 +273,6 @@ export default ({ computed = undefined, data = undefined } = {}) => ({
       },
     });
   },
-});
+}
+
+export default Relationships;

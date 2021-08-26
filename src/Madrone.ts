@@ -2,7 +2,7 @@ import { getDefaultDescriptors, toArrayPath } from './util';
 
 type DefinePropertyType = { value?: any, get?: () => any, set?: (any) => void, cache?: Boolean, enumerable?: Boolean, configurable?: Boolean };
 
-const proto = {
+const MadronePrototype = {
   $options: undefined,
   /** Hook into the initialization process */
   $init: undefined as (...any) => any,
@@ -85,8 +85,8 @@ const proto = {
   },
 };
 
-export type MadroneType = typeof proto;
-const protoDescriptors = getDefaultDescriptors(proto);
+export type MadroneType = typeof MadronePrototype;
+const MadronePrototypeDescriptors = getDefaultDescriptors(MadronePrototype);
 
 export function makeMadrone<T extends object>({
   model = null,
@@ -107,10 +107,10 @@ export function makeMadrone<T extends object>({
   parent?: object,
   install?: Function,
 }) {
-  let ctx = {} as typeof proto;
+  let ctx = {} as MadroneType;
 
   Object.defineProperties(ctx, {
-    ...protoDescriptors,
+    ...MadronePrototypeDescriptors,
     ...getDefaultDescriptors({
       $state: undefined,
       $isMadrone: true,
@@ -142,5 +142,5 @@ export function makeMadrone<T extends object>({
     options.created.forEach((cb) => cb?.call(ctx));
   }
 
-  return ctx as T & typeof proto;
+  return ctx as T & typeof MadronePrototype;
 }
