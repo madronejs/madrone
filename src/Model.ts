@@ -1,8 +1,8 @@
 import { uniqueId } from 'lodash';
-import { makeMadrone, MadroneType } from './Madrone';
+import { MadroneType, MadronePrototypeDescriptors } from './Madrone';
 import { getPlugins, getIntegrations } from './global';
 import { mixPlugins, installPlugins, analyzeObject } from './plugins';
-import { merge, flattenOptions } from './util';
+import { flattenOptions, getDefaultDescriptors, merge } from './util';
 
 /**
  * @namespace
@@ -140,24 +140,52 @@ const Model = {
       create(data?: object, { app = null, root = null, parent = null } = {}) {
         compileShape();
         compileOptions();
-        return makeMadrone({
-          model,
-          data,
-          app,
-          root,
-          parent,
-          options: model.options,
-          type: model.type,
-          install: (ctx) => {
-            const [pl] = getIntegrations();
 
-            if (typeof pl?.integrate === 'function') {
-              ctx.$state = pl.integrate(ctx);
+        let ctx = {} as MadroneType;
+
+        Object.defineProperties(ctx, {
+          ...MadronePrototypeDescriptors,
+          ...getDefaultDescriptors({
+            $state: undefined,
+            $isMadrone: true,
+            $parent: parent,
+            $options: model.options,
+            $model: model,
+            $type: model.type,
+            $dataSet: new Set(),
+            get $root() {
+              return root || parent || ctx;
+            },
+            get $app() {
+              // @ts-ignore
+              return app || ctx.$root;
             }
-
-            installPlugins(ctx, optionCache, allPlugins());
-          },
+          })
         });
+
+        const [pl] = getIntegrations();
+
+        if (typeof pl?.integrate === 'function') {
+          // @ts-ignore
+          ctx.$state = pl.integrate(ctx);
+        }
+
+        installPlugins(ctx, optionCache, allPlugins());
+
+        if (typeof ctx.$init === 'function') {
+          ctx = ctx.$init(data) || ctx;
+        } else if (data && typeof data === 'object') {
+          Object.assign(ctx, data);
+        }
+
+        const { created } = model.options;
+
+        // call created hook
+        if (Array.isArray(created)) {
+          created.forEach((cb) => cb?.call(ctx));
+        }
+
+        return ctx as ModelShape & MadroneType;
       },
     };
 
