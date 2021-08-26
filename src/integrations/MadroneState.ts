@@ -29,7 +29,7 @@ MadroneStateIntegration.prototype = {
     let setter;
 
     if (config.cache) {
-      const cp = Computed.create({
+      const cp = Computed({
         ...config,
         name,
         onImmediateChange: this.options.computed?.onImmediateChange,

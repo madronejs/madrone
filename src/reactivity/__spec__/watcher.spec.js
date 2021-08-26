@@ -30,7 +30,7 @@ describe('Watcher', () => {
     const tracked = Reactive(object);
     const newValues = [];
     const oldValues = [];
-    const computed = Computed.create({
+    const computed = Computed({
       get: () => tracked.test,
     });
 
@@ -55,7 +55,7 @@ describe('Watcher', () => {
     const tracked = Reactive(object);
     const newValues = [];
     const oldValues = [];
-    const computed = Computed.create({
+    const computed = Computed({
       get: () => tracked.test,
     });
 
