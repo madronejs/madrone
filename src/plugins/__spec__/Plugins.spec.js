@@ -14,7 +14,7 @@ describe('Model', () => {
           mix: (toMix) => toMix.flat(),
         });
 
-      expect(model.feats.foo).toEqual([1, 2, 3, 4, 5, 6]);
+      expect(model.options.foo).toEqual([1, 2, 3, 4, 5, 6]);
     });
 
     it('plugins can be scoped to individual models', () => {
@@ -35,8 +35,8 @@ describe('Model', () => {
           $options: { foo: [4, 5, 6] },
         })
 
-      expect(model.feats.foo).toEqual([1, 2, 3, 4, 5, 6]);
-      expect(model2.feats.foo).toEqual([4, 5, 6]);
+      expect(model.options.foo).toEqual([1, 2, 3, 4, 5, 6]);
+      expect(model2.options.foo).toEqual([4, 5, 6]);
     });
   });
 });

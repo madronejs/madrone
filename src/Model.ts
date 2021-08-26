@@ -5,66 +5,89 @@ import { merge, flattenOptions } from './util';
 
 function Model() {};
 
+Model.isModel = function isModel(model) {
+  return !!model?.$isModel;
+};
+
 function createModel<ModelShape extends object>(shape: (ModelShape | MadroneType) | (() => ModelShape | MadroneType)) {
   /** Unique model identifier */
   const id = uniqueId('madrone_model');
   /** Output of the mixed models */
-  let mixinCache = {} as ModelShape;
-  /** Output of mixed features */
-  let featureCache = null;
-  /** Queue of model features to install */
-  const featureQueue = [] as Array<Function>;
-  /** The features to install */
-  const features = [] as Array<object>;
+  let shapeCache = {} as ModelShape;
+  /** Output of mixed options */
+  let optionCache = null;
+  /** Output of the mixed models and options */
+  let typeCache = null;
+  /** Queue of model options to install */
+  const optionQueue = [] as Array<Function>;
+  /** The options to install */
+  const options = [] as Array<object>;
   /** Queue of tasks to compile */
-  const mixQueue = [] as Array<Function>;
+  const shapeQueue = [] as Array<Function>;
   /** The shapes to compose */
-  const mixins = [] as Array<object>;
+  const shapes = [] as Array<object>;
   /** Plugins to integrate with other frameworks or extend functionality */
   const plugins = [];
   /** Mix shapes together */
   const mix = (...items) => {
-    mixQueue.push(() => mixins.push(...items));
+    shapeQueue.push(() => shapes.push(...items));
   };
-  /** Lazily compile the mixins */
-  const compileType = () => {
-    if (mixQueue.length) {
-      while(mixQueue.length) {
-        mixins.push(mixQueue.shift()());
+  /** Get all global plugins, as well as private plugins for this model */
+  const allPlugins = () => [...getPlugins(), ...plugins];
+  const getMergedOptions = (...opts) => mixPlugins(flattenOptions(opts), allPlugins());
+  /** Lazily compile the shapes */
+  const compileShape = () => {
+    if (shapeQueue.length) {
+      while(shapeQueue.length) {
+        shapes.push(shapeQueue.shift()());
       }
       
-      mixinCache = merge(...mixins) as ModelShape;
+      shapeCache = merge(...shapes) as ModelShape;
       return true;
     }
     return false;
   };
-  const getMergedFeats = (...feats) => mixPlugins(flattenOptions(feats), allPlugins());
-  const compileFeats = () => {
-    if (featureQueue.length || !featureCache) {
-      while(featureQueue.length) {
-        let def = featureQueue.shift();
-        features.push(typeof def === 'function' ? def() : def);
+  const compileOptions = () => {
+    if (optionQueue.length || !optionCache) {
+      while(optionQueue.length) {
+        let def = optionQueue.shift();
+        options.push(typeof def === 'function' ? def() : def);
       }
 
       // @ts-ignore
-      featureCache = getMergedFeats(...features, mixinCache.$options, analyzeObject(mixinCache));
+      optionCache = getMergedOptions(...options, shapeCache.$options, analyzeObject(shapeCache));
       return true;
     }
     return false;
   };
-  const allPlugins = () => [...getPlugins(), ...plugins];
-  const feats = () => {
-    compileFeats();
-    return featureCache;
+  const compile = () => {
+    const dirtyShape = compileShape();
+    const dirtyOptions = compileOptions();
+    const dirty = dirtyShape || dirtyOptions;
+    if (dirty) {
+      typeCache = merge(shapeCache, { $options: optionCache });
+    }
+    return dirty;
   };
-  /** The output in function form */
-  const mixin = () => {
-    compileType();
-    return mixinCache;
+  const getOptions = () => {
+    compile();
+    return optionCache;
+  };
+  const getShape = () => {
+    compile();
+    return shapeCache;
   };
   /** Extend a model definition by creating a new one */
-  const extend = <A extends object>(shape: A | ModelShape | MadroneType) => {
-    return createModel(() => merge(mixin, shape) as A & ModelShape).withFeatures(feats).withPlugins(plugins);
+  const extend = <A extends object>(newShape: A | ModelShape | MadroneType) => {
+    if (Model.isModel(newShape)) {
+      return createModel(() => merge(getShape, () => (newShape as { type: A }).type) as A & ModelShape)
+        .withOptions(getOptions)
+        .withPlugins(plugins);
+    }
+
+    return createModel(() => merge(getShape, newShape) as A & ModelShape)
+      .withOptions(getOptions)
+      .withPlugins(plugins);
   };
 
   const model = { 
@@ -74,13 +97,18 @@ function createModel<ModelShape extends object>(shape: (ModelShape | MadroneType
     },
     extend,
     /** The compiled output */
-    get mixed() {
-      return mixin() as ModelShape;
+    get shape() {
+      compile();
+      return shapeCache as ModelShape;
     },
-    /** The compiled features */
-    get feats() {
-      compileType();
-      return feats();
+    /** The compiled options */
+    get options() {
+      compile();
+      return optionCache;
+    },
+    get type() {
+      compile();
+      return typeCache as ModelShape & { $options: any };
     },
     /** The plugins added to this model */
     get plugins() {
@@ -91,23 +119,23 @@ function createModel<ModelShape extends object>(shape: (ModelShape | MadroneType
       plugins.push(...items);
       return model;
     },
-    /** Add features to this model */
-    withFeatures(...items) {
-      featureQueue.push(...items);
+    /** Add options to this model */
+    withOptions(...items) {
+      optionQueue.push(...items);
       return model;
     },
     /** Create an instance of this model type */
     create(data?: object, { app = null, root = null, parent = null } = {}) {
-      compileType();
-      compileFeats();
+      compileShape();
+      compileOptions();
       return Madrone.create({
         model,
         data,
         app,
         root,
         parent,
-        options: model.feats,
-        type: model.mixed,
+        options: model.options,
+        type: model.type,
         install: (ctx) => {
           const [pl] = getIntegrations();
 
@@ -115,7 +143,7 @@ function createModel<ModelShape extends object>(shape: (ModelShape | MadroneType
             ctx.$state = pl.integrate(ctx);
           }
 
-          installPlugins(ctx, featureCache, allPlugins());
+          installPlugins(ctx, optionCache, allPlugins());
         },
       });
     },
@@ -127,8 +155,5 @@ function createModel<ModelShape extends object>(shape: (ModelShape | MadroneType
   return model;
 }
 Model.create = createModel;
-Model.isModel = function isModel(model) {
-  return !!model?.$isModel;
-};
 
 export default Model;
