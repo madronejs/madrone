@@ -1,9 +1,16 @@
 {
-  "name": "madrone",
+  "name": "@madronejs/madrone",
   "version": "0.0.1",
   "description": "Object composition and reactivity framework.",
-  "main": "index.js",
+  "main": "dist/index.js",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/madronejs/madrone.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "lint": "eslint src/ --ext .js,.jsx,.ts,.tsx",
     "test": "jest --watch",
