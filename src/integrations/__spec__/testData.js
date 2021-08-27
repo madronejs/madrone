@@ -42,7 +42,12 @@ function testModel(model) {
 }
 
 export default function testData(name, integration) {
-  Madrone.use(integration);
+  beforeAll(() => {
+    Madrone.use(integration);
+  });
+  afterAll(() => {
+    Madrone.unuse(integration);
+  });
 
   describe('basic data usage', () => {
     describe('with "mixVerbose"', () => {
