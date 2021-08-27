@@ -21,9 +21,11 @@ const Model = {
    * Create a factory model
    * @param shape The shape to create a model for
    */
-  create: function create<ModelShape extends object>(shape: (ModelShape | MadroneType) | (() => ModelShape | MadroneType)) {
+  create: function create<ModelShape>(
+    shape: (ModelShape | MadroneType) | (() => ModelShape | MadroneType)
+  ) {
     /** Unique model identifier */
-    const id = `madrone_model_${++MODEL_COUNT}`;
+    const id = `madrone_model_${++MODEL_COUNT}`; // eslint-disable-line no-plusplus
     /** Output of the mixed models */
     let shapeCache = {} as ModelShape;
     /** Output of mixed options */
@@ -31,13 +33,13 @@ const Model = {
     /** Output of the mixed models and options */
     let typeCache = null;
     /** Queue of model options to install */
-    const optionQueue = [] as Array<Function>;
+    const optionQueue = [] as Array<() => any | any>;
     /** The options to install */
-    const options = [] as Array<object>;
+    const options = [] as Array<any>;
     /** Queue of tasks to compile */
-    const shapeQueue = [] as Array<Function>;
+    const shapeQueue = [] as Array<() => void>;
     /** The shapes to compose */
-    const shapes = [] as Array<object>;
+    const shapes = [] as Array<any>;
     /** Plugins to integrate with other frameworks or extend functionality */
     const plugins = [];
     /** Mix shapes together */
@@ -50,10 +52,10 @@ const Model = {
     /** Lazily compile the shapes */
     const compileShape = () => {
       if (shapeQueue.length) {
-        while(shapeQueue.length) {
-          shapes.push(shapeQueue.shift()());
+        while (shapeQueue.length) {
+          shapeQueue.shift()();
         }
-        
+
         shapeCache = merge(...shapes) as ModelShape;
         return true;
       }
@@ -61,8 +63,9 @@ const Model = {
     };
     const compileOptions = () => {
       if (optionQueue.length || !optionCache) {
-        while(optionQueue.length) {
-          let def = optionQueue.shift();
+        while (optionQueue.length) {
+          const def = optionQueue.shift();
+
           options.push(typeof def === 'function' ? def() : def);
         }
 
@@ -76,6 +79,7 @@ const Model = {
       const dirtyShape = compileShape();
       const dirtyOptions = compileOptions();
       const dirty = dirtyShape || dirtyOptions;
+
       if (dirty) {
         typeCache = merge(shapeCache, { $options: optionCache });
       }
@@ -90,7 +94,7 @@ const Model = {
       return shapeCache;
     };
     /** Extend a model definition by creating a new one */
-    const extend = <A extends object>(newShape: A | ModelShape | MadroneType) => {
+    const extend = <A extends any>(newShape: A | ModelShape | MadroneType) => {
       if (Model.isModel(newShape)) {
         return create(() => merge(getShape, () => (newShape as { type: A }).type) as A & ModelShape)
           .withOptions(getOptions)
@@ -102,7 +106,7 @@ const Model = {
         .withPlugins(plugins);
     };
 
-    const model = { 
+    const model = {
       /** Unique identifier for this model */
       get id() {
         return id as string;
@@ -138,7 +142,7 @@ const Model = {
         return model;
       },
       /** Create an instance of this model type */
-      create(data?: object, { app = null, root = null, parent = null } = {}) {
+      create(data?: any, { app = null, root = null, parent = null } = {}) {
         compileShape();
         compileOptions();
 
@@ -161,8 +165,8 @@ const Model = {
             get $app() {
               // @ts-ignore
               return app || ctx.$root;
-            }
-          })
+            },
+          }),
         });
 
         const [pl] = getIntegrations();
@@ -195,7 +199,7 @@ const Model = {
     mix(shape);
 
     return model;
-  }
+  },
 };
 
 export default Model;

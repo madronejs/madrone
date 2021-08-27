@@ -1,7 +1,5 @@
-export type ObjectLike = Record<string, unknown>;
-
 type OptionalPropertyNames<T> = {
-  [K in keyof T]-?: ObjectLike extends { [P in K]: T[K] } ? K : never;
+  [K in keyof T]-?: any extends { [P in K]: T[K] } ? K : never;
 }[keyof T];
 
 type SpreadProperties<L, R, K extends keyof L & keyof R> = {
@@ -26,7 +24,7 @@ export type Spread<A extends readonly [...any]> = A extends [infer L, ...infer R
  * @param types
  * @returns The new object definition
  */
-export function merge<A extends ObjectLike[]>(...types: [...A]) {
+export function merge<A extends any[]>(...types: [...A]) {
   const defs = {} as PropertyDescriptorMap;
   const newVal = {};
 
