@@ -8,7 +8,6 @@ describe('Model', () => {
         mix: (toMix) => toMix.flat(),
       };
 
-
       Madrone.use(plugin);
 
       const model = Madrone.Model.create({
