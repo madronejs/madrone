@@ -105,7 +105,7 @@ export default function testData(name, integration) {
           foo: {
             bar: 'hello',
             baz: 'world',
-          }
+          },
         },
         get test() {
           return `${this.value.foo.bar} ${this.value.foo.baz}`;

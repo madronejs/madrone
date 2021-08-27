@@ -68,7 +68,7 @@ const relationshipDescriptors = Object.getOwnPropertyDescriptors({
     return Object.keys(this.$relationships.values);
   },
 
-    /**
+  /**
    * Override the default behavior for JSON.stringify
    * @param {Object} options Options for how to stringify
    * @return {Object} object representation of Madrone, handling circular references
@@ -273,6 +273,6 @@ const Relationships: Plugin = {
       },
     });
   },
-}
+};
 
 export default Relationships;

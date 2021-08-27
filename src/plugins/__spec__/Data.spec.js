@@ -39,7 +39,7 @@ describe('Data', () => {
     it('can make an instance from model defined in $options', () => {
       const model = Madrone.Model.create({
         $options: {
-          data: () => ({ bar: 'hello'}),
+          data: () => ({ bar: 'hello' }),
         },
       });
       const instance = model.create();
@@ -65,7 +65,7 @@ describe('Data', () => {
     it('gets properties from extended model', () => {
       const model = Madrone.Model.create({
         $options: {
-          data: () => ({ bar: 'hello'}),
+          data: () => ({ bar: 'hello' }),
         },
         test: '123',
       }).extend({

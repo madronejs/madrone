@@ -25,6 +25,7 @@ describe('Model', () => {
       }).extend({
         $options: { foo: [4, 5, 6] },
       });
+
       expect(model2.options.foo).toEqual([4, 5, 6]);
     });
   });
@@ -58,10 +59,9 @@ describe('Model', () => {
         });
       const model2 = Madrone.Model.create({
         $options: { foo: [1, 2, 3] },
-      })
-        .extend({
-          $options: { foo: [4, 5, 6] },
-        })
+      }).extend({
+        $options: { foo: [4, 5, 6] },
+      });
 
       expect(model.options.foo).toEqual([1, 2, 3, 4, 5, 6]);
       expect(model2.options.foo).toEqual([4, 5, 6]);

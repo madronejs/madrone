@@ -3,15 +3,15 @@ import { KEYS_SYMBOL, dependTarget, targetChanged } from './global';
 
 interface TypeHandlerOptions {
   options?: {
-    name?: string
-    options?: object
-  }
-  receiver?: any,
-  target?: any
-  key?: string
-  value?: any
-  keysChanged?: boolean
-  valueChanged?: boolean
+    name?: string;
+    options?: Record<string, unknown>;
+  };
+  receiver?: any;
+  target?: any;
+  key?: string;
+  value?: any;
+  keysChanged?: boolean;
+  valueChanged?: boolean;
 }
 
 // const wrap = (target, name, cb) => (...args) => {
@@ -21,15 +21,17 @@ interface TypeHandlerOptions {
 
 //   return cb({ getValue, proto, method, args });
 // };
-const makeOptions = ({
-  options,
-  target,
-  key,
-  receiver,
-  value,
-  keysChanged = false,
-  valueChanged = false,
-} = {} as TypeHandlerOptions) => ({
+const makeOptions = (
+  {
+    options,
+    target,
+    key,
+    receiver,
+    value,
+    keysChanged = false,
+    valueChanged = false,
+  } = {} as TypeHandlerOptions
+) => ({
   options: options?.options || {},
   name: options?.name,
   target,
@@ -86,7 +88,7 @@ const defaultHandlers = (options) => ({
   },
   set: (...args) => {
     // @ts-ignore
-    optionSet(options, ...args); 
+    optionSet(options, ...args);
     // @ts-ignore
     return Reflect.set(...args);
   },

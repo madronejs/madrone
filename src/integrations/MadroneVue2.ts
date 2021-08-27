@@ -30,29 +30,29 @@ export default ({ observable, set }) => {
         item[VALUE] += 1;
       };
   // depend on a reactive property
-  const depend = (cp, key?:string) => {
+  const depend = (cp, key?: string) => {
     if (FORBIDDEN.has(key)) return;
 
     Reflect.get(getOrAdd(cp, key), VALUE);
   };
   // invalidate the reactive property
-  const notify = (cp, key?:string) => {
+  const notify = (cp, key?: string) => {
     if (FORBIDDEN.has(key)) return;
 
     reactiveSet(getOrAdd(cp, key));
   };
 
   const deleteIfNeeded = (parent, key) => {
-    let item = reactiveMappings.get(parent);
+    const item = reactiveMappings.get(parent);
 
     if (item) notify(item, key);
 
     reactiveMappings.delete(parent);
   };
 
-  const onDelete = ({ target, key, keysChanged }) => {
+  const onDelete = ({ target, key }) => {
     deleteIfNeeded(target, key);
-  }
+  };
 
   const onChange = ({ target, key, keysChanged }) => {
     notify(target, key);
@@ -88,7 +88,7 @@ export default ({ observable, set }) => {
             onHas: ({ target }) => {
               depend(target);
             },
-            onDelete: onDelete,
+            onDelete,
             onSet: onChange,
           },
         },
@@ -100,4 +100,4 @@ export default ({ observable, set }) => {
       return state;
     },
   };
-}
+};
