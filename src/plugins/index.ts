@@ -22,7 +22,7 @@ export { Watch as WatchPlugin };
 
 export function analyzeObject(obj) {
   const descriptors = Object.getOwnPropertyDescriptors(obj || {});
-  const model = {} as { computed?: ObjectLike; methods?: ObjectLike; data?: Function };
+  const model = {} as { computed?: ObjectLike; methods?: ObjectLike; data?: () => any };
   const data = {};
 
   Object.entries(descriptors).forEach(([key, descriptor]) => {

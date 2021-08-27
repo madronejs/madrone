@@ -30,12 +30,12 @@ export default function testComputed(name, integration) {
               cache: false,
               get() {
                 count += 1;
-  
+
                 return 'value';
               },
             },
           },
-        }
+        },
       });
       const instance = model.create();
 

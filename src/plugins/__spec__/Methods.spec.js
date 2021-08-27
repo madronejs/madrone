@@ -60,7 +60,7 @@ describe('Methods', () => {
         },
         inModel() {
           return true;
-        }
+        },
       });
       const instance = model.create();
 
@@ -88,7 +88,7 @@ describe('Methods', () => {
         },
         third() {
           return 3;
-        }
+        },
       });
 
       const instance = model.create();
