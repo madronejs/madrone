@@ -1,4 +1,4 @@
-import { uniqueId } from 'lodash';
+import uniqueId from 'lodash/uniqueId';
 import { MadroneType, MadronePrototypeDescriptors } from './Madrone';
 import { getPlugins, getIntegrations } from './global';
 import { mixPlugins, installPlugins, analyzeObject } from './plugins';
