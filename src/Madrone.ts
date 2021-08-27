@@ -1,6 +1,14 @@
 import { getDefaultDescriptors } from './util';
 
-type DefinePropertyType = { value?: any, get?: () => any, set?: (any) => void, cache?: Boolean, enumerable?: Boolean, configurable?: Boolean };
+type DefinePropertyType = {
+  value?: any;
+  get?: () => any;
+  set?: (any) => void;
+  cache?: boolean;
+  enumerable?: boolean;
+  configurable?: boolean;
+};
+type WatchHandlerType = (val: any, old: any) => void;
 
 const MadronePrototype = {
   $options: undefined,
@@ -12,7 +20,7 @@ const MadronePrototype = {
    */
   $app: undefined,
   /** Hold other model definitions for ease of use */
-  $models: undefined as object,
+  $models: undefined,
   /** The data properties that have been added */
   get $dataKeys() {
     return Array.from(this.$dataSet);
@@ -38,7 +46,7 @@ const MadronePrototype = {
    * @param cb the callback function called when a change occurs or options object
    * @returns {Function|void} a disposer function
    */
-  $watch(path: string, cb: Function|object) {
+  $watch(path: string, cb: WatchHandlerType | { deep: boolean; handler: WatchHandlerType }) {
     let options;
 
     if (typeof cb === 'function') {
@@ -67,7 +75,7 @@ const MadronePrototype = {
       set,
       cache = true,
       enumerable = true,
-      configurable = true
+      configurable = true,
     } = {} as DefinePropertyType
   ) {
     if (typeof get === 'function' && this.$state?.defineComputed) {
