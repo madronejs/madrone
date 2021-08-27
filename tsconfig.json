@@ -7,7 +7,10 @@
     "esModuleInterop": true,
     "declaration": true,
     "outDir": "./dist",
-    "baseUrl": "./"
+    "baseUrl": "./",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "**/__spec__/*"]
