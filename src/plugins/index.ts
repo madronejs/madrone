@@ -7,6 +7,7 @@ import Computed from './Computed';
 import Created from './Created';
 import Data from './Data';
 import Methods from './Methods';
+import Models from './Models';
 import Relationships from './Relationships';
 import Watch from './Watch';
 
@@ -15,6 +16,7 @@ export { Computed as ComputedPlugin };
 export { Created as CreatedPlugin };
 export { Data as DataPlugin };
 export { Methods as MethodsPlugin };
+export { Models as ModelsPlugin };
 export { Watch as WatchPlugin };
 
 export function analyzeObject(obj) {

@@ -152,6 +152,7 @@ const Model = {
             $parent: parent,
             $options: model.options,
             $model: model,
+            $models: {},
             $type: model.type,
             $dataSet: new Set(),
             get $root() {

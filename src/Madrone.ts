@@ -11,13 +11,21 @@ const MadronePrototype = {
    * @deprecated
    */
   $app: undefined,
+  /** Hold other model definitions for ease of use */
+  $models: undefined as object,
   /** The data properties that have been added */
   get $dataKeys() {
     return Array.from(this.$dataSet);
   },
   /** @deprecated */
   $createNode(madroneModel, data, options) {
-    return madroneModel?.create?.(data, {
+    let newModel = madroneModel;
+
+    if (typeof madroneModel === 'string' && this.$models[madroneModel]) {
+      newModel = this.$models[madroneModel];
+    }
+
+    return newModel?.create?.(data, {
       app: this.$app,
       root: this.$root,
       parent: this,
