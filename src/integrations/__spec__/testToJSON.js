@@ -2,8 +2,14 @@ import Madrone from '../../index';
 import { RelationshipsPlugin } from '../../plugins';
 
 export default function testRelationships(name, integration) {
-  Madrone.use(integration);
-  Madrone.use(RelationshipsPlugin);
+  beforeAll(() => {
+    Madrone.use(integration);
+    Madrone.use(RelationshipsPlugin);
+  });
+  afterAll(() => {
+    Madrone.unuse(integration);
+    Madrone.unuse(RelationshipsPlugin);
+  });
 
   describe('basic toJSON usage', () => {
     it('handles computed properties', () => {

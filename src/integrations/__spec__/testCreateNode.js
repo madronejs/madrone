@@ -1,7 +1,12 @@
 import Madrone from '../../index';
 
 export default function testData(name, integration) {
-  Madrone.use(integration);
+  beforeAll(() => {
+    Madrone.use(integration);
+  });
+  afterAll(() => {
+    Madrone.unuse(integration);
+  });
 
   describe('basic "Madrone.create" usage', () => {
     it('creates from object', () => {

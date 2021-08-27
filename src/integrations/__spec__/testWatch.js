@@ -2,7 +2,12 @@ import lodashSet from 'lodash/set';
 import Madrone from '../../index';
 
 export default function testData(name, integration) {
-  Madrone.use(integration);
+  beforeAll(() => {
+    Madrone.use(integration);
+  });
+  afterAll(() => {
+    Madrone.unuse(integration);
+  });
 
   describe('basic watch usage', () => {
     it('can watch a data property', async () => {
@@ -90,6 +95,37 @@ export default function testData(name, integration) {
       await new Promise(setTimeout);
       expect(newVals).toEqual(['value2', 'value3']);
       expect(oldVals).toEqual(['value', 'value2']);
+    });
+
+    it('watches a delete on nested data', async () => {
+      const newVals = [];
+      const oldVals = [];
+      const model = Madrone.Model.create({
+        value: {
+          foo: {
+            bar: 'hello',
+            baz: 'world',
+          }
+        },
+        get test() {
+          return `${this.value.foo.bar} ${this.value.foo.baz}`;
+        },
+      });
+      const instance = model.create();
+
+      instance.$watch('test', (newVal, oldVal) => {
+        newVals.push(newVal);
+        oldVals.push(oldVal);
+      });
+
+      delete instance.value.foo.bar;
+      await new Promise(setTimeout);
+      delete instance.value.foo.baz;
+      await new Promise(setTimeout);
+      instance.value.foo.bar = 'hello2';
+      await new Promise(setTimeout);
+      expect(newVals).toEqual(['undefined world', 'undefined undefined', 'hello2 undefined']);
+      expect(oldVals).toEqual(['hello world', 'undefined world', 'undefined undefined']);
     });
 
     it('watches changes in a computed containing two unrelated nodes', async () => {

@@ -2,7 +2,12 @@ import lodashSet from 'lodash/set';
 import Madrone from '../../index';
 
 export default function testComputed(name, integration) {
-  Madrone.use(integration);
+  beforeAll(() => {
+    Madrone.use(integration);
+  });
+  afterAll(() => {
+    Madrone.unuse(integration);
+  });
 
   describe('basic computed usage', () => {
     it('adds a property', () => {

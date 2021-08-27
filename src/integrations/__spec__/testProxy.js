@@ -1,7 +1,12 @@
 import Madrone from '../../index';
 
 export default function testProxy(name, integration) {
-  Madrone.use(integration);
+  beforeAll(() => {
+    Madrone.use(integration);
+  });
+  afterAll(() => {
+    Madrone.unuse(integration);
+  });
 
   describe('basic proxy usage', () => {
     it('returns original context when nothing returned from proxy', () => {

@@ -2,7 +2,12 @@ import lodashSet from 'lodash/set';
 import Madrone from '../../index';
 
 export default function testVue(name, integration, { create } = {}) {
-  Madrone.use(integration);
+  beforeAll(() => {
+    Madrone.use(integration);
+  });
+  afterAll(() => {
+    Madrone.unuse(integration);
+  });
 
   const makeGenericModel = ({ cache = true } = {}) =>
     Madrone.Model.create({
