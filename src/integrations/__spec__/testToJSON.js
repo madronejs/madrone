@@ -62,7 +62,7 @@ export default function testRelationships(name, integration) {
 
     it('handles "array" of "object" data properties', () => {
       const instance = Madrone.Model.create({
-        array: [{ foo: 1, bar: 2 }, { baz: 3 }]
+        array: [{ foo: 1, bar: 2 }, { baz: 3 }],
       }).create();
 
       expect(instance.toJSON()).toEqual({ array: [{ foo: 1, bar: 2 }, { baz: 3 }] });
@@ -116,7 +116,7 @@ export default function testRelationships(name, integration) {
           obj.circular = obj;
 
           return obj;
-        }
+        },
       }).create();
 
       expect(instance.toJSON()).toEqual({
@@ -139,7 +139,7 @@ export default function testRelationships(name, integration) {
           array.push(array);
 
           return array;
-        }
+        },
       }).create();
 
       expect(instance.toJSON()).toEqual({
@@ -195,7 +195,7 @@ export default function testRelationships(name, integration) {
         },
         get string() {
           return 'string1';
-        }
+        },
       }).create();
 
       expect(instance.toJSON({ useDataKeys: true })).toEqual({ dataProperty: true });
@@ -224,7 +224,7 @@ export default function testRelationships(name, integration) {
             },
           },
         },
-      })
+      });
 
       const instance = model2.create();
 

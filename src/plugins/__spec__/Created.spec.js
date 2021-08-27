@@ -10,6 +10,7 @@ describe('Created', () => {
         },
       },
     });
+
     model.create();
     model.create();
     expect(counter).toEqual(2);
@@ -21,7 +22,7 @@ describe('Created', () => {
       $options: {
         created() {
           counter += 1;
-          expect(this.val).toEqual(true)
+          expect(this.val).toEqual(true);
         },
       },
 
@@ -55,8 +56,8 @@ describe('Created', () => {
         created() {
           counter2 += 1;
           lifecycle.push('created2');
-        }
-      }
+        },
+      },
     });
 
     model.create();

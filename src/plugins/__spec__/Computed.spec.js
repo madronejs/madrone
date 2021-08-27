@@ -20,13 +20,13 @@ describe('Computed', () => {
         },
         set bar(val) {
           this.dynamic = val;
-        }
+        },
       });
       const instance = model.create();
 
       expect(instance.bar).toBeUndefined();
       instance.bar = 'hello';
-      expect(instance.bar).toEqual('hello')
+      expect(instance.bar).toEqual('hello');
     });
 
     it('can set data on an instance from a basic model', () => {

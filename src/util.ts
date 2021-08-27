@@ -1,33 +1,38 @@
-type OptionalPropertyNames<T> =
-  { [K in keyof T]-?: ({} extends { [P in K]: T[K] } ? K : never) }[keyof T];
+type OptionalPropertyNames<T> = {
+  [K in keyof T]-?: any extends { [P in K]: T[K] } ? K : never;
+}[keyof T];
 
-type SpreadProperties<L, R, K extends keyof L & keyof R> =
-  { [P in K]: L[P] | Exclude<R[P], undefined> };
+type SpreadProperties<L, R, K extends keyof L & keyof R> = {
+  [P in K]: L[P] | Exclude<R[P], undefined>;
+};
 
-type Id<T> = T extends infer U ? { [K in keyof U]: U[K] } : never
+type Id<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
 
 export type SpreadTwo<L, R> = Id<
-  & Pick<L, Exclude<keyof L, keyof R>>
-  & Pick<R, Exclude<keyof R, OptionalPropertyNames<R>>>
-  & Pick<R, Exclude<OptionalPropertyNames<R>, keyof L>>
-  & SpreadProperties<L, R, OptionalPropertyNames<R> & keyof L>
+  Pick<L, Exclude<keyof L, keyof R>> &
+    Pick<R, Exclude<keyof R, OptionalPropertyNames<R>>> &
+    Pick<R, Exclude<OptionalPropertyNames<R>, keyof L>> &
+    SpreadProperties<L, R, OptionalPropertyNames<R> & keyof L>
 >;
 
-export type Spread<A extends readonly [...any]> = A extends [infer L, ...infer R] ?
-  SpreadTwo<L extends (...any) => any ? ReturnType<L> : L, Spread<R>> : unknown
+export type Spread<A extends readonly [...any]> = A extends [infer L, ...infer R]
+  ? SpreadTwo<L extends (...any) => any ? ReturnType<L> : L, Spread<R>>
+  : unknown;
 
 /**
  * Merge multiple object definitions into a single new object definition
- * @param types 
+ * @param types
  * @returns The new object definition
  */
-export function merge<A extends object[]>(...types: [...A]) {
+export function merge<A extends any[]>(...types: [...A]) {
   const defs = {} as PropertyDescriptorMap;
   const newVal = {};
+
   types.forEach((type) => {
     // @ts-ignore
     const theType = typeof type === 'function' ? type() : type;
-    Object.assign(defs, Object.getOwnPropertyDescriptors(theType ?? type ?? {}))
+
+    Object.assign(defs, Object.getOwnPropertyDescriptors(theType ?? type ?? {}));
   });
   Object.defineProperties(newVal, defs);
 
@@ -40,7 +45,7 @@ export function getDefaultDescriptors(obj, defaults?) {
     configurable: true,
     enumerable: false,
     ...(defaults || {}),
-  }
+  };
 
   Object.keys(descriptors).forEach((key) => {
     Object.entries(newDefaults).forEach(([descKey, descValue]) => {

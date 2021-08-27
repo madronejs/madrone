@@ -31,7 +31,7 @@ export default function testRelationships(name, integration) {
             },
           },
         },
-      }
+      },
     };
     const model = Madrone.Model.create(def);
 
@@ -116,6 +116,7 @@ export default function testRelationships(name, integration) {
       });
 
       const instance = model2.create();
+
       expect(instance.bar).toEqual([true, false]);
     });
 

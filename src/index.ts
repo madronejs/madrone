@@ -1,6 +1,13 @@
 import Model from './Model';
-import { addPlugin, removePlugin } from './global'
-import { CreatedPlugin, ComputedPlugin, DataPlugin, MethodsPlugin, ModelsPlugin, WatchPlugin } from './plugins';
+import { addPlugin, removePlugin } from './global';
+import {
+  CreatedPlugin,
+  ComputedPlugin,
+  DataPlugin,
+  MethodsPlugin,
+  ModelsPlugin,
+  WatchPlugin,
+} from './plugins';
 
 // minimum required plugins
 addPlugin(MethodsPlugin);

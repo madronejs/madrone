@@ -21,7 +21,7 @@ export { Watch as WatchPlugin };
 
 export function analyzeObject(obj) {
   const descriptors = Object.getOwnPropertyDescriptors(obj || {});
-  let model = {} as { computed?: object, methods?: object, data?: Function };
+  const model = {} as { computed?: any; methods?: any; data?: () => any };
   const data = {};
 
   Object.entries(descriptors).forEach(([key, descriptor]) => {
@@ -50,9 +50,12 @@ export function analyzeObject(obj) {
   return model;
 }
 
-export function mixPlugins(flatOptions: object, plugins: Array<Plugin>) {
+export function mixPlugins(flatOptions: any, plugins: Array<Plugin>) {
   const mixedModel = { ...(flatOptions || {}) };
-  const nonPluginKeys = difference(Object.keys(flatOptions), plugins.map(({ name }) => name));
+  const nonPluginKeys = difference(
+    Object.keys(flatOptions),
+    plugins.map(({ name }) => name)
+  );
   const mergeArray = [];
 
   // mix based on the plugin definition
@@ -88,7 +91,7 @@ export function mixPlugins(flatOptions: object, plugins: Array<Plugin>) {
   return mixedModel;
 }
 
-export function installPlugins(ctx: MadroneType, mixedOptions: object = {}, plugins: Array<Plugin>) {
+export function installPlugins(ctx: MadroneType, mixedOptions: any, plugins: Array<Plugin>) {
   plugins.forEach(({ name, install }) => {
     if (typeof install === 'function') {
       install(ctx, mixedOptions[name]);

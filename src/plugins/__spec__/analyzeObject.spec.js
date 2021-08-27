@@ -19,7 +19,7 @@ describe('analyzeObject', () => {
       },
       set bar(val) {
         this.test = val;
-      }
+      },
     };
     const shape = analyzeObject(obj);
 

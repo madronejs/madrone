@@ -34,7 +34,9 @@ const ObserverPrototype = {
 
   wrap(cb) {
     GLOBAL_STACK.push(this);
+
     const val = cb();
+
     GLOBAL_STACK.pop();
     return val;
   },
@@ -93,23 +95,26 @@ const ObserverPrototype = {
       throw new Error(`No setter defined for "${this.name}"`);
     }
   },
-}
+};
 
 /**
  * @param {Object} options the observer options
  */
-export default function Observer({ name, get, set, cache = true, onGet, onSet, onChange, onImmediateChange } = {} as any) {
+export default function Observer(
+  { name, get, set, cache = true, onGet, onSet, onChange, onImmediateChange } = {} as any
+) {
   const obs = Object.create(ObserverPrototype);
   const props = {
-    name: name,
-    get: get,
-    set: set,
+    name,
+    get,
+    set,
     hooks: { onGet, onSet, onChange, onImmediateChange },
     alive: true,
     cache: !!cache,
     dirty: true,
     cachedVal: undefined,
-  }
+  };
+
   Object.assign(obs, props);
 
   return obs as typeof ObserverPrototype & typeof props;
