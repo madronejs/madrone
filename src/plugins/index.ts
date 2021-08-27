@@ -3,6 +3,7 @@ import difference from 'lodash/difference';
 import lodashSet from 'lodash/set';
 import { MadroneType } from '../Madrone';
 import { Plugin } from '../interfaces';
+import { ObjectLike } from '@/util';
 import Computed from './Computed';
 import Created from './Created';
 import Data from './Data';
@@ -21,7 +22,7 @@ export { Watch as WatchPlugin };
 
 export function analyzeObject(obj) {
   const descriptors = Object.getOwnPropertyDescriptors(obj || {});
-  let model = {} as { computed?: object, methods?: object, data?: Function };
+  const model = {} as { computed?: ObjectLike; methods?: ObjectLike; data?: Function };
   const data = {};
 
   Object.entries(descriptors).forEach(([key, descriptor]) => {
@@ -50,9 +51,12 @@ export function analyzeObject(obj) {
   return model;
 }
 
-export function mixPlugins(flatOptions: object, plugins: Array<Plugin>) {
+export function mixPlugins(flatOptions: ObjectLike, plugins: Array<Plugin>) {
   const mixedModel = { ...(flatOptions || {}) };
-  const nonPluginKeys = difference(Object.keys(flatOptions), plugins.map(({ name }) => name));
+  const nonPluginKeys = difference(
+    Object.keys(flatOptions),
+    plugins.map(({ name }) => name)
+  );
   const mergeArray = [];
 
   // mix based on the plugin definition
@@ -88,7 +92,11 @@ export function mixPlugins(flatOptions: object, plugins: Array<Plugin>) {
   return mixedModel;
 }
 
-export function installPlugins(ctx: MadroneType, mixedOptions: object = {}, plugins: Array<Plugin>) {
+export function installPlugins(
+  ctx: MadroneType,
+  mixedOptions: ObjectLike = {},
+  plugins: Array<Plugin>
+) {
   plugins.forEach(({ name, install }) => {
     if (typeof install === 'function') {
       install(ctx, mixedOptions[name]);
