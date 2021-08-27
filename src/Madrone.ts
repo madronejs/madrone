@@ -1,4 +1,4 @@
-import { getDefaultDescriptors, toArrayPath } from './util';
+import { getDefaultDescriptors } from './util';
 
 type DefinePropertyType = { value?: any, get?: () => any, set?: (any) => void, cache?: Boolean, enumerable?: Boolean, configurable?: Boolean };
 
@@ -41,7 +41,7 @@ const MadronePrototype = {
       options = cb;
     }
 
-    return this.$state?.watch(toArrayPath(path), options);
+    return this.$state?.watch(path, options);
   },
   /**
    * Define a property on the object

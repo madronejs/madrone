@@ -1,5 +1,3 @@
-import toPath from 'lodash/toPath';
-
 type OptionalPropertyNames<T> =
   { [K in keyof T]-?: ({} extends { [P in K]: T[K] } ? K : never) }[keyof T];
 
@@ -51,14 +49,6 @@ export function getDefaultDescriptors(obj, defaults?) {
   });
 
   return descriptors;
-}
-
-export function toArrayPath(path) {
-  if (Array.isArray(path)) {
-    return [...path];
-  }
-
-  return toPath(path);
 }
 
 export function toFlatObject(toMix) {

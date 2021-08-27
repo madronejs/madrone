@@ -1,8 +1,9 @@
-import uniqueId from 'lodash/uniqueId';
 import { MadroneType, MadronePrototypeDescriptors } from './Madrone';
 import { getPlugins, getIntegrations } from './global';
 import { mixPlugins, installPlugins, analyzeObject } from './plugins';
 import { flattenOptions, getDefaultDescriptors, merge } from './util';
+
+let MODEL_COUNT = 0;
 
 /**
  * @namespace
@@ -22,7 +23,7 @@ const Model = {
    */
   create: function create<ModelShape extends object>(shape: (ModelShape | MadroneType) | (() => ModelShape | MadroneType)) {
     /** Unique model identifier */
-    const id = uniqueId('madrone_model');
+    const id = `madrone_model_${++MODEL_COUNT}`;
     /** Output of the mixed models */
     let shapeCache = {} as ModelShape;
     /** Output of mixed options */
