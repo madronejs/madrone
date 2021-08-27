@@ -13,53 +13,7 @@ export function getCurrentObserver() {
   return GLOBAL_STACK[GLOBAL_STACK.length - 1];
 }
 
-/**
- * @memberof Reactivity
- * @param {Object} options the observer options
- * @class
- */
-function Observer(options) {
-  this.init(options);
-}
-
-/**
- * Create a new observer
- * @param {Object} options the observer options
- * @returns {Reactivity.Observer} the created observer
- */
-Observer.create = (options) => new Observer(options);
-
-
-
-// global static properties
-Object.defineProperties(Observer, {
-  stack: {
-    value: [],
-  },
-  current: {
-    get() {
-      return this.stack[this.stack.length - 1];
-    },
-  },
-});
-
-Observer.prototype = {
-  init({ name, get, set, cache = true, onGet, onSet, onChange, onImmediateChange } = {} as any) {
-    this.name = name;
-    this.get = get;
-    this.set = set;
-    this.hooks = {
-      onGet,
-      onSet,
-      onChange,
-      onImmediateChange,
-    };
-    this.alive = true;
-    this.cache = !!cache;
-    this.dirty = true;
-    this.cachedVal = undefined;
-  },
-
+const ObserverPrototype = {
   callHook(name) {
     if (typeof this.hooks[name] === 'function') {
       this.hooks[name](this);
@@ -139,6 +93,24 @@ Observer.prototype = {
       throw new Error(`No setter defined for "${this.name}"`);
     }
   },
-};
+}
 
-export default Observer;
+/**
+ * @param {Object} options the observer options
+ */
+export default function Observer({ name, get, set, cache = true, onGet, onSet, onChange, onImmediateChange } = {} as any) {
+  const obs = Object.create(ObserverPrototype);
+  const props = {
+    name: name,
+    get: get,
+    set: set,
+    hooks: { onGet, onSet, onChange, onImmediateChange },
+    alive: true,
+    cache: !!cache,
+    dirty: true,
+    cachedVal: undefined,
+  }
+  Object.assign(obs, props);
+
+  return obs as typeof ObserverPrototype & typeof props;
+}

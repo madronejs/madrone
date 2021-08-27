@@ -4,7 +4,7 @@ import Reactive from '../Reactive';
 describe('Observer', () => {
   it('caches values if nothing observed', () => {
     let counter = 0;
-    const obs = Observer.create({
+    const obs = Observer({
       get: () => {
         counter += 1;
 
@@ -21,8 +21,8 @@ describe('Observer', () => {
   it('does not break cache if same value assigned', () => {
     let counter = 0;
     const object = { test: true };
-    const tracked = Reactive.create(object);
-    const obs = Observer.create({
+    const tracked = Reactive(object);
+    const obs = Observer({
       get: () => {
         counter += 1;
 
@@ -38,8 +38,8 @@ describe('Observer', () => {
 
   it('stops watching after "dispose"', () => {
     let counter = 0;
-    const tracked = Reactive.create({ test: 0 });
-    const obs = Observer.create({
+    const tracked = Reactive({ test: 0 });
+    const obs = Observer({
       get: () => {
         counter += 1;
 
@@ -60,11 +60,11 @@ describe('Observer', () => {
   it('busts cache on nested observers', () => {
     let counter = 0;
     const object = { test: true };
-    const tracked = Reactive.create(object);
-    const obs = Observer.create({
+    const tracked = Reactive(object);
+    const obs = Observer({
       get: () => tracked.test,
     });
-    const obs2 = Observer.create({
+    const obs2 = Observer({
       get: () => {
         counter += 1;
 
@@ -84,8 +84,8 @@ describe('Observer', () => {
   it('does not bust cache if sibling in observer changed', () => {
     let counter = 0;
     const object = { test: true, sibling: 0 };
-    const tracked = Reactive.create(object);
-    const obs = Observer.create({
+    const tracked = Reactive(object);
+    const obs = Observer({
       get: () => {
         counter += 1;
 
@@ -105,10 +105,10 @@ describe('Observer', () => {
   it('has callback when value observer changed', async () => {
     let counter = 0;
     const object = { test: null };
-    const tracked = Reactive.create(object);
+    const tracked = Reactive(object);
     const newValues = [];
     const oldValues = [];
-    const obs = Observer.create({
+    const obs = Observer({
       get: () => {
         counter += 1;
 
@@ -139,10 +139,10 @@ describe('Observer', () => {
   it('only notifies change one time', async () => {
     let counter = 0;
     const object = { test: null };
-    const tracked = Reactive.create(object);
+    const tracked = Reactive(object);
     const newValues = [];
     const oldValues = [];
-    const obs = Observer.create({
+    const obs = Observer({
       get: () => {
         counter += 1;
 
@@ -177,13 +177,13 @@ describe('Observer', () => {
   it('has callback when value nested observer changed', async () => {
     let counter = 0;
     const object = { test: null };
-    const tracked = Reactive.create(object);
+    const tracked = Reactive(object);
     const newValues = [];
     const oldValues = [];
-    const obs = Observer.create({
+    const obs = Observer({
       get: () => tracked.test,
     });
-    const obs2 = Observer.create({
+    const obs2 = Observer({
       get: () => {
         counter += 1;
 

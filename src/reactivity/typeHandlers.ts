@@ -79,7 +79,7 @@ const defaultHandlers = (options) => ({
     optionGet(options, target, prop, receiver);
 
     if (options?.deep && Object.getOwnPropertyDescriptor(target, prop)?.configurable) {
-      return Reactive.create(Reflect.get(target, prop, receiver), options);
+      return Reactive(Reflect.get(target, prop, receiver), options);
     }
 
     return Reflect.get(target, prop, receiver);
@@ -127,7 +127,7 @@ const arrayHandler = (options) => ({
 //         options?.onGet?.(makeOptions({ options, target, value }));
 
 //         if (options?.deep) {
-//           return Reactive.create(value, options);
+//           return Reactive(value, options);
 //         }
 
 //         return value;
@@ -155,9 +155,9 @@ const arrayHandler = (options) => ({
 
 //         method.call(target, (val1, val2, theSet) => {
 //           cb(
-//             Reactive.create(val1, options),
-//             Reactive.create(val2, options),
-//             Reactive.create(theSet, options)
+//             Reactive(val1, options),
+//             Reactive(val2, options),
+//             Reactive(theSet, options)
 //           );
 //         });
 //       });
