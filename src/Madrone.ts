@@ -1,4 +1,4 @@
-import { getDefaultDescriptors, toArrayPath } from './util';
+import { getDefaultDescriptors } from './util';
 
 type DefinePropertyType = { value?: any, get?: () => any, set?: (any) => void, cache?: Boolean, enumerable?: Boolean, configurable?: Boolean };
 
@@ -41,7 +41,7 @@ const MadronePrototype = {
       options = cb;
     }
 
-    return this.$state?.watch(toArrayPath(path), options);
+    return this.$state?.watch(path, options);
   },
   /**
    * Define a property on the object
@@ -86,61 +86,4 @@ const MadronePrototype = {
 };
 
 export type MadroneType = typeof MadronePrototype;
-const MadronePrototypeDescriptors = getDefaultDescriptors(MadronePrototype);
-
-export function makeMadrone<T extends object>({
-  model = null,
-  data = null,
-  options = {},
-  app = null,
-  root = null,
-  parent = null,
-  type = null,
-  install,
-} = {} as {
-  type?: T,
-  model: object,
-  data?: object,
-  options?: any,
-  app?: object,
-  root?: object,
-  parent?: object,
-  install?: Function,
-}) {
-  let ctx = {} as MadroneType;
-
-  Object.defineProperties(ctx, {
-    ...MadronePrototypeDescriptors,
-    ...getDefaultDescriptors({
-      $state: undefined,
-      $isMadrone: true,
-      $parent: parent,
-      $options: options,
-      $model: model,
-      $type: type,
-      $dataSet: new Set(),
-      get $root() {
-        return root || parent || ctx;
-      },
-      get $app() {
-        // @ts-ignore
-        return app || ctx.$root;
-      }
-    })
-  });
-
-  install?.(ctx);
-
-  if (typeof ctx.$init === 'function') {
-    ctx = ctx.$init(data) || ctx;
-  } else if (data && typeof data === 'object') {
-    Object.assign(ctx, data);
-  }
-
-  // call created hook
-  if (Array.isArray(options.created)) {
-    options.created.forEach((cb) => cb?.call(ctx));
-  }
-
-  return ctx as T & typeof MadronePrototype;
-}
+export const MadronePrototypeDescriptors = getDefaultDescriptors(MadronePrototype);
