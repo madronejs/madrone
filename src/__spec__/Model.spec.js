@@ -1,4 +1,5 @@
-import Madrone from '../Madrone';
+import Madrone from '../index';
+
 describe('create', () => {
   it('can create models with empty type', () => {
     const model = Madrone.Model.create();
@@ -12,10 +13,10 @@ describe('create', () => {
     const instance = model.create({ foo: true });
 
     expect(instance.foo).toEqual(true);
-  }); 
+  });
 });
 
-describe('$options', () => {
+describe('extend', () => {
   it('object model adds extra items to $options when mixing other models', () => {
     const model = Madrone.Model.create({
       $options: {
@@ -33,7 +34,7 @@ describe('$options', () => {
         },
       });
 
-    expect(model.feats).toEqual({
+    expect(model.options).toEqual({
       hello: 'testItemOverride',
       world: 'testItem2',
     });
@@ -82,6 +83,52 @@ describe('$options', () => {
     expect(instance.$options.bar.foo).toBeUndefined();
     expect(instance.$options.bar.foo1).toEqual('world2');
   });
+
+  describe('extend models with other models', () => {
+    const model = Madrone.Model.create({
+      foo: true,
+      get bar() {
+        return this.foo;
+      },
+    });
+    const model2 = Madrone.Model.create({
+      foo: false,
+      boo: '123',
+      get baz() {
+        return 'hello';
+      },
+    });
+    const model3 = model.extend(model2.type);
+
+    it('has the correct keys', () => {
+      const instance1 = model.create();
+      const instance2 = model2.create();
+      const instance3 = model3.create();
+
+      expect(Object.keys(instance1)).toEqual(['foo', 'bar']);
+      expect(Object.keys(instance2)).toEqual(['foo', 'boo', 'baz']);
+      expect(Object.keys(instance3)).toEqual(['foo', 'boo', 'bar', 'baz']);
+    });
+
+    it('has the correct default data', () => {
+      const instance1 = model.create();
+      const instance2 = model2.create();
+      const instance3 = model3.create();
+
+      expect(instance1.foo).toEqual(true);
+      expect(instance1.bar).toEqual(true);
+      expect(instance1.boo).toBeUndefined();
+
+      expect(instance2.foo).toEqual(false);
+      expect(instance2.boo).toEqual('123');
+      expect(instance2.baz).toEqual('hello');
+
+      expect(instance3.foo).toEqual(false);
+      expect(instance3.bar).toEqual(false);
+      expect(instance3.boo).toEqual('123');
+      expect(instance3.baz).toEqual('hello');
+    });
+  });
 });
 
 describe('$init', () => {
@@ -95,5 +142,41 @@ describe('$init', () => {
 
     expect(instance).toEqual({ foo: true, bar: false });
     expect(Madrone.isMadrone(instance)).toEqual(false);
+  });
+});
+
+describe('Model.type', () => {
+  it('has the shape and options available on "type"', () => {
+    const model = Madrone.Model.create({
+      foo: true,
+      get bar() {
+        return this.foo;
+      },
+    });
+
+    expect(model.options).toEqual(model.type.$options);
+    expect(model.type.$options.data).toBeDefined();
+    expect(model.type.$options.computed).toBeDefined();
+    expect(model.type.foo).toBeTruthy();
+    expect(model.type.bar).toEqual(model.type.foo);
+  });
+
+  it('merges options', () => {
+    const model = Madrone.Model.create({
+      $options: {
+        baz: true,
+      },
+      foo: true,
+      get bar() {
+        return this.foo;
+      },
+    });
+
+    expect(model.options).toEqual(model.type.$options);
+    expect(model.type.$options.data).toBeDefined();
+    expect(model.type.$options.computed).toBeDefined();
+    expect(model.type.foo).toEqual(true);
+    expect(model.type.bar).toEqual(model.type.foo);
+    expect(model.type.$options.baz).toEqual(true);
   });
 });

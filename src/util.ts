@@ -1,5 +1,3 @@
-import toPath from 'lodash/toPath';
-
 type OptionalPropertyNames<T> =
   { [K in keyof T]-?: ({} extends { [P in K]: T[K] } ? K : never) }[keyof T];
 
@@ -18,6 +16,11 @@ export type SpreadTwo<L, R> = Id<
 export type Spread<A extends readonly [...any]> = A extends [infer L, ...infer R] ?
   SpreadTwo<L extends (...any) => any ? ReturnType<L> : L, Spread<R>> : unknown
 
+/**
+ * Merge multiple object definitions into a single new object definition
+ * @param types 
+ * @returns The new object definition
+ */
 export function merge<A extends object[]>(...types: [...A]) {
   const defs = {} as PropertyDescriptorMap;
   const newVal = {};
@@ -46,14 +49,6 @@ export function getDefaultDescriptors(obj, defaults?) {
   });
 
   return descriptors;
-}
-
-export function toArrayPath(path) {
-  if (Array.isArray(path)) {
-    return [...path];
-  }
-
-  return toPath(path);
 }
 
 export function toFlatObject(toMix) {

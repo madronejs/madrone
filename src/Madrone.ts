@@ -1,29 +1,17 @@
-import Model from './Model';
-import { getDefaultDescriptors, toArrayPath } from './util';
-import { Integration } from './integrations'
-import { addPlugin } from './plugins'
+import { getDefaultDescriptors } from './util';
 
 type DefinePropertyType = { value?: any, get?: () => any, set?: (any) => void, cache?: Boolean, enumerable?: Boolean, configurable?: Boolean };
 
-function Madrone() {}
-Madrone.Model = Model;
-/**
- * Check if an object is Madrone
- * @param instance the instance to check
- * @returns if the given object is a Madrone instance or not
- */
-Madrone.isMadrone = (instance) => !!instance?.$isMadrone;
-Madrone.use = addPlugin;
-
-const proto = {
+const MadronePrototype = {
   $options: undefined,
+  /** Hook into the initialization process */
   $init: undefined as (...any) => any,
-  $state: undefined as Integration | undefined,
   /**
    * The application this node is a part of
    * @deprecated
    */
   $app: undefined,
+  /** The data properties that have been added */
   get $dataKeys() {
     return Array.from(this.$dataSet);
   },
@@ -53,7 +41,7 @@ const proto = {
       options = cb;
     }
 
-    return this.$state?.watch(toArrayPath(path), options);
+    return this.$state?.watch(path, options);
   },
   /**
    * Define a property on the object
@@ -62,7 +50,6 @@ const proto = {
    * @param options.get the getter method
    * @param options.set the setter method
    * @param options.cache whether or not to cache the property
-   * @returns {void}
    */
   $defineProperty(
     name: string,
@@ -98,63 +85,5 @@ const proto = {
   },
 };
 
-export type MadroneType = typeof proto;
-const protoDescriptors = getDefaultDescriptors(proto);
-
-Madrone.create = function create<T extends object>({
-  model = null,
-  data = null,
-  options = {},
-  app = null,
-  root = null,
-  parent = null,
-  type = null,
-  install,
-} = {} as {
-  type?: T,
-  model: object,
-  data?: object,
-  options?: any,
-  app?: object,
-  root?: object,
-  parent?: object,
-  install?: Function,
-}) {
-  let ctx = {} as typeof proto;
-
-  Object.defineProperties(ctx, {
-    ...protoDescriptors,
-    ...getDefaultDescriptors({
-      $isMadrone: true,
-      $parent: parent,
-      $options: options,
-      $model: model,
-      $type: type,
-      $dataSet: new Set(),
-      get $root() {
-        return root || parent || ctx;
-      },
-      get $app() {
-        // @ts-ignore
-        return app || ctx.$root;
-      }
-    })
-  });
-
-  install?.(ctx);
-
-  if (typeof ctx.$init === 'function') {
-    ctx = ctx.$init(data) || ctx;
-  } else if (data && typeof data === 'object') {
-    Object.assign(ctx, data);
-  }
-
-  // call created hook
-  if (Array.isArray(options.created)) {
-    options.created.forEach((cb) => cb?.call(ctx));
-  }
-
-  return ctx as T & typeof proto;
-}
-
-export default Madrone;
+export type MadroneType = typeof MadronePrototype;
+export const MadronePrototypeDescriptors = getDefaultDescriptors(MadronePrototype);

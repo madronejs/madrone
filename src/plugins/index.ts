@@ -2,7 +2,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import difference from 'lodash/difference';
 import lodashSet from 'lodash/set';
 import { MadroneType } from '../Madrone';
-import { Integration } from '../integrations';
+import { Plugin } from '../interfaces';
 import Computed from './Computed';
 import Created from './Created';
 import Data from './Data';
@@ -10,47 +10,12 @@ import Methods from './Methods';
 import Relationships from './Relationships';
 import Watch from './Watch';
 
-export interface Plugin {
-  readonly name: string
-  mix?: (toMix: Array<any>) => any
-  mergeValues?: (shape: any) => void
-  install?: (ctx: MadroneType, values: any) => void
-  integrate?: (ctx: MadroneType) => Integration
-}
-
-export const RelationshipsPlugin = Relationships({ computed: Computed });
+export { Relationships as RelationshipsPlugin };
 export { Computed as ComputedPlugin };
 export { Created as CreatedPlugin };
 export { Data as DataPlugin };
 export { Methods as MethodsPlugin };
 export { Watch as WatchPlugin };
-
-const GLOBAL_PLUGINS = new Set();
-const GLOBAL_INTEGRATIONS = new Set();
-
-export function addPlugin(plugin: Plugin) {
-  if (plugin.integrate) {
-    GLOBAL_INTEGRATIONS.add(plugin);
-  }
-
-  if (plugin.mix || plugin.install) {
-    GLOBAL_PLUGINS.add(plugin);
-  }
-}
-
-addPlugin(Methods);
-addPlugin(Data);
-addPlugin(Computed);
-addPlugin(Watch);
-addPlugin(Created);
-
-export function getPlugins() {
-  return Array.from(GLOBAL_PLUGINS) as Array<Plugin>;
-}
-
-export function getIntegrations() {
-  return Array.from(GLOBAL_INTEGRATIONS) as Array<Plugin>;
-}
 
 export function analyzeObject(obj) {
   const descriptors = Object.getOwnPropertyDescriptors(obj || {});

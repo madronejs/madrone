@@ -1,5 +1,5 @@
 import { toFunctionArray } from '../util';
-import { Plugin } from './index';
+import { Plugin } from '../interfaces';
 
 const DataPlugin: Plugin = {
   name: 'data',

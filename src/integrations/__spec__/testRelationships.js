@@ -1,4 +1,4 @@
-import Madrone from '../../Madrone';
+import Madrone from '../../index';
 import { RelationshipsPlugin } from '../../plugins';
 
 export default function testRelationships(name, integration) {
