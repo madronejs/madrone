@@ -33,6 +33,10 @@ const MadronePrototype = {
       newModel = this.$models[madroneModel];
     }
 
+    if (typeof newModel === 'function') {
+      newModel = newModel() || newModel;
+    }
+
     return newModel?.create?.(data, {
       app: this.$app,
       root: this.$root,
