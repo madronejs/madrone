@@ -35,6 +35,7 @@ const Madrone = {
 };
 
 export default Madrone;
+export * from './reactivity';
 export * from './integrations';
 export * from './plugins';
 export { merge } from './util';
