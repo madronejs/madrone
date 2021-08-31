@@ -29,4 +29,20 @@ describe('$createNode', () => {
     expect(myTestInstance.bar).toEqual(true);
     expect(myTestInstance.$parent).toEqual(instance);
   });
+
+  it('can create instances from functions that return models', () => {
+    const myTestModel = Madrone.Model.create({ foo: true, bar: false });
+    const model = Madrone.Model.create({
+      makeMyTest() {
+        return this.$createNode(() => myTestModel, { bar: true });
+      },
+    });
+    const instance = model.create();
+    const myTestInstance = instance.makeMyTest();
+
+    expect(Madrone.isMadrone(myTestInstance)).toEqual(true);
+    expect(myTestInstance.foo).toEqual(true);
+    expect(myTestInstance.bar).toEqual(true);
+    expect(myTestInstance.$parent).toEqual(instance);
+  });
 });

@@ -250,6 +250,10 @@ const Relationships: Plugin = {
         };
       });
 
+      if (!model.data) {
+        model.data = [];
+      }
+
       model.data.push(() => toMixData);
       model.computed = ComputedPlugin.mix([toMixComputed, allComputeds].filter((item) => !!item));
     }
