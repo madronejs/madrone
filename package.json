@@ -10,6 +10,9 @@
     "type": "git",
     "url": "https://github.com/madronejs/madrone.git"
   },
+  "bugs": {
+    "url": "https://github.com/madronejs/madrone/issues"
+  },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   },
