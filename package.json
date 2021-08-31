@@ -8,7 +8,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git://github.com/madronejs/madrone.git"
+    "url": "https://github.com/madronejs/madrone.git"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
