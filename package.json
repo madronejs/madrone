@@ -1,8 +1,9 @@
 {
-  "name": "@madronejs/madrone",
+  "name": "madrone",
   "version": "0.0.1",
   "description": "Object composition and reactivity framework.",
-  "main": "dist/index.js",
+  "main": "lib/cjs/index.js",
+  "types": "lib/types/index.d.ts",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -15,7 +16,10 @@
     "lint": "eslint src/ --ext .js,.jsx,.ts,.tsx",
     "test": "jest --watch",
     "docs": "typedoc --entryPoints src/index.ts",
-    "build": "tsc -p tsconfig.json"
+    "build": "yarn build-types && yarn build-cjs && yarn build-esm",
+    "build-types": "tsc -p tsconfig.types.json",
+    "build-cjs": "tsc -p tsconfig.cjs.json",
+    "build-esm": "tsc -p tsconfig.esm.json"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.15.0",
