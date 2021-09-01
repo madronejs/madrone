@@ -1,12 +1,11 @@
 {
-  "name": "madrone",
-  "version": "0.0.1",
+  "name": "@madronejs/madrone",
+  "version": "0.0.4",
   "description": "Object composition and reactivity framework.",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
   "license": "MIT",
-  "files": ["dist"],
   "repository": {
     "type": "git",
     "url": "https://github.com/madronejs/madrone.git"

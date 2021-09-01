@@ -6,16 +6,16 @@ Madrone is an easy way to make object models and create instances of them.
 ## Installation
 ```javascript
 // npm
-npm install madrone --save
+npm install @madronejs/madrone --save
 
 // yarn
-yarn add madrone
+yarn add @madronejs/madrone
 ```
 
 ## Quick start
 
 ```javascript
-import Madrone from 'madrone';
+import Madrone from '@madronejs/madrone';
 
 const Person = Madrone.Model.create({
   name: 'default name',
