@@ -1,4 +1,3 @@
-const { Generator } = require('npm-dts');
 const { build } = require('esbuild');
 const pkg = require('./package.json');
 
@@ -31,16 +30,8 @@ async function buildPackage({ minify = false } = {}) {
     });
     console.log('finish esm!');
   };
-  const buildTypes = async () => {
-    console.log('start types');
-    await new Generator({
-      entry,
-      output: pkg.types,
-    }).generate();
-    console.log('building types!');
-  };
 
-  await Promise.all([buildCJS(), buildESM(), buildTypes()]);
+  await Promise.all([buildCJS(), buildESM()]);
   console.log('finish build!');
 }
 
