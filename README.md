@@ -4,8 +4,12 @@
 Madrone is an easy way to make object models and create instances of them.
 
 ## Installation
-```
+```javascript
+// npm
 npm install madrone --save
+
+// yarn
+yarn add madrone
 ```
 
 ## Quick start
