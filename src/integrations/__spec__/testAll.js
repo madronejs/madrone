@@ -4,8 +4,6 @@ import created from './testCreated';
 import createNode from './testCreateNode';
 import data from './testData';
 import proxy from './testProxy';
-import relationships from './testRelationships';
-import toJSON from './testToJSON';
 import watch from './testWatch';
 
 const testObj = {
@@ -13,9 +11,7 @@ const testObj = {
   data,
   computed,
   watch,
-  relationships,
   createNode,
-  toJSON,
   proxy,
 };
 
