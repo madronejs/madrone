@@ -45,4 +45,20 @@ describe('$createNode', () => {
     expect(myTestInstance.bar).toEqual(true);
     expect(myTestInstance.$parent).toEqual(instance);
   });
+
+  it('removes installed plugins from $options', () => {
+    const model = Madrone.Model.create({
+      $options: {
+        test: false,
+      },
+      foo: true,
+      get bar() {
+        return this.foo;
+      },
+    });
+    const instance = model.create();
+
+    expect(Object.keys(model.options)).toEqual(['test', 'computed', 'data']);
+    expect(Object.keys(instance.$options)).toEqual(['test']);
+  });
 });

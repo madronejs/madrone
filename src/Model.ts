@@ -146,7 +146,12 @@ const Model = {
         compileShape();
         compileOptions();
 
+        const pluginList = allPlugins();
+        const modelOptions = { ...model.options };
         let ctx = {} as MadroneType;
+
+        // remove all options that have been installed as plugins
+        pluginList.forEach((pl) => Reflect.deleteProperty(modelOptions, pl.name));
 
         Object.defineProperties(ctx, {
           ...MadronePrototypeDescriptors,
@@ -154,7 +159,7 @@ const Model = {
             $state: undefined,
             $isMadrone: true,
             $parent: parent,
-            $options: model.options,
+            $options: modelOptions,
             $model: model,
             $models: {},
             $modelType: model.type,
@@ -176,7 +181,7 @@ const Model = {
           ctx.$state = pl.integrate(ctx);
         }
 
-        installPlugins(ctx, optionCache, allPlugins());
+        installPlugins(ctx, optionCache, pluginList);
 
         if (typeof ctx.$init === 'function') {
           ctx = ctx.$init(data) || ctx;
