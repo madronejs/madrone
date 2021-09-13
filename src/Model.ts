@@ -21,7 +21,8 @@ const Model = {
    * Create a factory model
    * @param shape The shape to create a model for
    */
-  create: function create<ModelShape>(
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  create: function create<ModelShape extends object>(
     shape: (ModelShape | MadroneType) | (() => ModelShape | MadroneType)
   ) {
     /** Unique model identifier */
@@ -94,7 +95,8 @@ const Model = {
       return shapeCache;
     };
     /** Extend a model definition by creating a new one */
-    const extend = <A extends any>(newShape: A | ModelShape | MadroneType) => {
+    // eslint-disable-next-line @typescript-eslint/ban-types
+    const extend = <A extends object>(newShape: A | ModelShape | MadroneType) => {
       if (Model.isModel(newShape)) {
         return create(() => merge(getShape, () => (newShape as { type: A }).type) as A & ModelShape)
           .withOptions(getOptions)
