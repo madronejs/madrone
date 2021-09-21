@@ -144,7 +144,7 @@ const Model = {
         return model;
       },
       /** Create an instance of this model type */
-      create(data?: any, { app = null, root = null, parent = null } = {}) {
+      create(data?: any, { app = null } = {}) {
         compileShape();
         compileOptions();
 
@@ -160,18 +160,14 @@ const Model = {
           ...getDefaultDescriptors({
             $state: undefined,
             $isMadrone: true,
-            $parent: parent,
             $options: modelOptions,
             $model: model,
             $models: {},
             $modelType: model.type,
             $dataSet: new Set(),
-            get $root() {
-              return root || parent || ctx;
-            },
             get $app() {
               // @ts-ignore
-              return app || ctx.$root;
+              return app || ctx;
             },
           }),
         });
