@@ -15,7 +15,6 @@ describe('Models', () => {
     const instance = model2.create();
     const node = instance.$createNode('model1');
 
-    expect(node.$parent).toEqual(instance);
     expect(node.foo).toEqual(true);
     expect(node.bar).toEqual(false);
   });
@@ -43,7 +42,6 @@ describe('Models', () => {
     const instance = model.create();
     const node = instance.$createNode('test');
 
-    expect(node.$parent).toEqual(instance);
     expect(node.foo).toEqual(true);
     expect(node.bar).toEqual(true);
     expect(node.foo2).toBeUndefined();
@@ -52,7 +50,6 @@ describe('Models', () => {
     const instance2 = model2.create();
     const node2 = instance2.$createNode('test');
 
-    expect(node2.$parent).toEqual(instance2);
     expect(node2.foo).toBeUndefined();
     expect(node2.bar).toBeUndefined();
     expect(node2.foo2).toEqual(false);

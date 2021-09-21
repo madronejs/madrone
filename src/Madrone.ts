@@ -14,10 +14,7 @@ const MadronePrototype = {
   $options: undefined,
   /** Hook into the initialization process */
   $init: undefined as (...any) => any,
-  /**
-   * The application this node is a part of
-   * @deprecated
-   */
+  /** The application this node is a part of */
   $app: undefined,
   /** Hold other model definitions for ease of use */
   $models: undefined,
@@ -39,8 +36,6 @@ const MadronePrototype = {
 
     return newModel?.create?.(data, {
       app: this.$app,
-      root: this.$root,
-      parent: this,
       ...(options || {}),
     });
   },

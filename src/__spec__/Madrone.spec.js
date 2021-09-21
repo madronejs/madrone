@@ -27,7 +27,6 @@ describe('$createNode', () => {
     expect(Madrone.isMadrone(myTestInstance)).toEqual(true);
     expect(myTestInstance.foo).toEqual(true);
     expect(myTestInstance.bar).toEqual(true);
-    expect(myTestInstance.$parent).toEqual(instance);
   });
 
   it('can create instances from functions that return models', () => {
@@ -43,7 +42,6 @@ describe('$createNode', () => {
     expect(Madrone.isMadrone(myTestInstance)).toEqual(true);
     expect(myTestInstance.foo).toEqual(true);
     expect(myTestInstance.bar).toEqual(true);
-    expect(myTestInstance.$parent).toEqual(instance);
   });
 
   it('removes installed plugins from $options', () => {
