@@ -93,4 +93,5 @@ MadroneStateIntegration.prototype = {
 
 export default {
   integrate: MadroneStateIntegration.create,
+  watch: Watcher,
 };
