@@ -1,6 +1,7 @@
 import lodashGet from 'lodash/get';
 
 export default ({ reactive, computed, watch } = {} as any) => ({
+  watch,
   integrate: (ctx) => ({
     ctx,
     defineComputed(name, config) {

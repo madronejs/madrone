@@ -1,4 +1,5 @@
 import { MadroneStateIntegration } from './MadroneState';
+import { Watcher } from '../reactivity';
 
 export default ({ observable, set }) => {
   const VALUE = 'value';
@@ -61,6 +62,7 @@ export default ({ observable, set }) => {
   };
 
   return {
+    watch: Watcher,
     integrate: (ctx) => {
       // HACK: TDR 2021-04-23 -- make Vue think this is a Vue item
       // so it doesn't try to observe/traverse the structure

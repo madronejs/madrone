@@ -7,4 +7,5 @@ export default interface Plugin {
   mergeValues?: (shape: any) => void;
   install?: (ctx: MadroneType, values: any) => void;
   integrate?: (ctx: any) => Integration;
+  watch?: (scope: () => any, handler: () => any, options?: { deep: boolean }) => () => void;
 }

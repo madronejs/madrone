@@ -1,6 +1,6 @@
 import Model from './Model';
 import { addPlugin, removePlugin } from './global';
-import auto from './auto';
+import { auto, watch } from './auto';
 import {
   CreatedPlugin,
   ComputedPlugin,
@@ -35,6 +35,8 @@ const Madrone = {
   unuse: removePlugin,
   /** Create reactive objects */
   auto,
+  /** Watch reactive objects */
+  watch,
 };
 
 export default Madrone;

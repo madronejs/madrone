@@ -1,7 +1,7 @@
 import { getIntegrations } from './global';
 
 // eslint-disable-next-line @typescript-eslint/ban-types
-export default function auto<T>(obj: T, options): T {
+export function auto<T>(obj: T, options): T {
   const descriptors = Object.getOwnPropertyDescriptors(obj);
   const [pl] = getIntegrations();
   const state = pl?.integrate?.(obj);
@@ -23,4 +23,10 @@ export default function auto<T>(obj: T, options): T {
   });
 
   return obj as T;
+}
+
+export function watch(scope, handler, options) {
+  const [pl] = getIntegrations();
+
+  return pl?.watch?.(scope, handler, options);
 }
