@@ -1,4 +1,5 @@
 import omit from 'lodash/omit';
+import auto from './testAuto';
 import computed from './testComputed';
 import created from './testCreated';
 import createNode from './testCreateNode';
@@ -7,6 +8,7 @@ import proxy from './testProxy';
 import watch from './testWatch';
 
 const testObj = {
+  auto,
   created,
   data,
   computed,

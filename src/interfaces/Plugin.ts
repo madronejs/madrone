@@ -6,5 +6,5 @@ export default interface Plugin {
   mix?: (toMix: Array<any>) => any;
   mergeValues?: (shape: any) => void;
   install?: (ctx: MadroneType, values: any) => void;
-  integrate?: (ctx: MadroneType) => Integration;
+  integrate?: (ctx: any) => Integration;
 }

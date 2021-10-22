@@ -1,5 +1,6 @@
 import Model from './Model';
 import { addPlugin, removePlugin } from './global';
+import auto from './auto';
 import {
   CreatedPlugin,
   ComputedPlugin,
@@ -32,6 +33,8 @@ const Madrone = {
   use: addPlugin,
   /** Remove a global plugin */
   unuse: removePlugin,
+  /** Create reactive objects */
+  auto,
 };
 
 export default Madrone;
