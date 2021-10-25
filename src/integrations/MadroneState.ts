@@ -49,15 +49,15 @@ MadroneStateIntegration.prototype = {
     }
 
     Object.defineProperty(this.ctx, name, {
-      enumerable: true,
-      configurable: true,
+      enumerable: config.enumerable,
+      configurable: config.configurable,
       get: getter,
       set: setter,
     });
   },
 
-  defineProperty(name, value) {
-    const target = { value };
+  defineProperty(name, config) {
+    const target = { value: config.value };
     const atom = Reactive(target, {
       name,
       onGet: this.options.reactive?.onGet,
@@ -68,8 +68,8 @@ MadroneStateIntegration.prototype = {
     });
 
     Object.defineProperty(this.ctx, name, {
-      enumerable: true,
-      configurable: true,
+      configurable: config.configurable,
+      enumerable: config.enumerable,
       get: () => {
         const { value: atomVal } = atom;
 

@@ -78,9 +78,15 @@ const MadronePrototype = {
     } = {} as DefinePropertyType
   ) {
     if (typeof get === 'function' && this.$state?.defineComputed) {
-      this.$state.defineComputed(name, { get: get.bind(this), set: set?.bind(this), cache });
+      this.$state.defineComputed(name, {
+        get: get.bind(this),
+        set: set?.bind(this),
+        cache,
+        enumerable,
+        configurable,
+      });
     } else if (this.$state?.defineProperty) {
-      this.$state.defineProperty(name, value);
+      this.$state.defineProperty(name, { value, enumerable, configurable });
       this.$dataSet.add(name);
     } else {
       const descriptor = { enumerable, configurable } as PropertyDescriptor;
