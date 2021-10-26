@@ -20,6 +20,31 @@ export default function testAuto(name, integration) {
     expect(original === instance).toEqual(true);
   });
 
+  it('keeps enumerable/configurable from descriptors', () => {
+    const original = {};
+
+    Object.defineProperties(original, {
+      testValue: {
+        configurable: true,
+        enumerable: false,
+        value: 'test value',
+      },
+      testGetter: {
+        configurable: true,
+        enumerable: false,
+        get() {
+          return 'test getter';
+        },
+      },
+    });
+
+    const instance = Madrone.auto(original);
+
+    expect(Object.keys(instance)).toEqual([]);
+    expect(instance.testValue).toEqual('test value');
+    expect(instance.testGetter).toEqual('test getter');
+  });
+
   describe('basic computed usage', () => {
     it('adds a property', () => {
       const instance = Madrone.auto({

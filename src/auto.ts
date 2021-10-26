@@ -13,12 +13,16 @@ export function auto<T>(obj: T, options): T {
       state.defineComputed(key, {
         get: descriptor.get?.bind(obj),
         set: descriptor.set?.bind(obj),
+        enumerable: descriptor.enumerable,
+        configurable: descriptor.configurable,
         cache,
       });
     } else if (!descriptor.get && state?.defineProperty) {
-      state.defineProperty(key, descriptor.value);
-    } else {
-      Object.defineProperty(obj, key, descriptor);
+      state.defineProperty(key, {
+        value: descriptor.value,
+        enumerable: descriptor.enumerable,
+        configurable: descriptor.configurable,
+      });
     }
   });
 
