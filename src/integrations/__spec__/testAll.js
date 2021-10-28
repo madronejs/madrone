@@ -5,6 +5,7 @@ import created from './testCreated';
 import createNode from './testCreateNode';
 import data from './testData';
 import proxy from './testProxy';
+import testClass from './testClass';
 import watch from './testWatch';
 
 const testObj = {
@@ -15,6 +16,7 @@ const testObj = {
   watch,
   createNode,
   proxy,
+  testClass,
 };
 
 export default function testAll(name, integration, { blacklist = [] } = {}) {
