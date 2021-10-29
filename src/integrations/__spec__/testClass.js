@@ -12,6 +12,7 @@ export default function testProxy(name, integration) {
     class Foo {
       name;
       age;
+      unsetVal;
 
       static create(data) {
         return new Foo(data);
@@ -61,6 +62,23 @@ export default function testProxy(name, integration) {
       expect(fooInstance.summary).toEqual('test 10');
       fooInstance.name = 'test2';
       expect(fooInstance.summary).toEqual('test2 10');
+      await new Promise(setTimeout);
+      expect(calls).toEqual(1);
+    });
+
+    it('makes properties reactive if not set explicitly', async () => {
+      const fooInstance = Foo.create();
+      let calls = 0;
+
+      Madrone.watch(
+        () => fooInstance.unsetVal,
+        () => {
+          calls += 1;
+        }
+      );
+
+      expect(calls).toEqual(0);
+      fooInstance.unsetVal = true;
       await new Promise(setTimeout);
       expect(calls).toEqual(1);
     });
