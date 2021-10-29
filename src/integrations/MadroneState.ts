@@ -1,6 +1,92 @@
 import lodashGet from 'lodash/get';
 import { Computed, Reactive, Watcher } from '../reactivity';
 
+export function describeComputed(name, config, options) {
+  let getter;
+  let setter;
+
+  if (config.cache) {
+    const cp = Computed({
+      ...config,
+      name,
+      onImmediateChange: options?.computed?.onImmediateChange,
+      onChange: options?.computed?.onChange,
+      onGet: options?.computed?.onGet,
+      onHas: options?.computed?.onHas,
+      onSet: options?.computed?.onSet,
+    });
+
+    getter = () => cp.value;
+    setter = (val) => {
+      cp.value = val;
+    };
+  } else {
+    getter = config.get;
+    setter = config.set;
+  }
+
+  return {
+    enumerable: config.enumerable,
+    configurable: config.configurable,
+    get: getter,
+    set: setter,
+  };
+}
+
+export function describeProperty(name, config, options) {
+  const tg = { value: config.value };
+  const atom = Reactive(tg, {
+    name,
+    onGet: options?.reactive?.onGet,
+    onHas: options?.reactive?.onHas,
+    onSet: options?.reactive?.onSet,
+    onDelete: options?.reactive?.onDelete,
+    options: { name, property: () => atom },
+  });
+
+  return {
+    configurable: config.configurable,
+    enumerable: config.enumerable,
+    get: () => {
+      const { value: atomVal } = atom;
+
+      if (Array.isArray(atomVal)) {
+        // reactivity for arrays...
+        Reflect.get(atomVal, 'length');
+      }
+
+      return atomVal;
+    },
+    set: (val) => {
+      atom.value = val;
+    },
+  };
+}
+
+export function defineComputed(target, name, config, options) {
+  Object.defineProperty(target, name, describeComputed(name, config, options));
+}
+
+export function defineProperty(target, name, config, options) {
+  Object.defineProperty(target, name, describeProperty(name, config, options));
+}
+
+export function watchItem(target, path, handlerOrOptions) {
+  let handler;
+  let deep = false;
+
+  if (typeof handlerOrOptions === 'function') {
+    handler = handlerOrOptions;
+  } else {
+    deep = handlerOrOptions?.deep ?? deep;
+    handler = handlerOrOptions?.handler;
+  }
+
+  return Watcher(() => lodashGet(target, path), handler, { deep });
+}
+
+export { Watcher as watch };
+
 export function MadroneStateIntegration(ctx, options) {
   this.init(ctx, options);
 }
@@ -25,73 +111,23 @@ MadroneStateIntegration.prototype = {
   },
 
   defineComputed(name, config) {
-    let getter;
-    let setter;
-
-    if (config.cache) {
-      const cp = Computed({
-        ...config,
-        name,
-        onImmediateChange: this.options.computed?.onImmediateChange,
-        onChange: this.options.computed?.onChange,
-        onGet: this.options.computed?.onGet,
-        onHas: this.options.computed?.onHas,
-        onSet: this.options.computed?.onSet,
-      });
-
-      getter = () => cp.value;
-      setter = (val) => {
-        cp.value = val;
-      };
-    } else {
-      getter = config.get;
-      setter = config.set;
-    }
-
-    Object.defineProperty(this.ctx, name, {
-      enumerable: config.enumerable,
-      configurable: config.configurable,
-      get: getter,
-      set: setter,
-    });
+    return defineComputed(this.ctx, name, config, this.options);
   },
 
   defineProperty(name, config) {
-    const target = { value: config.value };
-    const atom = Reactive(target, {
-      name,
-      onGet: this.options.reactive?.onGet,
-      onHas: this.options.reactive?.onHas,
-      onSet: this.options.reactive?.onSet,
-      onDelete: this.options.reactive?.onDelete,
-      options: { name, property: () => atom },
-    });
-
-    Object.defineProperty(this.ctx, name, {
-      configurable: config.configurable,
-      enumerable: config.enumerable,
-      get: () => {
-        const { value: atomVal } = atom;
-
-        if (Array.isArray(atomVal)) {
-          // reactivity for arrays...
-          Reflect.get(atomVal, 'length');
-        }
-
-        return atomVal;
-      },
-      set: (val) => {
-        atom.value = val;
-      },
-    });
+    return defineProperty(this.ctx, name, config, this.options);
   },
 
-  watch(path, { handler = undefined, deep = false } = {}) {
-    return Watcher(() => lodashGet(this.ctx, path), handler, { deep });
+  watch(path, options) {
+    return watchItem(this.ctx, path, options);
   },
 };
 
 export default {
   integrate: MadroneStateIntegration.create,
   watch: Watcher,
+  describeProperty,
+  defineProperty,
+  describeComputed,
+  defineComputed,
 };

@@ -1,5 +1,4 @@
-import { MadroneStateIntegration } from './MadroneState';
-import { Watcher } from '../reactivity';
+import * as MadroneState from './MadroneState';
 
 export default ({ observable, set }) => {
   const VALUE = 'value';
@@ -61,8 +60,44 @@ export default ({ observable, set }) => {
     if (keysChanged) notify(target);
   };
 
+  const options = {
+    computed: {
+      onGet: (cp) => {
+        depend(cp, cp.name);
+      },
+      onImmediateChange: (cp) => {
+        notify(cp, cp.name);
+      },
+    },
+    reactive: {
+      onGet: ({ target, key }) => {
+        depend(target, key);
+      },
+      onHas: ({ target }) => {
+        depend(target);
+      },
+      onDelete,
+      onSet: onChange,
+    },
+  };
+
+  function describeComputed(name, config) {
+    return MadroneState.describeComputed(name, config, options);
+  }
+
+  function describeProperty(name, config) {
+    return MadroneState.describeProperty(name, config, options);
+  }
+
+  function defineComputed(target, name, config) {
+    return MadroneState.defineComputed(target, name, config, options);
+  }
+
+  function defineProperty(target, name, config) {
+    return MadroneState.defineProperty(target, name, config, options);
+  }
+
   return {
-    watch: Watcher,
     integrate: (ctx) => {
       // HACK: TDR 2021-04-23 -- make Vue think this is a Vue item
       // so it doesn't try to observe/traverse the structure
@@ -72,34 +107,17 @@ export default ({ observable, set }) => {
         $refs: { value: {} },
       });
 
-      const state = {
+      return {
         ctx,
-        options: {
-          computed: {
-            onGet: (cp) => {
-              depend(cp, cp.name);
-            },
-            onImmediateChange: (cp) => {
-              notify(cp, cp.name);
-            },
-          },
-          reactive: {
-            onGet: ({ target, key }) => {
-              depend(target, key);
-            },
-            onHas: ({ target }) => {
-              depend(target);
-            },
-            onDelete,
-            onSet: onChange,
-          },
-        },
-        defineComputed: MadroneStateIntegration.prototype.defineComputed,
-        defineProperty: MadroneStateIntegration.prototype.defineProperty,
-        watch: MadroneStateIntegration.prototype.watch,
+        defineComputed: (name, config) => defineComputed(ctx, name, config),
+        defineProperty: (name, config) => defineProperty(ctx, name, config),
+        watch: (path, config) => MadroneState.watchItem(ctx, path, config),
       };
-
-      return state;
     },
+    watch: MadroneState.watch,
+    describeProperty,
+    defineProperty,
+    describeComputed,
+    defineComputed,
   };
 };
