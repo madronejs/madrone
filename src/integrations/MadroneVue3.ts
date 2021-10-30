@@ -1,58 +1,74 @@
 import lodashGet from 'lodash/get';
 
-export default ({ reactive, computed, watch } = {} as any) => ({
-  watch,
-  integrate: (ctx) => ({
-    ctx,
-    defineComputed(name, config) {
-      let getter;
-      let setter;
+export default ({ reactive, computed, watch } = {} as any) => {
+  function describeComputed(name, config) {
+    let getter;
+    let setter;
 
-      if (config.cache) {
-        const cp = computed(config);
+    if (config.cache) {
+      const cp = computed(config);
 
-        getter = () => cp.value;
-        setter = (val) => {
-          cp.value = val;
-        };
-      } else {
-        getter = config.get;
-        setter = config.set;
-      }
+      getter = () => cp.value;
+      setter = (val) => {
+        cp.value = val;
+      };
+    } else {
+      getter = config.get;
+      setter = config.set;
+    }
 
-      Object.defineProperty(this.ctx, name, {
-        enumerable: config.enumerable,
-        configurable: config.configurable,
-        get: getter,
-        set: setter,
-      });
-    },
+    return {
+      enumerable: config.enumerable,
+      configurable: config.configurable,
+      get: getter,
+      set: setter,
+    };
+  }
 
-    defineProperty(name, config) {
-      const target = { value: config.value };
-      const atom = reactive(target);
+  function defineComputed(target, name, config) {
+    Object.defineProperty(target, name, describeComputed(name, config));
+  }
 
-      Object.defineProperty(this.ctx, name, {
-        configurable: config.configurable,
-        enumerable: config.enumerable,
-        get: () => {
-          const { value: atomVal } = atom;
+  function describeProperty(name, config) {
+    const tg = { value: config.value };
+    const atom = reactive(tg);
 
-          if (Array.isArray(atomVal)) {
-            // reactivity for arrays...
-            Reflect.get(atomVal, 'length');
-          }
+    return {
+      configurable: config.configurable,
+      enumerable: config.enumerable,
+      get: () => {
+        const { value: atomVal } = atom;
 
-          return atomVal;
-        },
-        set: (val) => {
-          atom.value = val;
-        },
-      });
-    },
+        if (Array.isArray(atomVal)) {
+          // reactivity for arrays...
+          Reflect.get(atomVal, 'length');
+        }
 
-    watch(path, { handler = undefined, deep = false } = {}) {
-      return watch(() => lodashGet(this.ctx, path), handler, { deep });
-    },
-  }),
-});
+        return atomVal;
+      },
+      set: (val) => {
+        atom.value = val;
+      },
+    };
+  }
+
+  function defineProperty(target, name, config) {
+    Object.defineProperty(target, name, describeProperty(name, config));
+  }
+
+  return {
+    integrate: (ctx) => ({
+      ctx,
+      defineComputed: (name, config) => defineComputed(ctx, name, config),
+      defineProperty: (name, config) => defineProperty(ctx, name, config),
+      watch(path, { handler = undefined, deep = false } = {}) {
+        return watch(() => lodashGet(this.ctx, path), handler, { deep });
+      },
+    }),
+    watch,
+    describeProperty,
+    defineProperty,
+    describeComputed,
+    defineComputed,
+  };
+};

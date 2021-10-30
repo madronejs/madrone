@@ -43,4 +43,5 @@ export default Madrone;
 export * from './reactivity';
 export * from './integrations';
 export * from './plugins';
+export * from './decorate';
 export { merge } from './util';

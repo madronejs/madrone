@@ -1,4 +1,4 @@
-import Madrone, { MadroneState } from '../index';
+import Madrone, { MadroneState, computed, reactive } from '../index';
 
 describe('examples', () => {
   beforeEach(() => {
@@ -41,6 +41,30 @@ describe('examples', () => {
     expect(newVals).toEqual(["Hi, I'm Not Greg"]);
     expect(oldVals).toEqual(["Hi, I'm Greg"]);
     disposer();
+  });
+
+  it('makes person class', () => {
+    class Person {
+      @reactive name;
+      @reactive age;
+
+      @computed get greeting() {
+        return `Hi, I'm ${this.name}`;
+      }
+
+      constructor(options) {
+        this.name = options?.name;
+        this.age = options?.age;
+      }
+    }
+
+    const person = new Person({ name: 'Greg' });
+
+    person.name; // Greg
+    person.greeting; // Hi, I'm Greg
+
+    person.name = 'Not Greg';
+    person.greeting; // Hi, I'm Not Greg
   });
 
   it('makes social greg', () => {

@@ -29,7 +29,7 @@ export function auto<T>(obj: T, options?: any): T {
   return obj as T;
 }
 
-export function watch(scope, handler, options) {
+export function watch(scope, handler, options?: { deep?: boolean }) {
   const [pl] = getIntegrations();
 
   return pl?.watch?.(scope, handler, options);
