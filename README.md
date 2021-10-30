@@ -24,10 +24,10 @@ import Madrone, { MadroneState } from 'madronejs'
 Madrone.use(MadroneState);
 
 const PersonFactory = ({ name } = {}) => Madrone.auto({
-  name,
-  // when using reactivity integration, getters become cached computeds
+  // When using reactivity integration, getters become cached computeds
   // that only get recomputed when a reactive data property changes.
   // In this case, `name` is a reactive data property.
+  name,
   get greeting() {
     return `Hi, I'm ${this.name}`
   },
@@ -54,6 +54,38 @@ person.greeting; // Hi, I'm Not Greg
 // watcher is async...
 console.log('New Vals:', newVals); // ["Hi, I'm Not Greg"]
 console.log('Old Vals:', oldVals); // ["Hi, I'm  Greg"]
+```
+
+### Decorator support
+
+```javascript
+
+import Madrone, { MadroneState, computed, reactive } from 'madronejs'
+
+Madrone.use(MadroneState);
+
+class Person {
+  @reactive name: string;
+  @reactive age;
+
+  @computed get greeting() {
+    return `Hi, I'm ${this.name}`;
+  }
+
+  constructor(options) {
+    this.name = options?.name;
+    this.age = options?.age;
+  }
+}
+
+const person = new Person({ name: 'Greg' });
+
+
+person.name; // Greg
+person.greeting; // Hi, I'm Greg
+
+person.name = 'Not Greg';
+person.greeting; // Hi, I'm Not Greg
 ```
 
 ### Model Templates
