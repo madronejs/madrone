@@ -1,6 +1,7 @@
 import Model from './Model';
 import { addPlugin, removePlugin } from './global';
 import { auto, watch } from './auto';
+import { MadroneState } from './integrations';
 import {
   CreatedPlugin,
   ComputedPlugin,
@@ -17,6 +18,8 @@ addPlugin(DataPlugin);
 addPlugin(ComputedPlugin);
 addPlugin(WatchPlugin);
 addPlugin(CreatedPlugin);
+
+addPlugin(MadroneState);
 
 /**
  * @namespace
