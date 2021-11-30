@@ -15,6 +15,8 @@ describe('Computed', () => {
 
     it('can have setters', () => {
       const model = Madrone.Model.create({
+        dynamic: undefined,
+
         get bar() {
           return this.dynamic;
         },
