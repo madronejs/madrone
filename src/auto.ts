@@ -1,9 +1,9 @@
-import { getIntegrations } from './global';
+import { getIntegration } from './global';
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export function auto<T>(obj: T, options?: any): T {
   const descriptors = Object.getOwnPropertyDescriptors(obj);
-  const [pl] = getIntegrations();
+  const pl = getIntegration();
   const state = pl?.integrate?.(obj);
 
   Object.entries(descriptors).forEach(([key, descriptor]) => {
@@ -30,7 +30,7 @@ export function auto<T>(obj: T, options?: any): T {
 }
 
 export function watch(scope, handler, options?: { deep?: boolean }) {
-  const [pl] = getIntegrations();
+  const pl = getIntegration();
 
   return pl?.watch?.(scope, handler, options);
 }

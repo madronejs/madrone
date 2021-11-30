@@ -1,4 +1,4 @@
-import { getIntegrations } from './global';
+import { getIntegration } from './global';
 
 const itemMap: WeakMap<any, Set<string>> = new WeakMap();
 
@@ -21,7 +21,7 @@ function setTargetObserved(target, key) {
 }
 
 function computedIfNeeded(target: any, key: string, descriptor: PropertyDescriptor) {
-  const [pl] = getIntegrations();
+  const pl = getIntegration();
 
   if (pl && !checkTargetObserved(target, key)) {
     Object.defineProperty(
@@ -59,7 +59,7 @@ export function computed(target: any, key: string, descriptor: PropertyDescripto
 }
 
 function reactiveIfNeeded(target: any, key: string, value?: any) {
-  const [pl] = getIntegrations();
+  const pl = getIntegration();
 
   if (pl && !checkTargetObserved(target, key)) {
     const descriptor = Object.getOwnPropertyDescriptor(target, key);

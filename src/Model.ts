@@ -1,5 +1,5 @@
 import { MadroneType, MadronePrototypeDescriptors } from './Madrone';
-import { getPlugins, getIntegrations } from './global';
+import { getPlugins, getIntegration } from './global';
 import { mixPlugins, installPlugins, analyzeObject } from './plugins';
 import { flattenOptions, getDefaultDescriptors, merge } from './util';
 
@@ -172,7 +172,7 @@ const Model = {
           }),
         });
 
-        const [pl] = getIntegrations();
+        const pl = getIntegration();
 
         if (typeof pl?.integrate === 'function') {
           // @ts-ignore

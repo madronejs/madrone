@@ -27,3 +27,9 @@ export function getPlugins() {
 export function getIntegrations() {
   return Array.from(GLOBAL_INTEGRATIONS) as Array<Plugin>;
 }
+
+export function getIntegration() {
+  const integrations = getIntegrations();
+
+  return integrations[integrations.length - 1];
+}
