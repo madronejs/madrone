@@ -6,12 +6,16 @@ interface ComputedConfig extends PropertyDescriptor {
 }
 
 export default interface Plugin {
-  readonly name: string;
+  readonly name?: string;
   mix?: (toMix: Array<any>) => any;
   mergeValues?: (shape: any) => void;
   install?: (ctx: MadroneType, values: any) => void;
-  integrate?: (ctx: any) => Integration;
+  integrate?: (ctx: any, options?: any) => Integration;
   watch?: (scope: () => any, handler: () => any, options?: { deep?: boolean }) => () => void;
-  describeComputed?: (name: string, config: ComputedConfig) => PropertyDescriptor;
-  describeProperty?: (name: string, config: PropertyDescriptor) => PropertyDescriptor;
+  describeComputed?: (name: string, config: ComputedConfig, options?: any) => PropertyDescriptor;
+  describeProperty?: (
+    name: string,
+    config: PropertyDescriptor,
+    options?: any
+  ) => PropertyDescriptor;
 }
