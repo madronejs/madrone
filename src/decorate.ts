@@ -30,6 +30,8 @@ function computedIfNeeded(target: any, key: string, descriptor: PropertyDescript
       pl?.describeComputed?.(key, {
         ...descriptor,
         get: descriptor.get.bind(target),
+        set: descriptor.set?.bind(target),
+        enumerable: true,
         cache: true,
       }) || descriptor
     );
@@ -44,12 +46,16 @@ function computedIfNeeded(target: any, key: string, descriptor: PropertyDescript
 
 export function computed(target: any, key: string, descriptor: PropertyDescriptor) {
   if (typeof descriptor.get === 'function') {
-    const newDescriptor = { ...descriptor, configurable: true };
+    const newDescriptor = { ...descriptor, enumerable: true, configurable: true };
 
     newDescriptor.get = function computedGetter() {
       computedIfNeeded(this, key, descriptor);
-
       return this[key];
+    };
+
+    newDescriptor.set = function computedSetter(val) {
+      computedIfNeeded(this, key, descriptor);
+      this[key] = val;
     };
 
     return newDescriptor;

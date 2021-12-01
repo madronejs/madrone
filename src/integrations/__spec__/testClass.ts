@@ -30,6 +30,15 @@ export default function testClass(name, integration) {
         this._test?.();
         return `${this.name} ${this.age}`;
       }
+
+      @reactive _getterSetter: any;
+      @computed get getterSetter() {
+        return this._getterSetter;
+      }
+
+      set getterSetter(val) {
+        this._getterSetter = val;
+      }
     }
 
     it('makes accessed properties enumerable', () => {
@@ -54,6 +63,22 @@ export default function testClass(name, integration) {
       expect(fooInstance.summary).toEqual('test2 10');
       expect(fooInstance.summary).toEqual('test2 10');
       expect(calls).toEqual(2);
+    });
+
+    it('can get/set computed', () => {
+      const fooInstance = Foo.create();
+
+      expect(fooInstance.getterSetter).toEqual(undefined);
+      fooInstance.getterSetter = 'test!';
+      expect(fooInstance.getterSetter).toEqual('test!');
+    });
+
+    it('accessed computed is enumerable', () => {
+      const fooInstance = Foo.create();
+
+      fooInstance.getterSetter = 'test!';
+
+      expect(Object.keys(fooInstance)).toEqual(['name', 'age', 'getterSetter', '_getterSetter']);
     });
 
     it('watches data', async () => {
