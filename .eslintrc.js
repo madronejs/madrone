@@ -30,6 +30,7 @@ module.exports = {
     '@typescript-eslint/no-empty-function': 0,
     '@typescript-eslint/ban-ts-comment': 0,
     '@typescript-eslint/no-unused-vars': ['error'],
+    '@typescript-eslint/no-empty-interface': 'off',
     'no-unused-vars': 'off',
     'import/extensions': 'off',
     'import/no-extraneous-dependencies': 0,

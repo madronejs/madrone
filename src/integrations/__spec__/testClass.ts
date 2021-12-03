@@ -182,6 +182,42 @@ describe('class mixins', () => {
     expect(instance.name).toEqual('test2');
   });
 
+  it('can have watched reactive properties from mixins', async () => {
+    class NamedMixin {
+      @reactive fName: string;
+      @reactive lName: string;
+      @computed get fullName() {
+        return `${this.fName} ${this.lName}`;
+      }
+    }
+
+    interface Person extends NamedMixin {}
+
+    class Person {
+      @reactive age: number;
+    }
+
+    applyClassMixins(Person, [NamedMixin]);
+
+    const instance = new Person();
+    const changes = [];
+
+    Madrone.watch(
+      () => instance.fullName,
+      (val) => {
+        changes.push(val);
+      }
+    );
+
+    expect(instance.fullName).toEqual('undefined undefined');
+    instance.fName = 'first';
+    await new Promise((resolve) => setTimeout(resolve));
+    instance.lName = 'last';
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(instance.fullName).toEqual('first last');
+    expect(changes).toEqual(['first undefined', 'first last']);
+  });
+
   it('prefers getters/setters on the base class', () => {
     class FooMixin {
       @reactive _name: string;
