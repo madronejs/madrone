@@ -182,7 +182,7 @@ describe('class mixins', () => {
     expect(instance.name).toEqual('test2');
   });
 
-  it('handles accessor properties with the same name', () => {
+  it('prefers getters/setters on the base class', () => {
     class FooMixin {
       @reactive _name: string;
       @computed get name(): string {
@@ -191,14 +191,6 @@ describe('class mixins', () => {
 
       set name(val) {
         this._name = `${val}_Foo`;
-      }
-
-      getType() {
-        return 'foo';
-      }
-
-      getFoo() {
-        return 'foo';
       }
     }
 
@@ -210,14 +202,6 @@ describe('class mixins', () => {
 
       set name(val) {
         this._name = `${val}_Bar`;
-      }
-
-      getType() {
-        return 'bar';
-      }
-
-      getBar() {
-        return 'bar';
       }
     }
 
@@ -242,9 +226,72 @@ describe('class mixins', () => {
     expect(instance.name).toEqual('test_FooBar');
     instance.name = 'test2';
     expect(instance.name).toEqual('test2_FooBar');
+  });
+
+  it('prefers methods on the base class', () => {
+    class FooMixin {
+      getType() {
+        return 'foo';
+      }
+    }
+
+    class BarMixin {
+      getType() {
+        return 'bar';
+      }
+    }
+
+    interface FooBar extends FooMixin, BarMixin {}
+
+    class FooBar {
+      getType() {
+        return 'foobar';
+      }
+    }
+
+    applyClassMixins(FooBar, [FooMixin, BarMixin]);
+
+    const instance = new FooBar();
+
+    expect(instance.getType()).toEqual('foobar');
+  });
+
+  it('prefers the last item in the mixin array if no conflict with base', () => {
+    class FooMixin {
+      getType() {
+        return 'foo';
+      }
+
+      getFoo() {
+        return 'foo';
+      }
+    }
+
+    class BarMixin {
+      getType() {
+        return 'bar';
+      }
+
+      getBar() {
+        return 'bar';
+      }
+    }
+
+    interface FooBar extends FooMixin, BarMixin {}
+
+    class FooBar {
+      getFooBar() {
+        return 'foobar';
+      }
+    }
+
+    applyClassMixins(FooBar, [FooMixin, BarMixin]);
+
+    const instance = new FooBar();
 
     expect(instance.getType()).toEqual('bar');
     expect(instance.getFoo()).toEqual('foo');
     expect(instance.getBar()).toEqual('bar');
+    expect(instance.getFooBar()).toEqual('foobar');
   });
 });
