@@ -1,4 +1,5 @@
-import Madrone, { computed, reactive } from '../../index';
+/* eslint-disable max-classes-per-file */
+import Madrone, { computed, reactive, applyClassMixins } from '../../index';
 
 export default function testClass(name, integration) {
   beforeAll(() => {
@@ -154,3 +155,96 @@ export default function testClass(name, integration) {
     });
   });
 }
+
+describe('class mixins', () => {
+  it('handles reactive properties with the same name', () => {
+    class FooMixin {
+      @reactive name: string;
+    }
+
+    class BarMixin {
+      @reactive name: string;
+    }
+
+    interface FooBar extends FooMixin, BarMixin {}
+
+    class FooBar {
+      @reactive age: number;
+    }
+
+    applyClassMixins(FooBar, [FooMixin, BarMixin]);
+
+    const instance = new FooBar();
+
+    instance.name = 'test';
+    expect(instance.name).toEqual('test');
+    instance.name = 'test2';
+    expect(instance.name).toEqual('test2');
+  });
+
+  it('handles accessor properties with the same name', () => {
+    class FooMixin {
+      @reactive _name: string;
+      @computed get name(): string {
+        return this._name;
+      }
+
+      set name(val) {
+        this._name = `${val}_Foo`;
+      }
+
+      getType() {
+        return 'foo';
+      }
+
+      getFoo() {
+        return 'foo';
+      }
+    }
+
+    class BarMixin {
+      @reactive _name: string;
+      @computed get name(): string {
+        return this._name;
+      }
+
+      set name(val) {
+        this._name = `${val}_Bar`;
+      }
+
+      getType() {
+        return 'bar';
+      }
+
+      getBar() {
+        return 'bar';
+      }
+    }
+
+    interface FooBar extends FooMixin, BarMixin {}
+
+    class FooBar {
+      @reactive _name: string;
+      @computed get name(): string {
+        return this._name;
+      }
+
+      set name(val) {
+        this._name = `${val}_FooBar`;
+      }
+    }
+
+    applyClassMixins(FooBar, [FooMixin, BarMixin]);
+
+    const instance = new FooBar();
+
+    instance.name = 'test';
+    expect(instance.name).toEqual('test_FooBar');
+    instance.name = 'test2';
+    expect(instance.name).toEqual('test2_FooBar');
+
+    expect(instance.getType()).toEqual('bar');
+    expect(instance.getFoo()).toEqual('foo');
+    expect(instance.getBar()).toEqual('bar');
+  });
+});

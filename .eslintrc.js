@@ -29,6 +29,8 @@ module.exports = {
     '@typescript-eslint/no-explicit-any': 0,
     '@typescript-eslint/no-empty-function': 0,
     '@typescript-eslint/ban-ts-comment': 0,
+    '@typescript-eslint/no-unused-vars': ['error'],
+    'no-unused-vars': 'off',
     'import/extensions': 'off',
     'import/no-extraneous-dependencies': 0,
     'import/no-unresolved': 0,
