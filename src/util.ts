@@ -40,6 +40,18 @@ export function merge<A extends object[]>(...types: [...A]) {
   return newVal as Spread<A>;
 }
 
+/**
+ * Extend the prototype of a base class with the prototypes of other classes. Mutates the base class.
+ * @param base Base class that the mixins will be mixed into. Any naming conflicts will prefer this base class.
+ * @param constructors List of mixin classes that will be applied to the base class.
+ */
+export function applyClassMixins(base: any, mixins: [...any]) {
+  Object.defineProperties(
+    base.prototype,
+    Object.getOwnPropertyDescriptors(merge(...mixins.concat(base).map((item) => item.prototype)))
+  );
+}
+
 export function getDefaultDescriptors(obj, defaults?) {
   const descriptors = Object.getOwnPropertyDescriptors(obj);
   const newDefaults = {
