@@ -42,6 +42,19 @@ export default function testClass(name, integration) {
       }
     }
 
+    it('throws error if setting a computed that has no setter defined', () => {
+      const fooInstance = Foo.create();
+      const failMessage = 'Cannot set the value of a read-only property!';
+
+      try {
+        // @ts-ignore
+        fooInstance.summary = 'foo!';
+        throw new Error(failMessage);
+      } catch (e) {
+        expect(e.message).not.toEqual(failMessage);
+      }
+    });
+
     it('makes accessed properties enumerable', () => {
       const fooInstance = Foo.create({ name: 'foo' });
 
