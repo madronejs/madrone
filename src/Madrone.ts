@@ -31,6 +31,10 @@ const MadronePrototype = {
     }
 
     if (typeof newModel === 'function') {
+      if (typeof newModel.create === 'function') {
+        return newModel.create(data);
+      }
+
       newModel = newModel() || newModel;
     }
 

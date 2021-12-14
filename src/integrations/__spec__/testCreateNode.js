@@ -44,5 +44,26 @@ export default function testData(name, integration) {
       expect(instance.foo).toEqual('foo');
       expect(instance.bar).toEqual('bar');
     });
+
+    it('creates from class with static "create" method', () => {
+      class TestClass {
+        static create(data) {
+          return new TestClass(data);
+        }
+
+        constructor({ foo, bar }) {
+          this.foo = foo;
+          this.bar = bar;
+          this.itWorked = true;
+        }
+      }
+
+      const model = Madrone.Model.create({});
+      const instance = model.create().$createNode(TestClass, { foo: 'foo', bar: 'bar' });
+
+      expect(instance.foo).toEqual('foo');
+      expect(instance.bar).toEqual('bar');
+      expect(instance.itWorked).toEqual(true);
+    });
   });
 }
