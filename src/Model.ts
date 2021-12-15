@@ -169,6 +169,8 @@ const Model = {
               // @ts-ignore
               return app || ctx;
             },
+            // ignore setting app
+            set $app(val) {},
           }),
         });
 
