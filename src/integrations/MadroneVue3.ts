@@ -1,5 +1,3 @@
-import lodashGet from 'lodash/get';
-
 export default ({ reactive, computed, watch } = {} as any) => {
   function describeComputed(name, config) {
     let getter;
@@ -57,14 +55,6 @@ export default ({ reactive, computed, watch } = {} as any) => {
   }
 
   return {
-    integrate: (ctx) => ({
-      ctx,
-      defineComputed: (name, config) => defineComputed(ctx, name, config),
-      defineProperty: (name, config) => defineProperty(ctx, name, config),
-      watch(path, { handler = undefined, deep = false } = {}) {
-        return watch(() => lodashGet(this.ctx, path), handler, { deep });
-      },
-    }),
     watch,
     describeProperty,
     defineProperty,

@@ -1,18 +1,12 @@
-import { Plugin } from './interfaces';
+import { Integration } from './interfaces';
 
 const GLOBAL_PLUGINS = new Set();
 const GLOBAL_INTEGRATIONS = new Set();
 
-export function addPlugin(plugin: Plugin) {
+export function addPlugin(plugin: Integration) {
   if (!plugin) return;
 
-  if (plugin.integrate) {
-    GLOBAL_INTEGRATIONS.add(plugin);
-  }
-
-  if (plugin.mix || plugin.install) {
-    GLOBAL_PLUGINS.add(plugin);
-  }
+  GLOBAL_INTEGRATIONS.add(plugin);
 }
 
 export function removePlugin(plugin) {
@@ -21,11 +15,11 @@ export function removePlugin(plugin) {
 }
 
 export function getPlugins() {
-  return Array.from(GLOBAL_PLUGINS) as Array<Plugin>;
+  return Array.from(GLOBAL_PLUGINS) as Array<Integration>;
 }
 
 export function getIntegrations() {
-  return Array.from(GLOBAL_INTEGRATIONS) as Array<Plugin>;
+  return Array.from(GLOBAL_INTEGRATIONS) as Array<Integration>;
 }
 
 export function getIntegration() {

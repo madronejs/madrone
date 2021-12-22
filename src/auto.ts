@@ -4,21 +4,20 @@ import { getIntegration } from './global';
 export function auto<T>(obj: T, options?: any): T {
   const descriptors = Object.getOwnPropertyDescriptors(obj);
   const pl = getIntegration();
-  const state = pl?.integrate?.(obj);
 
   Object.entries(descriptors).forEach(([key, descriptor]) => {
-    if (typeof descriptor.get === 'function' && state?.defineComputed) {
+    if (typeof descriptor.get === 'function' && pl?.defineComputed) {
       const cache = options?.describe?.[key]?.cache ?? true;
 
-      state.defineComputed(key, {
+      pl.defineComputed(obj, key, {
         get: descriptor.get?.bind(obj),
         set: descriptor.set?.bind(obj),
         enumerable: descriptor.enumerable,
         configurable: descriptor.configurable,
         cache,
       });
-    } else if (!descriptor.get && state?.defineProperty) {
-      state.defineProperty(key, {
+    } else if (!descriptor.get && pl?.defineProperty) {
+      pl.defineProperty(obj, key, {
         value: descriptor.value,
         enumerable: descriptor.enumerable,
         configurable: descriptor.configurable,

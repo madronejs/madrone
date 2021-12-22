@@ -1,2 +1,1 @@
-export { default as Integration } from './Integration';
-export { default as Plugin } from './Plugin';
+export { default as Integration } from './Integration'; // eslint-disable-line import/prefer-default-export
