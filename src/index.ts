@@ -1,17 +1,17 @@
-import { addPlugin, removePlugin } from './global';
+import { addIntegration, removeIntegration } from './global';
 import { auto, watch } from './auto';
 import { MadroneState } from './integrations';
 
-addPlugin(MadroneState);
+addIntegration(MadroneState);
 
 /**
  * @namespace
  */
 const Madrone = {
   /** Configure a global plugin */
-  use: addPlugin,
+  use: addIntegration,
   /** Remove a global plugin */
-  unuse: removePlugin,
+  unuse: removeIntegration,
   /** Create reactive objects */
   auto,
   /** Watch reactive objects */
@@ -19,7 +19,6 @@ const Madrone = {
 };
 
 export default Madrone;
-export * from './reactivity';
 export * from './integrations';
 export * from './decorate';
 export { merge, applyClassMixins } from './util';

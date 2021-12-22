@@ -1,21 +1,15 @@
 import { Integration } from './interfaces';
 
-const GLOBAL_PLUGINS = new Set();
 const GLOBAL_INTEGRATIONS = new Set();
 
-export function addPlugin(plugin: Integration) {
+export function addIntegration(plugin: Integration) {
   if (!plugin) return;
 
   GLOBAL_INTEGRATIONS.add(plugin);
 }
 
-export function removePlugin(plugin) {
-  GLOBAL_PLUGINS.delete(plugin);
+export function removeIntegration(plugin) {
   GLOBAL_INTEGRATIONS.delete(plugin);
-}
-
-export function getPlugins() {
-  return Array.from(GLOBAL_PLUGINS) as Array<Integration>;
 }
 
 export function getIntegrations() {
