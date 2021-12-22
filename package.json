@@ -1,6 +1,6 @@
 {
   "name": "madronejs",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Object composition and reactivity framework.",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
