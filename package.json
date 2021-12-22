@@ -4,10 +4,11 @@
   "description": "Object composition and reactivity framework.",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
-  "types": "dist/types",
+  "types": "types/index.d.ts",
   "license": "MIT",
   "files": [
-    "dist/**/*"
+    "dist/*.js",
+    "types/*.d.ts"
   ],
   "repository": {
     "type": "git",
