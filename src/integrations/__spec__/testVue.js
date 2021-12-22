@@ -11,28 +11,18 @@ export default function testVue(name, integration, { create } = {}) {
 
   const makeGenericModel = ({ cache = true } = {}) => ({
     create() {
-      const obj = {
-        foo: 'foo1',
-        bar: 'bar1',
-      };
-
-      if (!cache) {
-        Madrone.auto(obj);
-      }
-
-      Object.defineProperty(obj, 'fooBar', {
-        configurable: true,
-        enumerable: true,
-        get() {
-          return `${this.foo}${this.bar}`;
+      return Madrone.auto(
+        {
+          foo: 'foo1',
+          bar: 'bar1',
+          get fooBar() {
+            return `${this.foo}${this.bar}`;
+          },
         },
-      });
-
-      if (cache) {
-        Madrone.auto(obj);
-      }
-
-      return obj;
+        {
+          fooBar: { cache },
+        }
+      );
     },
   });
 

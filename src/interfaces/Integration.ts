@@ -1,5 +1,9 @@
-interface ComputedConfig extends PropertyDescriptor {
+export interface MadroneDescriptor extends PropertyDescriptor {
   cache?: boolean;
+}
+
+export interface MadroneDescriptorMap {
+  [key: string]: MadroneDescriptor;
 }
 
 export default interface Integration {
@@ -26,7 +30,7 @@ export default interface Integration {
     options?: any
   ) => any;
   watch?: (scope: () => any, handler: () => any, options?: { deep?: boolean }) => () => void;
-  describeComputed?: (name: string, config: ComputedConfig, options?: any) => PropertyDescriptor;
+  describeComputed?: (name: string, config: MadroneDescriptor, options?: any) => PropertyDescriptor;
   describeProperty?: (
     name: string,
     config: PropertyDescriptor,

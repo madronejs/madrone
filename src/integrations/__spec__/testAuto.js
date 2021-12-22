@@ -45,6 +45,12 @@ export default function testAuto(name, integration) {
     expect(instance.testGetter).toEqual('test getter');
   });
 
+  it('can have a non-enumerable property', () => {
+    const original = Madrone.auto({ foo: true }, { foo: { enumerable: false } });
+
+    expect(Object.keys(original)).toEqual([]);
+  });
+
   describe('basic computed usage', () => {
     it('adds a property', () => {
       const instance = Madrone.auto({
@@ -67,9 +73,7 @@ export default function testAuto(name, integration) {
           },
         },
         {
-          describe: {
-            test: { cache: false },
-          },
+          test: { cache: false },
         }
       );
 
@@ -77,6 +81,21 @@ export default function testAuto(name, integration) {
       expect(instance.test).toEqual('value');
       expect(instance.test).toEqual('value');
       expect(count).toEqual(3);
+    });
+
+    it('can have a non-enumerable computed', () => {
+      const instance = Madrone.auto(
+        {
+          get test() {
+            return 'value';
+          },
+        },
+        {
+          test: { enumerable: false },
+        }
+      );
+
+      expect(Object.keys(instance)).toEqual([]);
     });
 
     it('caches a non-reactive string property', () => {
