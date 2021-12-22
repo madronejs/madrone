@@ -1,6 +1,16 @@
+/* eslint-disable @typescript-eslint/ban-types */
 import { getIntegration } from './global';
+import { applyClassMixins } from './util';
 
 const itemMap: WeakMap<any, Set<string>> = new WeakMap();
+
+export function classMixin(...mixins: Array<Function>) {
+  return (target: Function) => {
+    if (mixins?.length) {
+      applyClassMixins(target, mixins);
+    }
+  };
+}
 
 function trackTargetIfNeeded(target) {
   if (!itemMap.has(target)) {
