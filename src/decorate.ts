@@ -44,6 +44,13 @@ function computedIfNeeded(target: any, key: string, descriptor: PropertyDescript
   return false;
 }
 
+/**
+ * Configure a getter property to be cached
+ * @param target The target to add the computed property to
+ * @param key The name of the computed property
+ * @param descriptor property descriptors
+ * @returns the modified property descriptors
+ */
 export function computed(target: any, key: string, descriptor: PropertyDescriptor) {
   if (typeof descriptor.get === 'function') {
     const newDescriptor = { ...descriptor, enumerable: true, configurable: true };
@@ -85,6 +92,11 @@ function reactiveIfNeeded(target: any, key: string, value?: any) {
   return false;
 }
 
+/**
+ * Configure a reactive property
+ * @param target The target to add the reactive property to
+ * @param key The name of the reactive property
+ */
 export function reactive(target: any, key: string) {
   Object.defineProperty(target, key, {
     configurable: true,
