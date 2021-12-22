@@ -33,6 +33,7 @@ export function auto<T>(obj: T, objDescriptors?: { [K in keyof T]: MadroneDescri
     define(obj, key, {
       get: descriptor.get?.bind(obj),
       set: descriptor.set?.bind(obj),
+      value: getDesc(key, 'value') ?? descriptor.value,
       enumerable: getDesc(key, 'enumerable') ?? descriptor.enumerable,
       configurable: getDesc(key, 'configurable') ?? descriptor.configurable,
       cache: getDesc(key, 'cache') ?? true,
