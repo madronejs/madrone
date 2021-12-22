@@ -1,27 +1,25 @@
 import { getIntegration } from './global';
+import { MadroneDescriptor } from './interfaces/Integration';
 
-// eslint-disable-next-line @typescript-eslint/ban-types
-export function auto<T>(obj: T, options?: any): T {
+export function auto<T>(obj: T, objDescriptors?: { [K in keyof T]: MadroneDescriptor }) {
   const descriptors = Object.getOwnPropertyDescriptors(obj);
   const pl = getIntegration();
-  const state = pl?.integrate?.(obj);
+  const getDesc = (name, descName) => objDescriptors?.[name]?.[descName];
 
   Object.entries(descriptors).forEach(([key, descriptor]) => {
-    if (typeof descriptor.get === 'function' && state?.defineComputed) {
-      const cache = options?.describe?.[key]?.cache ?? true;
-
-      state.defineComputed(key, {
+    if (typeof descriptor.get === 'function' && pl?.defineComputed) {
+      pl.defineComputed(obj, key, {
         get: descriptor.get?.bind(obj),
         set: descriptor.set?.bind(obj),
-        enumerable: descriptor.enumerable,
-        configurable: descriptor.configurable,
-        cache,
+        enumerable: getDesc(key, 'enumerable') ?? descriptor.enumerable,
+        configurable: getDesc(key, 'configurable') ?? descriptor.configurable,
+        cache: getDesc(key, 'cache') ?? true,
       });
-    } else if (!descriptor.get && state?.defineProperty) {
-      state.defineProperty(key, {
-        value: descriptor.value,
-        enumerable: descriptor.enumerable,
-        configurable: descriptor.configurable,
+    } else if (!descriptor.get && pl?.defineProperty) {
+      pl.defineProperty(obj, key, {
+        value: getDesc(key, 'value') ?? descriptor.value,
+        enumerable: getDesc(key, 'enumerable') ?? descriptor.enumerable,
+        configurable: getDesc(key, 'configurable') ?? descriptor.configurable,
       });
     }
   });

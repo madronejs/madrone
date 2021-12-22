@@ -98,22 +98,6 @@ export default ({ observable, set }) => {
   }
 
   return {
-    integrate: (ctx) => {
-      // HACK: TDR 2021-04-23 -- make Vue think this is a Vue item
-      // so it doesn't try to observe/traverse the structure
-      Object.defineProperties(ctx, {
-        _isVue: { value: true },
-        _data: { value: {} },
-        $refs: { value: {} },
-      });
-
-      return {
-        ctx,
-        defineComputed: (name, config) => defineComputed(ctx, name, config),
-        defineProperty: (name, config) => defineProperty(ctx, name, config),
-        watch: (path, config) => MadroneState.watchItem(ctx, path, config),
-      };
-    },
     watch: MadroneState.watch,
     describeProperty,
     defineProperty,

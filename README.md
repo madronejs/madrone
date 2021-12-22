@@ -87,32 +87,3 @@ person.greeting; // Hi, I'm Greg
 person.name = 'Not Greg';
 person.greeting; // Hi, I'm Not Greg
 ```
-
-### Model Templates
-
-```javascript
-import Madrone from 'madronejs';
-
-const Person = Madrone.Model.create({
-  name: 'default name',
-  age: -1,
-
-  // initialization hook
-  $init({ name, age } = {}) {
-    this.name = name;
-    this.age = age;
-  }
-});
-const SocialPerson = Person.extend({
-  get greeting() {
-    return `Hi there! My name is ${this.name}, and I'm ${this.age} years old.`;
-  },
-
-  greet() {
-    console.log(this.greeting);
-  },
-});
-const socialGreg = SocialPerson.create({ name: 'Greg', age: 35 });
-
-socialGreg.greet(); // Hi there! My name is Greg, and I'm 35 years old.
-```

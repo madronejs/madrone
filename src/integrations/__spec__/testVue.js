@@ -9,26 +9,22 @@ export default function testVue(name, integration, { create } = {}) {
     Madrone.unuse(integration);
   });
 
-  const makeGenericModel = ({ cache = true } = {}) =>
-    Madrone.Model.create({
-      $options: {
-        data() {
-          return {
-            foo: 'foo1',
-            bar: 'bar1',
-          };
-        },
-
-        computed: {
-          fooBar: {
-            cache,
-            get() {
-              return `${this.foo}${this.bar}`;
-            },
+  const makeGenericModel = ({ cache = true } = {}) => ({
+    create() {
+      return Madrone.auto(
+        {
+          foo: 'foo1',
+          bar: 'bar1',
+          get fooBar() {
+            return `${this.foo}${this.bar}`;
           },
         },
-      },
-    });
+        {
+          fooBar: { cache },
+        }
+      );
+    },
+  });
 
   describe('vue usage', () => {
     const modelWithCache = makeGenericModel({ cache: true });
@@ -144,13 +140,13 @@ export default function testVue(name, integration, { create } = {}) {
 
   it('can watch object computed', async () => {
     const newVals = [];
-    const entryObject = Madrone.Model.create({
+    const entryObject = Madrone.auto({
       entries: {},
 
       get all() {
         return Object.values(this.entries);
       },
-    }).create();
+    });
 
     const vm = create({
       computed: {
@@ -185,7 +181,7 @@ export default function testVue(name, integration, { create } = {}) {
 
   it('can watch object computed when property deleted', async () => {
     const newVals = [];
-    const entryObject = Madrone.Model.create({
+    const entryObject = Madrone.auto({
       entries: {
         foo: { name: 'foo name' },
       },
@@ -193,7 +189,7 @@ export default function testVue(name, integration, { create } = {}) {
       get all() {
         return Object.values(this.entries);
       },
-    }).create();
+    });
 
     const vm = create({
       computed: {
@@ -221,7 +217,7 @@ export default function testVue(name, integration, { create } = {}) {
   });
 
   it('can break cache for object computed used in method', async () => {
-    const entryObject = Madrone.Model.create({
+    const entryObject = Madrone.auto({
       entries: {},
 
       get all() {
@@ -235,7 +231,7 @@ export default function testVue(name, integration, { create } = {}) {
       getFilteredNames(nm) {
         return this.filterBy(nm).map((entry) => entry.name);
       },
-    }).create();
+    });
     const vm = create({
       data() {
         return {

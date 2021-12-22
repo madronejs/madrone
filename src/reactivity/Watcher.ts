@@ -8,10 +8,14 @@ import Observer from './Observer';
  * @param {Boolean} [options.deep] deeply watch the value
  * @returns a disposer
  */
-export default function Watcher(get, handler, { deep = false } = {}) {
+export default function Watcher(
+  get: () => any,
+  handler: (val?: any, old?: any) => any,
+  options?: { deep?: boolean }
+) {
   let getter = get;
 
-  if (deep) {
+  if (options?.deep) {
     getter = () => cloneDeep(get());
   }
 

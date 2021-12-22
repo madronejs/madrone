@@ -1,4 +1,3 @@
-import lodashGet from 'lodash/get';
 import { Computed, Reactive, Watcher } from '../reactivity';
 
 export function describeComputed(name, config, options) {
@@ -63,68 +62,22 @@ export function describeProperty(name, config, options) {
   };
 }
 
-export function defineComputed(target, name, config, options) {
+export function defineComputed(target, name: string, config, options) {
   Object.defineProperty(target, name, describeComputed(name, config, options));
 }
 
-export function defineProperty(target, name, config, options) {
+export function defineProperty(
+  target,
+  name: string,
+  config: { value?: any; enumerable?: boolean; configurable?: boolean },
+  options?
+) {
   Object.defineProperty(target, name, describeProperty(name, config, options));
-}
-
-export function watchItem(target, path, handlerOrOptions) {
-  let handler;
-  let deep = false;
-
-  if (typeof handlerOrOptions === 'function') {
-    handler = handlerOrOptions;
-  } else {
-    deep = handlerOrOptions?.deep ?? deep;
-    handler = handlerOrOptions?.handler;
-  }
-
-  return Watcher(() => lodashGet(target, path), handler, { deep });
 }
 
 export { Watcher as watch };
 
-export function MadroneStateIntegration(ctx, options) {
-  this.init(ctx, options);
-}
-
-/**
- * Create a new MadroneStateIntegration instance
- * @param {Object} ctx the context to observe
- * @param {Object} [options] the observe options
- * @param {Object} [options.computed] the computed options
- * @param {Object} [options.reactive] the reactive options
- * @returns {MadroneStateIntegration} the created MadroneStateIntegration
- */
-MadroneStateIntegration.create = (ctx, options) => new MadroneStateIntegration(ctx, options);
-
-MadroneStateIntegration.prototype = {
-  init(ctx, options) {
-    this.ctx = ctx;
-    this.options = options || {};
-    this.defineComputed = this.defineComputed.bind(this);
-    this.defineProperty = this.defineProperty.bind(this);
-    this.watch = this.watch.bind(this);
-  },
-
-  defineComputed(name, config) {
-    return defineComputed(this.ctx, name, config, this.options);
-  },
-
-  defineProperty(name, config) {
-    return defineProperty(this.ctx, name, config, this.options);
-  },
-
-  watch(path, options) {
-    return watchItem(this.ctx, path, options);
-  },
-};
-
 export default {
-  integrate: MadroneStateIntegration.create,
   watch: Watcher,
   describeProperty,
   defineProperty,
