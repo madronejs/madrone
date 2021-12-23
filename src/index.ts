@@ -1,5 +1,5 @@
 import { addIntegration, removeIntegration } from './global';
-import { auto, watch } from './auto';
+import { auto, define, watch } from './auto';
 import { MadroneState } from './integrations';
 
 addIntegration(MadroneState);
@@ -14,6 +14,8 @@ const Madrone = {
   unuse: removeIntegration,
   /** Create reactive objects */
   auto,
+  /** Define properties on objects */
+  define,
   /** Watch reactive objects */
   watch,
 };

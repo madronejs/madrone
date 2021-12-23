@@ -1,6 +1,6 @@
 {
   "name": "madronejs",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Object composition and reactivity framework.",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
@@ -8,7 +8,7 @@
   "license": "MIT",
   "files": [
     "dist/*.js",
-    "types/*.d.ts"
+    "types/**/*.d.ts"
   ],
   "repository": {
     "type": "git",
@@ -24,7 +24,7 @@
     "lint": "eslint src/ --ext .js,.jsx,.ts,.tsx",
     "test": "jest --watch",
     "docs": "typedoc --entryPoints src/index.ts",
-    "cleanup": "rm -rf ./dist",
+    "cleanup": "rm -rf ./dist && rm -rf ./types",
     "build": "node ./esbuild.config.js",
     "build-types": "tsc -p ./tsconfig.types.json",
     "build-all": "yarn cleanup && yarn build && yarn build-types"

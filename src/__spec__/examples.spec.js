@@ -1,14 +1,6 @@
-import Madrone, { MadroneState, computed, reactive } from '../index';
+import Madrone, { computed, reactive } from '../index';
 
 describe('examples', () => {
-  beforeEach(() => {
-    Madrone.use(MadroneState);
-  });
-
-  afterEach(() => {
-    Madrone.unuse(MadroneState);
-  });
-
   it('makes person factory', async () => {
     const PersonFactory = ({ name } = {}) =>
       Madrone.auto({
