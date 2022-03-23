@@ -43,7 +43,11 @@ export function auto<T>(obj: T, objDescriptors?: { [K in keyof T]: MadroneDescri
   return obj as T;
 }
 
-export function watch(scope, handler, options?: { deep?: boolean }) {
+export function watch<T>(
+  scope: () => T,
+  handler: (val: T, old: T) => any,
+  options?: { deep?: boolean }
+) {
   const pl = getIntegration();
 
   return pl?.watch?.(scope, handler, options);
