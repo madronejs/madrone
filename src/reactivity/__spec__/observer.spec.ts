@@ -1,5 +1,6 @@
 import Observer from '../Observer';
 import Reactive from '../Reactive';
+import { delay } from '@/test/util';
 
 describe('Observer', () => {
   it('caches values if nothing observed', () => {
@@ -126,12 +127,12 @@ describe('Observer', () => {
     expect(obs.value).toEqual(false);
     expect(obs.value).toEqual(false);
     expect(counter).toEqual(2);
-    await new Promise(setTimeout);
+    await delay();
     tracked.test = true;
     expect(obs.value).toEqual(true);
     expect(obs.value).toEqual(true);
     expect(counter).toEqual(3);
-    await new Promise(setTimeout);
+    await delay();
     expect(newValues).toEqual([false, true]);
     expect(oldValues).toEqual([null, false]);
   });
@@ -162,14 +163,14 @@ describe('Observer', () => {
     expect(obs.value).toEqual(false);
     expect(obs.value).toEqual(false);
     expect(counter).toEqual(2);
-    await new Promise(setTimeout);
+    await delay();
     tracked.test = 'foo';
     tracked.test = 'bar';
     tracked.test = true;
     expect(obs.value).toEqual(true);
     expect(obs.value).toEqual(true);
     expect(counter).toEqual(3);
-    await new Promise(setTimeout);
+    await delay();
     expect(newValues).toEqual([false, true]);
     expect(oldValues).toEqual([null, false]);
   });
@@ -201,12 +202,12 @@ describe('Observer', () => {
     expect(obs2.value).toEqual(false);
     expect(obs2.value).toEqual(false);
     expect(counter).toEqual(2);
-    await new Promise(setTimeout);
+    await delay();
     tracked.test = true;
     expect(obs2.value).toEqual(true);
     expect(obs2.value).toEqual(true);
     expect(counter).toEqual(3);
-    await new Promise(setTimeout);
+    await delay();
     expect(newValues).toEqual([false, true]);
     expect(oldValues).toEqual([null, false]);
   });

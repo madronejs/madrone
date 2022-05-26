@@ -1,5 +1,6 @@
 import lodashSet from 'lodash/set';
 import Madrone from '../../index';
+import { delay } from '@/test/util';
 
 export default function testAuto(name, integration) {
   beforeAll(() => {
@@ -21,7 +22,7 @@ export default function testAuto(name, integration) {
   });
 
   it('keeps enumerable/configurable from descriptors', () => {
-    const original = {};
+    const original = {} as any;
 
     Object.defineProperties(original, {
       testValue: {
@@ -268,13 +269,13 @@ export default function testAuto(name, integration) {
 
       expect(instance.foo).toEqual('bar');
       instance.foo = 'bar1';
-      await new Promise(setTimeout);
+      await delay();
       instance.foo = 'bar2';
-      await new Promise(setTimeout);
+      await delay();
       instance.foo = 'bar3';
-      await new Promise(setTimeout);
+      await delay();
       instance.foo = undefined;
-      await new Promise(setTimeout);
+      await delay();
       expect(instance.foo).toBeUndefined();
       expect(newVals.length).toEqual(4);
       expect(oldVals.length).toEqual(4);
@@ -307,13 +308,13 @@ export default function testAuto(name, integration) {
 
       expect(instance.foo).toEqual('bar');
       instance.foo = 'bar1';
-      await new Promise(setTimeout);
+      await delay();
       instance.foo = 'bar2';
-      await new Promise(setTimeout);
+      await delay();
       instance.foo = 'bar3';
-      await new Promise(setTimeout);
+      await delay();
       instance.foo = undefined;
-      await new Promise(setTimeout);
+      await delay();
       expect(instance.foo).toBeUndefined();
       expect(newVals.length).toEqual(4);
       expect(oldVals.length).toEqual(4);
@@ -342,9 +343,9 @@ export default function testAuto(name, integration) {
       );
 
       instance.value = 'value2';
-      await new Promise(setTimeout);
+      await delay();
       instance.value = 'value3';
-      await new Promise(setTimeout);
+      await delay();
       expect(newVals).toEqual(['value2', 'value3']);
       expect(oldVals).toEqual(['value', 'value2']);
     });
@@ -373,11 +374,11 @@ export default function testAuto(name, integration) {
       );
 
       delete instance.value.foo.bar;
-      await new Promise(setTimeout);
+      await delay();
       delete instance.value.foo.baz;
-      await new Promise(setTimeout);
+      await delay();
       instance.value.foo.bar = 'hello2';
-      await new Promise(setTimeout);
+      await delay();
       expect(newVals).toEqual(['undefined world', 'undefined undefined', 'hello2 undefined']);
       expect(oldVals).toEqual(['hello world', 'undefined world', 'undefined undefined']);
     });
@@ -402,9 +403,9 @@ export default function testAuto(name, integration) {
       );
 
       obj1.value = 'HELLO';
-      await new Promise(setTimeout);
+      await delay();
       obj2.value = 'WORLD';
-      await new Promise(setTimeout);
+      await delay();
       expect(newVals).toEqual(['HELLO world', 'HELLO WORLD']);
       expect(oldVals).toEqual(['hello world', 'HELLO world']);
     });
@@ -425,9 +426,9 @@ export default function testAuto(name, integration) {
       );
 
       instance.value.level1.level2.value = 'value2';
-      await new Promise(setTimeout);
+      await delay();
       instance.value.level1.level2.value = 'value3';
-      await new Promise(setTimeout);
+      await delay();
       expect(newVals).toEqual(['value2', 'value3']);
       expect(oldVals).toEqual(['value', 'value2']);
     });
@@ -449,9 +450,9 @@ export default function testAuto(name, integration) {
 
       instance.value.level1.level2.value = 'value2';
       lodashSet(instance, 'value.level1.level2.value', 'value2');
-      await new Promise(setTimeout);
+      await delay();
       lodashSet(instance, 'value.level1.level2.value', 'value3');
-      await new Promise(setTimeout);
+      await delay();
       expect(newVals).toEqual(['value2', 'value3']);
       expect(oldVals).toEqual(['value', 'value2']);
     });
@@ -473,9 +474,9 @@ export default function testAuto(name, integration) {
       );
 
       lodashSet(instance, 'value.child1', 'hello');
-      await new Promise(setTimeout);
+      await delay();
       lodashSet(instance, 'value.child2', 'hello');
-      await new Promise(setTimeout);
+      await delay();
       // the number of changes seems to differ...
       expect(newVals.length).toBeGreaterThan(0);
       expect(oldVals.length).toBeGreaterThan(0);

@@ -1,5 +1,6 @@
 import lodashSet from 'lodash/set';
 import Madrone from '../../index';
+import { delay } from '@/test/util';
 
 export default function testVue(name, integration, { create } = {}) {
   beforeAll(() => {
@@ -97,7 +98,7 @@ export default function testVue(name, integration, { create } = {}) {
 
       expect(vm.myComputed).toEqual('foo1bar1');
       instanceWithCache.foo = 'FOO';
-      await new Promise(setTimeout);
+      await delay();
       expect(instanceWithCache.foo).toEqual('FOO');
       expect(instanceWithCache.fooBar).toEqual('FOObar1');
       expect(vm.myComputed).toEqual('FOObar1');
@@ -132,7 +133,7 @@ export default function testVue(name, integration, { create } = {}) {
 
       expect(vm.myComputed).toEqual('foo1bar1');
       instanceWithCache.foo = 'FOO';
-      await new Promise(setTimeout);
+      await delay();
       expect(newVals).toEqual(['FOObar1']);
       expect(oldVals).toEqual(['foo1bar1']);
     });
@@ -171,7 +172,7 @@ export default function testVue(name, integration, { create } = {}) {
     expect(vm.myComputed).toEqual([]);
     entryObject.entries.foo = { name: 'foo name' };
     lodashSet(entryObject, 'entries.bar', { name: 'bar name' });
-    await new Promise(setTimeout);
+    await delay();
 
     const result = [{ name: 'foo name' }, { name: 'bar name' }];
 
@@ -210,7 +211,7 @@ export default function testVue(name, integration, { create } = {}) {
 
     expect(vm.myComputed).toEqual([{ name: 'foo name' }]);
     delete entryObject.entries.foo;
-    await new Promise(setTimeout);
+    await delay();
 
     expect(newVals).toEqual([[]]);
     expect(vm.myComputed).toEqual([]);
