@@ -25,7 +25,7 @@ export function define<T>(obj: T, key: string, descriptor: MadroneDescriptor) {
   }
 }
 
-export function auto<T>(obj: T, objDescriptors?: { [K in keyof T]: MadroneDescriptor }) {
+export function auto<T>(obj: T, objDescriptors?: { [K in keyof T]?: MadroneDescriptor }) {
   const descriptors = Object.getOwnPropertyDescriptors(obj);
   const getDesc = (name, descName) => objDescriptors?.[name]?.[descName];
 
