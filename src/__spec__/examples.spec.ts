@@ -2,7 +2,7 @@ import Madrone, { computed, reactive } from '../index';
 
 describe('examples', () => {
   it('makes person factory', async () => {
-    const PersonFactory = ({ name } = {}) =>
+    const PersonFactory = ({ name = undefined } = {}) =>
       Madrone.auto({
         name,
         // when using reactivity integration, getters become cached computeds
@@ -29,13 +29,15 @@ describe('examples', () => {
     person.name = 'Not Greg';
     expect(person.greeting).toEqual("Hi, I'm Not Greg");
 
-    await new Promise(setTimeout);
+    await new Promise((resolve) => {
+      setTimeout(resolve);
+    });
     expect(newVals).toEqual(["Hi, I'm Not Greg"]);
     expect(oldVals).toEqual(["Hi, I'm Greg"]);
     disposer();
   });
 
-  it('makes person class', () => {
+  it('makes person class', async () => {
     class Person {
       @reactive name;
       @reactive age;
@@ -52,10 +54,13 @@ describe('examples', () => {
 
     const person = new Person({ name: 'Greg' });
 
-    person.name; // Greg
-    person.greeting; // Hi, I'm Greg
+    expect(person.name).toBe('Greg'); // Greg
+    expect(person.greeting).toBe("Hi, I'm Greg"); // Hi, I'm Greg
 
     person.name = 'Not Greg';
-    person.greeting; // Hi, I'm Not Greg
+    await new Promise((resolve) => {
+      setTimeout(resolve);
+    });
+    expect(person.greeting).toBe("Hi, I'm Not Greg"); // Hi, I'm Not Greg
   });
 });

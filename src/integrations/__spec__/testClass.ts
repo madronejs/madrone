@@ -110,7 +110,9 @@ export default function testClass(name, integration) {
       expect(fooInstance.summary).toEqual('test 10');
       fooInstance.name = 'test2';
       expect(fooInstance.summary).toEqual('test2 10');
-      await new Promise((resolve) => setTimeout(resolve));
+      await new Promise((resolve) => {
+        setTimeout(resolve);
+      });
       expect(calls).toEqual(1);
     });
 
@@ -128,7 +130,9 @@ export default function testClass(name, integration) {
       expect(calls).toEqual(0);
       fooInstance.unsetVal = true;
       expect(fooInstance.unsetVal).toEqual(true);
-      await new Promise((resolve) => setTimeout(resolve));
+      await new Promise((resolve) => {
+        setTimeout(resolve);
+      });
       expect(calls).toEqual(1);
     });
 
@@ -146,7 +150,9 @@ export default function testClass(name, integration) {
 
       expect(calls).toEqual(0);
       fooInstance2.unsetVal = true;
-      await new Promise((resolve) => setTimeout(resolve));
+      await new Promise((resolve) => {
+        setTimeout(resolve);
+      });
       expect(calls).toEqual(0);
     });
 
@@ -163,7 +169,9 @@ export default function testClass(name, integration) {
 
       expect(calls).toEqual(0);
       fooInstance.notReactive = true;
-      await new Promise((resolve) => setTimeout(resolve));
+      await new Promise((resolve) => {
+        setTimeout(resolve);
+      });
       expect(calls).toEqual(0);
     });
   });
@@ -224,9 +232,13 @@ describe('class mixins', () => {
 
     expect(instance.fullName).toEqual('undefined undefined');
     instance.fName = 'first';
-    await new Promise((resolve) => setTimeout(resolve));
+    await new Promise((resolve) => {
+      setTimeout(resolve);
+    });
     instance.lName = 'last';
-    await new Promise((resolve) => setTimeout(resolve));
+    await new Promise((resolve) => {
+      setTimeout(resolve);
+    });
     expect(instance.fullName).toEqual('first last');
     expect(changes).toEqual(['first undefined', 'first last']);
   });
