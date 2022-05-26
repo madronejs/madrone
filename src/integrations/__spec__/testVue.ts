@@ -2,7 +2,9 @@ import lodashSet from 'lodash/set';
 import Madrone from '../../index';
 import { delay } from '@/test/util';
 
-export default function testVue(name, integration, { create } = {}) {
+export default function testVue(name, integration, options) {
+  const { create } = options || {};
+
   beforeAll(() => {
     Madrone.use(integration);
   });
@@ -142,7 +144,7 @@ export default function testVue(name, integration, { create } = {}) {
   it('can watch object computed', async () => {
     const newVals = [];
     const entryObject = Madrone.auto({
-      entries: {},
+      entries: {} as Record<string, any>,
 
       get all() {
         return Object.values(this.entries);
@@ -219,7 +221,7 @@ export default function testVue(name, integration, { create } = {}) {
 
   it('can break cache for object computed used in method', async () => {
     const entryObject = Madrone.auto({
-      entries: {},
+      entries: {} as Record<string, any>,
 
       get all() {
         return Object.values(this.entries);

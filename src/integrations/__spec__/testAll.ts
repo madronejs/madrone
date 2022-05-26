@@ -11,11 +11,10 @@ export default function testAll(
   name: string,
   integration,
   options?: {
-    blacklist?: Array<keyof typeof testObj>;
+    blacklist?: Array<string>;
   }
 ) {
-  const { blacklist } = options || {};
-  const toTest = omit(testObj, blacklist || []);
+  const toTest = omit(testObj, options?.blacklist || []);
 
   Object.values(toTest).forEach((item: any) => item(name, integration));
 }
