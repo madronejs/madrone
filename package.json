@@ -25,6 +25,7 @@
     "test": "jest --watch",
     "docs": "typedoc --entryPoints src/index.ts",
     "cleanup": "rm -rf ./dist && rm -rf ./types",
+    "cov": "CI=true NODE_ENV=test jest --coverage && open coverage/lcov-report/index.html",
     "build": "node ./esbuild.config.js",
     "build-types": "tsc -p ./tsconfig.types.json",
     "build-all": "yarn cleanup && yarn build && yarn build-types"
