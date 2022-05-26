@@ -29,7 +29,11 @@ export default interface Integration {
     },
     options?: any
   ) => any;
-  watch?: (scope: () => any, handler: () => any, options?: { deep?: boolean }) => () => void;
+  watch?: <T>(
+    scope: () => any,
+    handler: (val: T, old?: T) => any,
+    options?: { deep?: boolean }
+  ) => () => void;
   describeComputed?: (name: string, config: MadroneDescriptor, options?: any) => PropertyDescriptor;
   describeProperty?: (
     name: string,

@@ -1,7 +1,7 @@
 import { Integration } from './interfaces';
 
-const GLOBAL_INTEGRATIONS = new Set();
-let CURRENT_INTEGRATION;
+const GLOBAL_INTEGRATIONS = new Set<Integration>();
+let CURRENT_INTEGRATION: Integration;
 
 export function getIntegrations() {
   return Array.from(GLOBAL_INTEGRATIONS) as Array<Integration>;

@@ -1,4 +1,4 @@
-import { getCurrentObserver } from './Observer';
+import { getCurrentObserver, ObservableItem } from './Observer';
 
 // constants
 export const KEYS_SYMBOL = Symbol('keys');
@@ -9,9 +9,15 @@ const TARGET_TO_TRACKER = new WeakMap();
 /** Mapping from proxy to the object it proxies */
 const TRACKER_TO_TARGET = new WeakMap();
 /** Mapping from proxy to the observers that depend on it */
-const TRACKER_TO_OBSERVERS = new WeakMap();
+const TRACKER_TO_OBSERVERS = new WeakMap<
+  object,
+  Map<string | symbol | ObservableItem<any>, Set<ObservableItem<any>>>
+>();
 /** Mapping from observer to its dependencies */
-const OBSERVER_TO_TRACKERS = new WeakMap();
+const OBSERVER_TO_TRACKERS = new WeakMap<
+  ObservableItem<any>,
+  Map<string | symbol | ObservableItem<any>, Set<any>>
+>();
 /** List of scheduled tasks */
 let TASK_QUEUE = [];
 /** The id of the timeout that will handle all scheduled tasks */
@@ -52,7 +58,10 @@ export const schedule = (task) => {
  * @param {String} key the key to clear
  * @returns {void}
  */
-export const observerClear = (obs, key) => {
+export const observerClear = (
+  obs: ObservableItem<any>,
+  key: string | symbol | ObservableItem<any>
+) => {
   const trackers = OBSERVER_TO_TRACKERS.get(obs)?.get(key);
 
   if (trackers) {
@@ -70,7 +79,7 @@ export const observerClear = (obs, key) => {
  * @param {String} key the key to depend on
  * @returns {void}
  */
-export const dependTracker = (trk, key) => {
+export const dependTracker = (trk: object, key: string | symbol | ObservableItem<any>) => {
   const current = getCurrentObserver();
 
   if (!current) return;
@@ -107,7 +116,7 @@ export const dependTracker = (trk, key) => {
  * @param {String} key the key to depend on
  * @returns {void}
  */
-export const dependTarget = (target, key) => {
+export const dependTarget = (target: object, key: string | symbol) => {
   const trk = getReactive(target);
 
   if (trk) {
