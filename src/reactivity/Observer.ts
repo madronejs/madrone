@@ -47,9 +47,9 @@ class ObservableItem<T> {
   name: string;
   alive: boolean;
   dirty: boolean;
-  cachedVal: T;
   prev: T;
   cache: boolean;
+  private cachedVal: T;
   // eslint-disable-next-line no-use-before-define
   private hooks: Record<string, (obs: ObservableItem<T>) => any>;
   private get: () => T;
@@ -103,7 +103,7 @@ class ObservableItem<T> {
     return getDependencies(this);
   }
 
-  run() {
+  run(): T {
     if (!this.alive) return undefined;
 
     const val = this.wrap(() => {
