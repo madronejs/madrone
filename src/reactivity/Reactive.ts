@@ -7,7 +7,7 @@ import { addReactive, isReactiveTarget, isReactive, getReactive } from './global
  * @param {Object} options the observation options
  * @returns {Proxy} a proxied version of the object that can be observed
  */
-export default function Reactive(target, options) {
+export default function Reactive(target, options?) {
   // if we've already made an Reactive from the target, return the existing one
   if (isReactiveTarget(target)) return getReactive(target);
 

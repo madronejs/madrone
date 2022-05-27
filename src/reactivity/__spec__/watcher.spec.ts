@@ -1,6 +1,7 @@
 import Computed from '../Computed';
 import Watcher from '../Watcher';
 import Reactive from '../Reactive';
+import { delay } from '@/test/util';
 
 describe('Watcher', () => {
   it('has callback when tracked value changed', async () => {
@@ -18,9 +19,9 @@ describe('Watcher', () => {
     );
 
     tracked.test = false;
-    await new Promise(setTimeout);
+    await delay();
     tracked.test = true;
-    await new Promise(setTimeout);
+    await delay();
     expect(newValues).toEqual([false, true]);
     expect(oldValues).toEqual([null, false]);
   });
@@ -43,9 +44,9 @@ describe('Watcher', () => {
     );
 
     tracked.test = false;
-    await new Promise(setTimeout);
+    await delay();
     tracked.test = true;
-    await new Promise(setTimeout);
+    await delay();
     expect(newValues).toEqual([false, true]);
     expect(oldValues).toEqual([null, false]);
   });
@@ -68,10 +69,10 @@ describe('Watcher', () => {
     );
 
     tracked.test = false;
-    await new Promise(setTimeout);
+    await delay();
     dispose();
     tracked.test = true;
-    await new Promise(setTimeout);
+    await delay();
     expect(newValues).toEqual([false]);
     expect(oldValues).toEqual([null]);
   });
@@ -94,9 +95,9 @@ describe('Watcher', () => {
     );
 
     tracked.test.nested = false;
-    await new Promise(setTimeout);
+    await delay();
     tracked.test = true;
-    await new Promise(setTimeout);
+    await delay();
     expect(newValues).toEqual([{ test: { nested: false } }, { test: true }]);
     expect(oldValues).toEqual([{ test: { nested: true } }, { test: { nested: false } }]);
   });

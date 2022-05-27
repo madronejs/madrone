@@ -1,4 +1,5 @@
 import Madrone, { computed, reactive } from '../index';
+import { delay } from '@/test/util';
 
 describe('examples', () => {
   it('makes person factory', async () => {
@@ -58,9 +59,7 @@ describe('examples', () => {
     expect(person.greeting).toBe("Hi, I'm Greg"); // Hi, I'm Greg
 
     person.name = 'Not Greg';
-    await new Promise((resolve) => {
-      setTimeout(resolve);
-    });
+    await delay();
     expect(person.greeting).toBe("Hi, I'm Not Greg"); // Hi, I'm Not Greg
   });
 });

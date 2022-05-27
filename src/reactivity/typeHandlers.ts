@@ -86,26 +86,20 @@ const defaultHandlers = (options) => ({
 
     return Reflect.get(target, prop, receiver);
   },
-  set: (...args) => {
-    // @ts-ignore
-    optionSet(options, ...args);
-    // @ts-ignore
-    return Reflect.set(...args);
+  set: (target: object, propertyKey: PropertyKey, value: any) => {
+    optionSet(options, target, propertyKey, value);
+    return Reflect.set(target, propertyKey, value);
   },
-  deleteProperty: (...args) => {
-    // @ts-ignore
+  deleteProperty: (...args: Parameters<typeof Reflect.deleteProperty>) => {
     optionDelete(options, ...args);
-    // @ts-ignore
     return Reflect.deleteProperty(...args);
   },
   has: (target, key) => {
     optionHasOwnKeys(options, target);
-
     return Reflect.has(target, key);
   },
   ownKeys: (target) => {
     optionHasOwnKeys(options, target);
-
     return Reflect.ownKeys(target);
   },
 });

@@ -1,30 +1,42 @@
-import { getCurrentObserver } from './Observer';
+import { getCurrentObserver, ObservableItem } from './Observer';
 
 // constants
 export const KEYS_SYMBOL = Symbol('keys');
 export const OBSERVER_SYMBOL = Symbol('computed');
 
 /** Mapping from target object to its proxy */
-const TARGET_TO_TRACKER = new WeakMap();
+const TARGET_TO_PROXY = new WeakMap();
 /** Mapping from proxy to the object it proxies */
-const TRACKER_TO_TARGET = new WeakMap();
+const PROXY_TO_TARGET = new WeakMap();
 /** Mapping from proxy to the observers that depend on it */
-const TRACKER_TO_OBSERVERS = new WeakMap();
+const PROXY_TO_OBSERVERS = new WeakMap<
+  object,
+  Map<string | symbol | ObservableItem<any>, Set<ObservableItem<any>>>
+>();
 /** Mapping from observer to its dependencies */
-const OBSERVER_TO_TRACKERS = new WeakMap();
+const OBSERVER_TO_PROXIES = new WeakMap<
+  ObservableItem<any>,
+  Map<string | symbol | ObservableItem<any>, Set<any>>
+>();
 /** List of scheduled tasks */
 let TASK_QUEUE = [];
 /** The id of the timeout that will handle all scheduled tasks */
 let SCHEDULER_ID = null;
 
-export const isReactiveTarget = (target) => TARGET_TO_TRACKER.has(target);
-export const isReactive = (trk) => TRACKER_TO_TARGET.has(trk);
-export const getReactive = (target) => TARGET_TO_TRACKER.get(target);
-export const getTarget = (tracker) => TRACKER_TO_TARGET.get(tracker);
-export const getDependencies = (observer) => OBSERVER_TO_TRACKERS.get(observer);
+export const isReactiveTarget = (target) => TARGET_TO_PROXY.has(target);
+export const isReactive = (trk) => PROXY_TO_TARGET.has(trk);
+export const getReactive = (target) => TARGET_TO_PROXY.get(target);
+export const getTarget = (tracker) => PROXY_TO_TARGET.get(tracker);
+export const getProxy = (targetOrProxy) =>
+  isReactive(targetOrProxy) ? targetOrProxy : getReactive(targetOrProxy);
+
+export const getDependencies = (observer) => OBSERVER_TO_PROXIES.get(observer);
+/** Get the list of items that are observing a given proxy */
+export const getObservers = (tracker) => PROXY_TO_OBSERVERS.get(getProxy(tracker));
+
 export const addReactive = (target, proxy) => {
-  TARGET_TO_TRACKER.set(target, proxy);
-  TRACKER_TO_TARGET.set(proxy, target);
+  TARGET_TO_PROXY.set(target, proxy);
+  PROXY_TO_TARGET.set(proxy, target);
 };
 const doTasksIfNeeded = () => {
   if (SCHEDULER_ID === null) {
@@ -52,15 +64,24 @@ export const schedule = (task) => {
  * @param {String} key the key to clear
  * @returns {void}
  */
-export const observerClear = (obs, key) => {
-  const trackers = OBSERVER_TO_TRACKERS.get(obs)?.get(key);
+export const observerClear = (
+  obs: ObservableItem<any>,
+  key: string | symbol | ObservableItem<any>
+) => {
+  const proxies = OBSERVER_TO_PROXIES.get(obs);
+  const trackers = proxies?.get(key);
 
   if (trackers) {
     trackers.forEach((trk) => {
-      TRACKER_TO_OBSERVERS.get(trk).delete(obs);
+      PROXY_TO_OBSERVERS.get(trk).delete(obs);
     });
 
     trackers.clear();
+    proxies.delete(key);
+
+    if (proxies.size === 0) {
+      OBSERVER_TO_PROXIES.delete(obs);
+    }
   }
 };
 
@@ -70,21 +91,21 @@ export const observerClear = (obs, key) => {
  * @param {String} key the key to depend on
  * @returns {void}
  */
-export const dependTracker = (trk, key) => {
+export const dependTracker = (trk: object, key: string | symbol | ObservableItem<any>) => {
   const current = getCurrentObserver();
 
   if (!current) return;
 
-  if (!OBSERVER_TO_TRACKERS.has(current)) {
-    OBSERVER_TO_TRACKERS.set(current, new Map());
+  if (!OBSERVER_TO_PROXIES.has(current)) {
+    OBSERVER_TO_PROXIES.set(current, new Map());
   }
 
-  if (!TRACKER_TO_OBSERVERS.has(trk)) {
-    TRACKER_TO_OBSERVERS.set(trk, new Map());
+  if (!PROXY_TO_OBSERVERS.has(trk)) {
+    PROXY_TO_OBSERVERS.set(trk, new Map());
   }
 
-  const observers = TRACKER_TO_OBSERVERS.get(trk);
-  const trackers = OBSERVER_TO_TRACKERS.get(current);
+  const observers = PROXY_TO_OBSERVERS.get(trk);
+  const trackers = OBSERVER_TO_PROXIES.get(current);
 
   if (!observers.has(key)) {
     observers.set(key, new Set());
@@ -103,11 +124,11 @@ export const dependTracker = (trk, key) => {
 
 /**
  * Make an observer depend on a raw target
- * @param {any} target the target to depend on
- * @param {String} key the key to depend on
+ * @param target the target to depend on
+ * @param key the key to depend on
  * @returns {void}
  */
-export const dependTarget = (target, key) => {
+export const dependTarget = (target: object, key: string | symbol) => {
   const trk = getReactive(target);
 
   if (trk) {
@@ -117,12 +138,12 @@ export const dependTarget = (target, key) => {
 
 /**
  * Tell all observers of a trackable that the trackable changed
- * @param {trackable} trk the trackable that changed
- * @param {String} key the key on the trackable that changed
+ * @param trk the trackable that changed
+ * @param key the key on the trackable that changed
  * @return {void}
  */
 export const trackerChanged = (trk, key) => {
-  const observers = TRACKER_TO_OBSERVERS.get(trk);
+  const observers = PROXY_TO_OBSERVERS.get(trk);
 
   if (observers) {
     observers?.get(key)?.forEach((obs) => {
@@ -137,14 +158,9 @@ export const trackerChanged = (trk, key) => {
 
 /**
  * Tell all observers listening to this target that this changed
- * @param {any} target the target that changed
- * @param {String} key the key on the trackable that changed
- * @returns {void}
+ * @param target the target that changed
+ * @param key the key on the trackable that changed
  */
-export const targetChanged = (target, key) => {
-  const trk = getReactive(target);
-
-  if (trk) {
-    trackerChanged(trk, key);
-  }
+export const targetChanged = (target: any, key: string | symbol) => {
+  trackerChanged(getReactive(target), key);
 };

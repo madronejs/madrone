@@ -1,7 +1,7 @@
 module.exports = {
   roots: ['<rootDir>/src'],
   setupFiles: ['<rootDir>/node_modules/regenerator-runtime/runtime'],
-  testMatch: [`<rootDir>/src/**/?(*.)spec.js`],
+  testMatch: [`<rootDir>/src/**/?(*.)spec.(j|t)s`],
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
   testEnvironment: 'jsdom',
   transform: {
