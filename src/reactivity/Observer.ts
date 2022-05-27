@@ -1,11 +1,4 @@
-import {
-  OBSERVER_SYMBOL,
-  dependTracker,
-  getDependencies,
-  observerClear,
-  schedule,
-  trackerChanged,
-} from './global';
+import { OBSERVER_SYMBOL, dependTracker, schedule, trackerChanged } from './global';
 
 // eslint-disable-next-line no-use-before-define
 const GLOBAL_STACK: Array<ObservableItem<any>> = [];
@@ -13,6 +6,15 @@ const GLOBAL_STACK: Array<ObservableItem<any>> = [];
 export function getCurrentObserver() {
   return GLOBAL_STACK[GLOBAL_STACK.length - 1];
 }
+
+const OBSERVER_HOOKS = Object.freeze({
+  onGet: 'onGet' as const,
+  onSet: 'onSet' as const,
+  onChange: 'onChange' as const,
+  onImmediateChange: 'onImmediateChange' as const,
+});
+
+type ObserverHook = typeof OBSERVER_HOOKS[keyof typeof OBSERVER_HOOKS];
 
 class ObservableItem<T> {
   static create(...args: ConstructorParameters<typeof ObservableItem>) {
@@ -37,10 +39,10 @@ class ObservableItem<T> {
     this.dirty = true;
     this.cachedVal = undefined;
     this.hooks = {
-      onGet: options.onGet,
-      onSet: options.onSet,
-      onChange: options.onChange,
-      onImmediateChange: options.onImmediateChange,
+      [OBSERVER_HOOKS.onGet]: options[OBSERVER_HOOKS.onGet],
+      [OBSERVER_HOOKS.onSet]: options[OBSERVER_HOOKS.onSet],
+      [OBSERVER_HOOKS.onChange]: options[OBSERVER_HOOKS.onChange],
+      [OBSERVER_HOOKS.onImmediateChange]: options[OBSERVER_HOOKS.onImmediateChange],
     };
   }
 
@@ -51,11 +53,11 @@ class ObservableItem<T> {
   cache: boolean;
   private cachedVal: T;
   // eslint-disable-next-line no-use-before-define
-  private hooks: Record<string, (obs: ObservableItem<T>) => any>;
+  private hooks: Record<ObserverHook, (obs: ObservableItem<T>) => any>;
   private get: () => T;
   private set: (val: T) => void;
 
-  private callHook(name) {
+  private callHook(name: ObserverHook) {
     if (typeof this.hooks[name] === 'function') {
       this.hooks[name](this);
     }
@@ -66,7 +68,6 @@ class ObservableItem<T> {
    * @returns {void}
    */
   dispose() {
-    observerClear(this, OBSERVER_SYMBOL);
     this.alive = false;
     this.dirty = false;
     this.cachedVal = undefined;
@@ -88,19 +89,15 @@ class ObservableItem<T> {
       trackerChanged(this, OBSERVER_SYMBOL);
       // store the previous value for the onChange
       this.prev = this.cachedVal;
-      this.callHook('onImmediateChange');
+      this.callHook(OBSERVER_HOOKS.onImmediateChange);
       schedule(() => this.notifyChange());
     }
   }
 
-  notifyChange() {
-    this.callHook('onChange');
+  private notifyChange() {
+    this.callHook(OBSERVER_HOOKS.onChange);
     // don't hold a strong reference to the prev
     this.prev = undefined;
-  }
-
-  getDependencies() {
-    return getDependencies(this);
   }
 
   run(): T {
@@ -116,7 +113,7 @@ class ObservableItem<T> {
     });
 
     dependTracker(this, OBSERVER_SYMBOL);
-    this.callHook('onGet');
+    this.callHook(OBSERVER_HOOKS.onGet);
 
     return val;
   }
@@ -129,7 +126,7 @@ class ObservableItem<T> {
   set value(val) {
     if (typeof this.set === 'function') {
       this.set(val);
-      this.callHook('onSet');
+      this.callHook(OBSERVER_HOOKS.onSet);
     } else {
       throw new Error(`No setter defined for "${this.name}"`);
     }
