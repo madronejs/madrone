@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-types */
-import { getIntegration } from './global';
-import { applyClassMixins } from './util';
+import { getIntegration } from '@/global';
+import { applyClassMixins } from '@/util';
+import { define } from '@/auto';
 
 const itemMap: WeakMap<any, Set<string>> = new WeakMap();
 
@@ -32,18 +33,13 @@ function computedIfNeeded(target: any, key: string, descriptor: PropertyDescript
   const pl = getIntegration();
 
   if (pl && !checkTargetObserved(target, key)) {
-    Object.defineProperty(
-      target,
-      key,
-      pl?.describeComputed?.(key, {
-        ...descriptor,
-        get: descriptor.get.bind(target),
-        set: descriptor.set?.bind(target),
-        enumerable: true,
-        cache: true,
-      }) || descriptor
-    );
-
+    define(target, key, {
+      ...descriptor,
+      get: descriptor.get.bind(target),
+      set: descriptor.set?.bind(target),
+      enumerable: true,
+      cache: true,
+    });
     setTargetObserved(target, key);
     return true;
   }
@@ -83,13 +79,8 @@ function reactiveIfNeeded(target: any, key: string, value?: any) {
 
   if (pl && !checkTargetObserved(target, key)) {
     const descriptor = Object.getOwnPropertyDescriptor(target, key);
-    const modified = pl?.describeProperty?.(key, {
-      ...descriptor,
-      enumerable: true,
-      value,
-    });
 
-    Object.defineProperty(target, key, modified || descriptor);
+    define(target, key, { ...descriptor, enumerable: true, value });
     setTargetObserved(target, key);
     return true;
   }

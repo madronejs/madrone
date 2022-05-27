@@ -1,7 +1,7 @@
-import { getIntegration } from './global';
-import { MadroneDescriptor } from './interfaces/Integration';
+import { getIntegration } from '@/global';
+import { MadroneDescriptor } from '@/interfaces';
 
-export function define<T>(obj: T, key: string, descriptor: MadroneDescriptor) {
+export function define<T extends object>(obj: T, key: string, descriptor: MadroneDescriptor) {
   const pl = getIntegration();
 
   if (!pl) {
@@ -10,7 +10,7 @@ export function define<T>(obj: T, key: string, descriptor: MadroneDescriptor) {
 
   if (typeof descriptor.get === 'function' && pl?.defineComputed) {
     pl.defineComputed(obj, key, {
-      get: descriptor.get?.bind(obj),
+      get: descriptor.get.bind(obj),
       set: descriptor.set?.bind(obj),
       enumerable: descriptor.enumerable,
       configurable: descriptor.configurable,
@@ -25,9 +25,13 @@ export function define<T>(obj: T, key: string, descriptor: MadroneDescriptor) {
   }
 }
 
-export function auto<T>(obj: T, objDescriptors?: { [K in keyof T]?: MadroneDescriptor }) {
+export function auto<T extends object>(
+  obj: T,
+  objDescriptors?: { [K in keyof T]?: MadroneDescriptor }
+) {
   const descriptors = Object.getOwnPropertyDescriptors(obj);
-  const getDesc = (name, descName) => objDescriptors?.[name]?.[descName];
+  const getDesc = (name: string, descName: keyof MadroneDescriptor) =>
+    objDescriptors?.[name]?.[descName];
 
   Object.entries(descriptors).forEach(([key, descriptor]) => {
     define(obj, key, {
