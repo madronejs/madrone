@@ -1,4 +1,4 @@
-import { Integration } from './interfaces';
+import { Integration } from '@/interfaces';
 
 const GLOBAL_INTEGRATIONS = new Set<Integration>();
 let CURRENT_INTEGRATION: Integration;

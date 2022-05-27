@@ -6,7 +6,7 @@ export interface MadroneDescriptorMap {
   [key: string]: MadroneDescriptor;
 }
 
-export default interface Integration {
+export interface Integration {
   defineProperty: (
     target: any,
     name: string,
@@ -29,6 +29,7 @@ export default interface Integration {
     },
     options?: any
   ) => any;
+  toRaw?: <T>(target: T) => T;
   watch?: <T>(
     scope: () => any,
     handler: (val: T, old?: T) => any,
