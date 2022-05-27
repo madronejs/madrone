@@ -1,6 +1,6 @@
-import { addIntegration, removeIntegration } from './global';
-import { auto, define, watch } from './auto';
-import { MadroneState } from './integrations';
+import { addIntegration, removeIntegration, lastAccessed } from '@/global';
+import { auto, define, watch } from '@/auto';
+import { MadroneState } from '@/integrations';
 
 addIntegration(MadroneState);
 
@@ -18,6 +18,8 @@ const Madrone = {
   define,
   /** Watch reactive objects */
   watch,
+  /** Get the last time any reactive property was touched on a given object */
+  lastAccessed,
 };
 
 export default Madrone;

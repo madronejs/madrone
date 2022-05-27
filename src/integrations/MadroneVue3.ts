@@ -1,4 +1,6 @@
-export default ({ reactive, computed, watch } = {} as any) => {
+import { objectAccessed } from '@/global';
+
+export default ({ reactive, computed, watch, toRaw } = {} as any) => {
   function describeComputed(name, config) {
     let getter;
     let setter;
@@ -6,13 +8,21 @@ export default ({ reactive, computed, watch } = {} as any) => {
     if (config.cache) {
       const cp = computed(config);
 
-      getter = () => cp.value;
-      setter = (val) => {
+      getter = function get() {
+        objectAccessed(this);
+        return cp.value;
+      };
+      setter = function set(val) {
         cp.value = val;
       };
     } else {
-      getter = config.get;
-      setter = config.set;
+      getter = function get() {
+        objectAccessed(this);
+        return config.get.call(this);
+      };
+      setter = function set(...args) {
+        config.set.call(this, ...args);
+      };
     }
 
     return {
@@ -34,7 +44,9 @@ export default ({ reactive, computed, watch } = {} as any) => {
     return {
       configurable: config.configurable,
       enumerable: config.enumerable,
-      get: () => {
+      get: function get() {
+        objectAccessed(this);
+
         const { value: atomVal } = atom;
 
         if (Array.isArray(atomVal)) {
@@ -44,7 +56,7 @@ export default ({ reactive, computed, watch } = {} as any) => {
 
         return atomVal;
       },
-      set: (val) => {
+      set: function set(val) {
         atom.value = val;
       },
     };
@@ -55,6 +67,7 @@ export default ({ reactive, computed, watch } = {} as any) => {
   }
 
   return {
+    toRaw,
     watch,
     describeProperty,
     defineProperty,

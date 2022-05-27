@@ -1,5 +1,9 @@
 import { Integration } from '@/interfaces';
 
+// /////////////////////////////////
+// INTEGRATIONS
+// /////////////////////////////////
+
 const GLOBAL_INTEGRATIONS = new Set<Integration>();
 let CURRENT_INTEGRATION: Integration;
 
@@ -31,4 +35,25 @@ export function removeIntegration(integration) {
 
 export function getIntegration() {
   return CURRENT_INTEGRATION;
+}
+
+// /////////////////////////////////
+// STATS
+// /////////////////////////////////
+
+const STATS_ACCESS = new WeakMap<object, number>();
+
+export function toRaw<T>(obj: T) {
+  const getRawItem = getIntegration()?.toRaw ?? (() => obj);
+
+  return getRawItem(obj);
+}
+
+export function objectAccessed(obj: object) {
+  STATS_ACCESS.set(toRaw(obj), Date.now());
+}
+
+/** The last time any reactive property was accessed on a given object */
+export function lastAccessed(obj: object) {
+  return STATS_ACCESS.get(toRaw(obj));
 }

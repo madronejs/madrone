@@ -1,4 +1,5 @@
-import { Computed, Reactive, Watcher } from '../reactivity';
+import { objectAccessed } from '@/global';
+import { Computed, Reactive, Watcher, toRaw } from '@/reactivity';
 
 export function describeComputed(name, config, options) {
   let getter;
@@ -15,13 +16,21 @@ export function describeComputed(name, config, options) {
       onSet: options?.computed?.onSet,
     });
 
-    getter = () => cp.value;
-    setter = (val) => {
+    getter = function get() {
+      objectAccessed(this);
+      return cp.value;
+    };
+    setter = function set(val) {
       cp.value = val;
     };
   } else {
-    getter = config.get;
-    setter = config.set;
+    getter = function get() {
+      objectAccessed(this);
+      return config.get.call(this);
+    };
+    setter = function set(...args) {
+      config.set.call(this, ...args);
+    };
   }
 
   return {
@@ -46,7 +55,9 @@ export function describeProperty(name, config, options) {
   return {
     configurable: config.configurable,
     enumerable: config.enumerable,
-    get: () => {
+    get: function get() {
+      objectAccessed(this);
+
       const { value: atomVal } = atom;
 
       if (Array.isArray(atomVal)) {
@@ -56,7 +67,7 @@ export function describeProperty(name, config, options) {
 
       return atomVal;
     },
-    set: (val) => {
+    set: function set(val) {
       atom.value = val;
     },
   };
@@ -78,6 +89,7 @@ export function defineProperty(
 export { Watcher as watch };
 
 export default {
+  toRaw,
   watch: Watcher,
   describeProperty,
   defineProperty,
