@@ -27,7 +27,13 @@ export const isReactiveTarget = (target) => TARGET_TO_PROXY.has(target);
 export const isReactive = (trk) => PROXY_TO_TARGET.has(trk);
 export const getReactive = (target) => TARGET_TO_PROXY.get(target);
 export const getTarget = (tracker) => PROXY_TO_TARGET.get(tracker);
+export const getProxy = (targetOrProxy) =>
+  isReactive(targetOrProxy) ? targetOrProxy : getReactive(targetOrProxy);
+
 export const getDependencies = (observer) => OBSERVER_TO_PROXIES.get(observer);
+/** Get the list of items that are observing a given proxy */
+export const getObservers = (tracker) => PROXY_TO_OBSERVERS.get(getProxy(tracker));
+
 export const addReactive = (target, proxy) => {
   TARGET_TO_PROXY.set(target, proxy);
   PROXY_TO_TARGET.set(proxy, target);
@@ -62,7 +68,8 @@ export const observerClear = (
   obs: ObservableItem<any>,
   key: string | symbol | ObservableItem<any>
 ) => {
-  const trackers = OBSERVER_TO_PROXIES.get(obs)?.get(key);
+  const proxies = OBSERVER_TO_PROXIES.get(obs);
+  const trackers = proxies?.get(key);
 
   if (trackers) {
     trackers.forEach((trk) => {
@@ -70,6 +77,11 @@ export const observerClear = (
     });
 
     trackers.clear();
+    proxies.delete(key);
+
+    if (proxies.size === 0) {
+      OBSERVER_TO_PROXIES.delete(obs);
+    }
   }
 };
 
