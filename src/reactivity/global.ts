@@ -112,8 +112,8 @@ export const dependTracker = (trk: object, key: string | symbol | ObservableItem
 
 /**
  * Make an observer depend on a raw target
- * @param {any} target the target to depend on
- * @param {String} key the key to depend on
+ * @param target the target to depend on
+ * @param key the key to depend on
  * @returns {void}
  */
 export const dependTarget = (target: object, key: string | symbol) => {
@@ -126,8 +126,8 @@ export const dependTarget = (target: object, key: string | symbol) => {
 
 /**
  * Tell all observers of a trackable that the trackable changed
- * @param {trackable} trk the trackable that changed
- * @param {String} key the key on the trackable that changed
+ * @param trk the trackable that changed
+ * @param key the key on the trackable that changed
  * @return {void}
  */
 export const trackerChanged = (trk, key) => {
@@ -146,14 +146,9 @@ export const trackerChanged = (trk, key) => {
 
 /**
  * Tell all observers listening to this target that this changed
- * @param {any} target the target that changed
- * @param {String} key the key on the trackable that changed
- * @returns {void}
+ * @param target the target that changed
+ * @param key the key on the trackable that changed
  */
-export const targetChanged = (target, key) => {
-  const trk = getReactive(target);
-
-  if (trk) {
-    trackerChanged(trk, key);
-  }
+export const targetChanged = (target: any, key: string | symbol) => {
+  trackerChanged(getReactive(target), key);
 };
