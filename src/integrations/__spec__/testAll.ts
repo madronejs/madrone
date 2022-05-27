@@ -1,10 +1,12 @@
 import omit from 'lodash/omit';
 import auto from './testAuto';
 import testClass from './testClass';
+import testAccess from './testAccess';
 
 const testObj = {
   auto,
   testClass,
+  testAccess,
 };
 
 export default function testAll(

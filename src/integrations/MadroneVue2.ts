@@ -1,3 +1,4 @@
+import { objectAccessed } from '@/global';
 import * as MadroneState from './MadroneState';
 
 export default ({ observable, set }) => {
@@ -71,6 +72,7 @@ export default ({ observable, set }) => {
     },
     reactive: {
       onGet: ({ target, key }) => {
+        objectAccessed(target);
         depend(target, key);
       },
       onHas: ({ target }) => {
