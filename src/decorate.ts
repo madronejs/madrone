@@ -20,13 +20,11 @@ function trackTargetIfNeeded(target) {
 
 function checkTargetObserved(target, key) {
   trackTargetIfNeeded(target);
-
   return itemMap.get(target).has(key);
 }
 
 function setTargetObserved(target, key) {
   trackTargetIfNeeded(target);
-
   itemMap.get(target).add(key);
 }
 
@@ -47,7 +45,6 @@ function computedIfNeeded(target: any, key: string, descriptor: PropertyDescript
     );
 
     setTargetObserved(target, key);
-
     return true;
   }
 
@@ -93,9 +90,7 @@ function reactiveIfNeeded(target: any, key: string, value?: any) {
     });
 
     Object.defineProperty(target, key, modified || descriptor);
-
     setTargetObserved(target, key);
-
     return true;
   }
 
@@ -113,12 +108,10 @@ export function reactive(target: any, key: string) {
     enumerable: true,
     get() {
       reactiveIfNeeded(this, key);
-
       return this[key];
     },
     set(val) {
       reactiveIfNeeded(this, key);
-
       this[key] = val;
     },
   });
