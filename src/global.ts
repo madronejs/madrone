@@ -43,12 +43,14 @@ export function getIntegration() {
 
 const STATS_ACCESS = new WeakMap<object, number>();
 
+/** Get the raw value of an object (without the proxy) */
 export function toRaw<T>(obj: T) {
   const getRawItem = getIntegration()?.toRaw ?? (() => obj);
 
   return getRawItem(obj);
 }
 
+/** Mark an object as accessed */
 export function objectAccessed(obj: object) {
   STATS_ACCESS.set(toRaw(obj), Date.now());
 }

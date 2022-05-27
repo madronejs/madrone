@@ -9,43 +9,167 @@ export default function testClass(integrationName, integration) {
     Madrone.unuse(integration);
   });
 
-  it('makes person factory', async () => {
-    const PersonFactory = ({ name = undefined } = {}) =>
-      Madrone.auto({
-        name,
-        // when using reactivity integration, getters become cached computeds
-        get greeting() {
-          return `Hi, I'm ${this.name}`;
-        },
+  describe('auto', () => {
+    describe('one level deep', () => {
+      const PersonFactory = ({ name = undefined } = {}) =>
+        Madrone.auto({
+          name,
+          // when using reactivity integration, getters become cached computeds
+          get greeting() {
+            return 'test';
+          },
+        });
+
+      test('reactive property', async () => {
+        const person = PersonFactory({ name: 'Greg' });
+
+        expect(Madrone.lastAccessed(person)).toBeUndefined();
+        expect(person.name).toEqual('Greg');
+        expect(typeof Madrone.lastAccessed(person)).toEqual('number');
       });
 
-    const person = PersonFactory({ name: 'Greg' });
+      test('computed property', async () => {
+        const person = PersonFactory({ name: 'Greg' });
 
-    expect(Madrone.lastAccessed(person)).toBeUndefined();
-    expect(person.name).toEqual('Greg');
+        expect(Madrone.lastAccessed(person)).toBeUndefined();
+        expect(person.greeting).toEqual('test');
+        expect(typeof Madrone.lastAccessed(person)).toEqual('number');
+      });
+    });
 
-    expect(typeof Madrone.lastAccessed(person)).toEqual('number');
+    describe('two levels deep', () => {
+      const PersonFactory = ({ name = undefined } = {}) => {
+        const personInner = Madrone.auto({
+          foo: true,
+          get test() {
+            return 'test';
+          },
+        });
+        const person = Madrone.auto({
+          personInner,
+          name,
+          // when using reactivity integration, getters become cached computeds
+          get greeting() {
+            return 'test';
+          },
+        });
+
+        return { person, personInner };
+      };
+
+      test('reactive property', async () => {
+        const { person, personInner } = PersonFactory({ name: 'Greg' });
+
+        expect(Madrone.lastAccessed(person)).toBeUndefined();
+        expect(Madrone.lastAccessed(personInner)).toBeUndefined();
+
+        expect(person.name).toEqual('Greg');
+        expect(person.personInner.foo).toBeTruthy();
+        expect(typeof Madrone.lastAccessed(person)).toEqual('number');
+        expect(typeof Madrone.lastAccessed(person.personInner)).toEqual('number');
+        expect(typeof Madrone.lastAccessed(personInner)).toEqual('number');
+      });
+
+      test('computed property', async () => {
+        const { person, personInner } = PersonFactory({ name: 'Greg' });
+
+        expect(Madrone.lastAccessed(person)).toBeUndefined();
+        expect(person.greeting).toEqual('test');
+        expect(person.personInner.test).toBeTruthy();
+        expect(typeof Madrone.lastAccessed(person)).toEqual('number');
+        expect(typeof Madrone.lastAccessed(person.personInner)).toEqual('number');
+        expect(typeof Madrone.lastAccessed(personInner)).toEqual('number');
+      });
+    });
   });
 
-  it('makes person class', async () => {
-    class Person {
-      @reactive name;
-      @reactive age;
+  describe('class', () => {
+    describe('one level deep', () => {
+      class Person {
+        @reactive name;
+        @computed get greeting() {
+          return 'test';
+        }
 
-      @computed get greeting() {
-        return `Hi, I'm ${this.name}`;
+        constructor(options) {
+          this.name = options?.name;
+        }
       }
 
-      constructor(options) {
-        this.name = options?.name;
-        this.age = options?.age;
+      test('reactive property', async () => {
+        const person = new Person({ name: 'Greg' });
+
+        expect(Madrone.lastAccessed(person)).toBeUndefined();
+        expect(person.name).toEqual('Greg');
+        expect(typeof Madrone.lastAccessed(person)).toEqual('number');
+      });
+
+      test('computed property', async () => {
+        const person = new Person({ name: 'Greg' });
+
+        expect(Madrone.lastAccessed(person)).toBeUndefined();
+        expect(person.greeting).toEqual('test');
+        expect(typeof Madrone.lastAccessed(person)).toEqual('number');
+      });
+    });
+
+    describe('two levels deep', () => {
+      class PersonInner {
+        @reactive foo: boolean;
+        @computed get test() {
+          return 'test';
+        }
+
+        constructor() {
+          this.foo = true;
+        }
       }
-    }
 
-    const person = new Person({ name: 'Greg' });
+      class Person {
+        @reactive name;
+        @reactive personInner: PersonInner;
+        @computed get greeting() {
+          return 'test';
+        }
 
-    expect(Madrone.lastAccessed(person)).toBeUndefined();
-    expect(person.name).toEqual('Greg');
-    expect(typeof Madrone.lastAccessed(person)).toEqual('number');
+        constructor(options) {
+          this.name = options?.name;
+          this.personInner = new PersonInner();
+        }
+      }
+
+      function PersonFactory(options) {
+        const person = new Person(options);
+        const personInner = new PersonInner();
+
+        person.personInner = personInner;
+
+        return { person, personInner };
+      }
+
+      test('reactive property', async () => {
+        const { person, personInner } = PersonFactory({ name: 'Greg' });
+
+        expect(Madrone.lastAccessed(person)).toBeUndefined();
+        expect(Madrone.lastAccessed(personInner)).toBeUndefined();
+
+        expect(person.name).toEqual('Greg');
+        expect(person.personInner.foo).toBeTruthy();
+        expect(typeof Madrone.lastAccessed(person)).toEqual('number');
+        expect(typeof Madrone.lastAccessed(person.personInner)).toEqual('number');
+        expect(typeof Madrone.lastAccessed(personInner)).toEqual('number');
+      });
+
+      test('computed property', async () => {
+        const { person, personInner } = PersonFactory({ name: 'Greg' });
+
+        expect(Madrone.lastAccessed(person)).toBeUndefined();
+        expect(person.greeting).toEqual('test');
+        expect(person.personInner.test).toBeTruthy();
+        expect(typeof Madrone.lastAccessed(person)).toEqual('number');
+        expect(typeof Madrone.lastAccessed(person.personInner)).toEqual('number');
+        expect(typeof Madrone.lastAccessed(personInner)).toEqual('number');
+      });
+    });
   });
 }
