@@ -9,173 +9,275 @@ export default function testClass(name, integration) {
     Madrone.unuse(integration);
   });
 
-  describe('reactive classes', () => {
-    class Foo {
-      @reactive name: string;
-      @reactive age;
-      @reactive unsetVal;
-      notReactive;
+  describe('reactive static properties', () => {
+    function makeClass() {
+      class Foo {
+        static test() {}
 
-      _test;
+        @reactive static _getterSetter: any = 'test';
+        @computed static get getterSetter() {
+          (Foo as any).test?.();
+          return `${this._getterSetter} computed`;
+        }
 
-      static create(data?) {
-        return new Foo(data);
+        static set getterSetter(val) {
+          Foo._getterSetter = val;
+        }
       }
 
-      constructor(options) {
-        this.name = options?.name;
-        this.age = options?.age;
-      }
-
-      @computed get summary() {
-        this._test?.();
-        return `${this.name} ${this.age}`;
-      }
-
-      @reactive _getterSetter: any;
-      @computed get getterSetter() {
-        return this._getterSetter;
-      }
-
-      set getterSetter(val) {
-        this._getterSetter = val;
-      }
+      return Foo;
     }
 
-    it('throws error if setting a computed that has no setter defined', () => {
-      const fooInstance = Foo.create();
-      const failMessage = 'Cannot set the value of a read-only property!';
-
-      try {
-        // @ts-ignore
-        fooInstance.summary = 'foo!';
-        throw new Error(failMessage);
-      } catch (e) {
-        expect(e.message).not.toEqual(failMessage);
-      }
-    });
-
-    it('makes accessed properties enumerable', () => {
-      const fooInstance = Foo.create({ name: 'foo' });
-
-      expect(Object.keys(fooInstance)).toEqual(['name', 'age']);
-    });
-
     it('caches computed', () => {
-      const fooInstance = Foo.create({ name: 'test', age: 10 });
+      const Foo = makeClass();
       let calls = 0;
 
-      fooInstance._test = () => {
+      Foo.test = () => {
         calls += 1;
       };
 
       expect(calls).toEqual(0);
-      expect(fooInstance.summary).toEqual('test 10');
-      expect(fooInstance.summary).toEqual('test 10');
+      expect(Foo.getterSetter).toEqual('test computed');
+      expect(Foo.getterSetter).toEqual('test computed');
       expect(calls).toEqual(1);
-      fooInstance.name = 'test2';
-      expect(fooInstance.summary).toEqual('test2 10');
-      expect(fooInstance.summary).toEqual('test2 10');
+      Foo.getterSetter = 'test2';
+      expect(Foo.getterSetter).toEqual('test2 computed');
+      expect(Foo.getterSetter).toEqual('test2 computed');
       expect(calls).toEqual(2);
     });
 
-    it('can get/set computed', () => {
-      const fooInstance = Foo.create();
-
-      expect(fooInstance.getterSetter).toEqual(undefined);
-      fooInstance.getterSetter = 'test!';
-      expect(fooInstance.getterSetter).toEqual('test!');
-    });
-
-    it('accessed computed is enumerable', () => {
-      const fooInstance = Foo.create();
-
-      fooInstance.getterSetter = 'test!';
-
-      expect(Object.keys(fooInstance)).toEqual(['name', 'age', 'getterSetter', '_getterSetter']);
-    });
-
     it('watches data', async () => {
-      const fooInstance = Foo.create({ name: 'test', age: 10 });
+      const Foo = makeClass();
       let calls = 0;
 
       Madrone.watch(
-        () => fooInstance.summary,
+        () => Foo.getterSetter,
         () => {
           calls += 1;
         }
       );
 
       expect(calls).toEqual(0);
-      expect(fooInstance.summary).toEqual('test 10');
-      fooInstance.name = 'test2';
-      expect(fooInstance.summary).toEqual('test2 10');
+      expect(Foo.getterSetter).toEqual('test computed');
+      Foo.getterSetter = 'test2';
+      expect(Foo.getterSetter).toEqual('test2 computed');
       await new Promise((resolve) => {
         setTimeout(resolve);
       });
       expect(calls).toEqual(1);
-    });
-
-    it('makes properties reactive if not set explicitly', async () => {
-      const fooInstance = Foo.create();
-      let calls = 0;
-
-      Madrone.watch(
-        () => fooInstance.unsetVal,
-        () => {
-          calls += 1;
-        }
-      );
-
-      expect(calls).toEqual(0);
-      fooInstance.unsetVal = true;
-      expect(fooInstance.unsetVal).toEqual(true);
-      await new Promise((resolve) => {
-        setTimeout(resolve);
-      });
-      expect(calls).toEqual(1);
-    });
-
-    it('does not trigger watcher when anther instance is mutated', async () => {
-      const fooInstance = Foo.create();
-      const fooInstance2 = Foo.create();
-      let calls = 0;
-
-      Madrone.watch(
-        () => fooInstance.unsetVal,
-        () => {
-          calls += 1;
-        }
-      );
-
-      expect(calls).toEqual(0);
-      fooInstance2.unsetVal = true;
-      await new Promise((resolve) => {
-        setTimeout(resolve);
-      });
-      expect(calls).toEqual(0);
-    });
-
-    it('does not trigger watcher on non-reactive properties', async () => {
-      const fooInstance = Foo.create();
-      let calls = 0;
-
-      Madrone.watch(
-        () => fooInstance.notReactive,
-        () => {
-          calls += 1;
-        }
-      );
-
-      expect(calls).toEqual(0);
-      fooInstance.notReactive = true;
-      await new Promise((resolve) => {
-        setTimeout(resolve);
-      });
-      expect(calls).toEqual(0);
     });
   });
 }
+
+describe('reactive defaults', () => {
+  class Foo {
+    @reactive name = 'my name';
+    @reactive age = 10;
+
+    static create() {
+      return new Foo();
+    }
+
+    test() {}
+
+    @computed get summary() {
+      this.test?.();
+      return `${this.name} ${this.age}`;
+    }
+  }
+
+  it('sets the default data when the class is created', () => {
+    const test = Foo.create();
+
+    expect(test.name).toEqual('my name');
+    expect(test.age).toEqual(10);
+  });
+
+  it('is reactive with default data', () => {
+    const test = Foo.create();
+    let count = 0;
+
+    test.test = () => {
+      count += 1;
+    };
+
+    expect(count).toEqual(0);
+    expect(test.summary).toEqual('my name 10');
+    expect(test.summary).toEqual('my name 10');
+    expect(count).toEqual(1);
+    test.name = 'bob';
+    expect(test.summary).toEqual('bob 10');
+    expect(test.summary).toEqual('bob 10');
+    expect(count).toEqual(2);
+  });
+});
+
+describe('reactive classes', () => {
+  class Foo {
+    @reactive name: string;
+    @reactive age;
+    @reactive unsetVal;
+    notReactive;
+
+    _test;
+
+    static create(data?) {
+      return new Foo(data);
+    }
+
+    constructor(options) {
+      this.name = options?.name;
+      this.age = options?.age;
+    }
+
+    @computed get summary() {
+      this._test?.();
+      return `${this.name} ${this.age}`;
+    }
+
+    @reactive _getterSetter: any;
+    @computed get getterSetter() {
+      return this._getterSetter;
+    }
+
+    set getterSetter(val) {
+      this._getterSetter = val;
+    }
+  }
+
+  it('throws error if setting a computed that has no setter defined', () => {
+    const fooInstance = Foo.create();
+    const failMessage = 'Cannot set the value of a read-only property!';
+
+    try {
+      // @ts-ignore
+      fooInstance.summary = 'foo!';
+      throw new Error(failMessage);
+    } catch (e) {
+      expect(e.message).not.toEqual(failMessage);
+    }
+  });
+
+  it('makes accessed properties enumerable', () => {
+    const fooInstance = Foo.create({ name: 'foo' });
+
+    expect(Object.keys(fooInstance)).toEqual(['name', 'age']);
+  });
+
+  it('caches computed', () => {
+    const fooInstance = Foo.create({ name: 'test', age: 10 });
+    let calls = 0;
+
+    fooInstance._test = () => {
+      calls += 1;
+    };
+
+    expect(calls).toEqual(0);
+    expect(fooInstance.summary).toEqual('test 10');
+    expect(fooInstance.summary).toEqual('test 10');
+    expect(calls).toEqual(1);
+    fooInstance.name = 'test2';
+    expect(fooInstance.summary).toEqual('test2 10');
+    expect(fooInstance.summary).toEqual('test2 10');
+    expect(calls).toEqual(2);
+  });
+
+  it('can get/set computed', () => {
+    const fooInstance = Foo.create();
+
+    expect(fooInstance.getterSetter).toEqual(undefined);
+    fooInstance.getterSetter = 'test!';
+    expect(fooInstance.getterSetter).toEqual('test!');
+  });
+
+  it('accessed computed is enumerable', () => {
+    const fooInstance = Foo.create();
+
+    fooInstance.getterSetter = 'test!';
+
+    expect(Object.keys(fooInstance)).toEqual(['name', 'age', 'getterSetter', '_getterSetter']);
+  });
+
+  it('watches data', async () => {
+    const fooInstance = Foo.create({ name: 'test', age: 10 });
+    let calls = 0;
+
+    Madrone.watch(
+      () => fooInstance.summary,
+      () => {
+        calls += 1;
+      }
+    );
+
+    expect(calls).toEqual(0);
+    expect(fooInstance.summary).toEqual('test 10');
+    fooInstance.name = 'test2';
+    expect(fooInstance.summary).toEqual('test2 10');
+    await new Promise((resolve) => {
+      setTimeout(resolve);
+    });
+    expect(calls).toEqual(1);
+  });
+
+  it('makes properties reactive if not set explicitly', async () => {
+    const fooInstance = Foo.create();
+    let calls = 0;
+
+    Madrone.watch(
+      () => fooInstance.unsetVal,
+      () => {
+        calls += 1;
+      }
+    );
+
+    expect(calls).toEqual(0);
+    fooInstance.unsetVal = true;
+    expect(fooInstance.unsetVal).toEqual(true);
+    await new Promise((resolve) => {
+      setTimeout(resolve);
+    });
+    expect(calls).toEqual(1);
+  });
+
+  it('does not trigger watcher when anther instance is mutated', async () => {
+    const fooInstance = Foo.create();
+    const fooInstance2 = Foo.create();
+    let calls = 0;
+
+    Madrone.watch(
+      () => fooInstance.unsetVal,
+      () => {
+        calls += 1;
+      }
+    );
+
+    expect(calls).toEqual(0);
+    fooInstance2.unsetVal = true;
+    await new Promise((resolve) => {
+      setTimeout(resolve);
+    });
+    expect(calls).toEqual(0);
+  });
+
+  it('does not trigger watcher on non-reactive properties', async () => {
+    const fooInstance = Foo.create();
+    let calls = 0;
+
+    Madrone.watch(
+      () => fooInstance.notReactive,
+      () => {
+        calls += 1;
+      }
+    );
+
+    expect(calls).toEqual(0);
+    fooInstance.notReactive = true;
+    await new Promise((resolve) => {
+      setTimeout(resolve);
+    });
+    expect(calls).toEqual(0);
+  });
+});
 
 describe('class mixins', () => {
   it('handles reactive properties with the same name', () => {

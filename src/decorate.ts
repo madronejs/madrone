@@ -74,14 +74,15 @@ export function computed(target: any, key: string, descriptor: PropertyDescripto
   return descriptor;
 }
 
-function reactiveIfNeeded(target: any, key: string, value?: any) {
+function reactiveIfNeeded(target: any, key: string) {
   const pl = getIntegration();
 
   if (pl && !checkTargetObserved(target, key)) {
-    const descriptor = Object.getOwnPropertyDescriptor(target, key);
-
-    define(target, key, { ...descriptor, enumerable: true, value });
     setTargetObserved(target, key);
+    define(target, key, {
+      ...Object.getOwnPropertyDescriptor(target, key),
+      enumerable: true,
+    });
     return true;
   }
 
@@ -94,16 +95,26 @@ function reactiveIfNeeded(target: any, key: string, value?: any) {
  * @param key The name of the reactive property
  */
 export function reactive(target: any, key: string) {
-  Object.defineProperty(target, key, {
-    configurable: true,
-    enumerable: true,
-    get() {
-      reactiveIfNeeded(this, key);
-      return this[key];
-    },
-    set(val) {
-      reactiveIfNeeded(this, key);
-      this[key] = val;
-    },
-  });
+  if (typeof target === 'function') {
+    // handle the static case
+    reactiveIfNeeded(target, key);
+  } else {
+    // handle the prototype case
+    Object.defineProperty(target, key, {
+      configurable: true,
+      enumerable: true,
+      get() {
+        if (reactiveIfNeeded(this, key)) {
+          return this[key];
+        }
+
+        return undefined;
+      },
+      set(val) {
+        if (reactiveIfNeeded(this, key)) {
+          this[key] = val;
+        }
+      },
+    });
+  }
 }
