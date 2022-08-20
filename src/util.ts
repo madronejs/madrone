@@ -49,7 +49,7 @@ export function merge<A extends object[]>(...types: [...A]) {
 export function applyClassMixins(base: any, mixins: [...any]) {
   Object.defineProperties(
     base.prototype,
-    Object.getOwnPropertyDescriptors(merge(...mixins.concat(base).map((item) => item.prototype)))
+    Object.getOwnPropertyDescriptors(merge(...[...mixins, base].map((item) => item.prototype)))
   );
 }
 
