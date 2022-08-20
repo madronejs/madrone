@@ -1,6 +1,24 @@
 /* eslint-disable max-classes-per-file */
 import Madrone, { computed, reactive, applyClassMixins } from '../../index';
 
+function makeClass() {
+  class Foo {
+    static test() {}
+
+    @reactive static _getterSetter: any = 'test';
+    @computed static get getterSetter() {
+      (Foo as any).test?.();
+      return `${this._getterSetter} computed`;
+    }
+
+    static set getterSetter(val) {
+      Foo._getterSetter = val;
+    }
+  }
+
+  return Foo;
+}
+
 export default function testClass(name, integration) {
   beforeAll(() => {
     Madrone.use(integration);
@@ -10,24 +28,6 @@ export default function testClass(name, integration) {
   });
 
   describe('reactive static properties', () => {
-    function makeClass() {
-      class Foo {
-        static test() {}
-
-        @reactive static _getterSetter: any = 'test';
-        @computed static get getterSetter() {
-          (Foo as any).test?.();
-          return `${this._getterSetter} computed`;
-        }
-
-        static set getterSetter(val) {
-          Foo._getterSetter = val;
-        }
-      }
-
-      return Foo;
-    }
-
     it('caches computed', () => {
       const Foo = makeClass();
       let calls = 0;
