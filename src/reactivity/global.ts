@@ -147,14 +147,14 @@ export const dependTarget = (target: object, key: string | symbol) => {
 export const trackerChanged = (trk, key) => {
   const observers = PROXY_TO_OBSERVERS.get(trk);
 
-  if (observers) {
-    observers?.get(key)?.forEach((obs) => {
+  if (observers?.get(key)) {
+    for (const obs of observers.get(key)) {
       // tell the observer it needs to run again
       obs.setDirty();
       // the observer is dirty, so we don't need to track it
       // anymore until the observer runs again
       observerClear(obs, key);
-    });
+    }
   }
 };
 
