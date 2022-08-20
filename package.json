@@ -55,7 +55,6 @@
     "eslint-plugin-unicorn": "^43.0.2",
     "jest": "^27.0.6",
     "prettier": "^2.6.0",
-    "regenerator-runtime": "^0.13.9",
     "ts-jest": "^27.0.5",
     "tsc-alias": "^1.6.7",
     "typedoc": "^0.23.10",
