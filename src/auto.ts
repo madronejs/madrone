@@ -33,7 +33,7 @@ export function auto<T extends object>(
   const getDesc = (name: string, descName: keyof MadroneDescriptor) =>
     objDescriptors?.[name]?.[descName];
 
-  Object.entries(descriptors).forEach(([key, descriptor]) => {
+  for (const [key, descriptor] of Object.entries(descriptors)) {
     define(obj, key, {
       get: descriptor.get?.bind(obj),
       set: descriptor.set?.bind(obj),
@@ -42,7 +42,7 @@ export function auto<T extends object>(
       configurable: getDesc(key, 'configurable') ?? descriptor.configurable,
       cache: getDesc(key, 'cache') ?? true,
     });
-  });
+  }
 
   return obj as T;
 }

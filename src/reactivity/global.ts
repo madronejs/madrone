@@ -47,7 +47,7 @@ const doTasksIfNeeded = () => {
 
       TASK_QUEUE = [];
 
-      while (queue.length) {
+      while (queue.length > 0) {
         queue.shift()();
       }
 
@@ -74,9 +74,9 @@ export const observerClear = (
   const trackers = proxies?.get(key);
 
   if (trackers) {
-    trackers.forEach((trk) => {
+    for (const trk of trackers) {
       PROXY_TO_OBSERVERS.get(trk).delete(obs);
-    });
+    }
 
     trackers.clear();
     proxies.delete(key);

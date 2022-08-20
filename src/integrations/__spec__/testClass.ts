@@ -153,8 +153,8 @@ describe('reactive classes', () => {
       // @ts-ignore
       fooInstance.summary = 'foo!';
       throw new Error(failMessage);
-    } catch (e) {
-      expect(e.message).not.toEqual(failMessage);
+    } catch (error) {
+      expect(error.message).not.toEqual(failMessage);
     }
   });
 

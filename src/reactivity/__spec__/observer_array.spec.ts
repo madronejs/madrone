@@ -31,7 +31,7 @@ describe('array', () => {
       get: () => {
         counter += 1;
 
-        return tracked.length ? tracked : [];
+        return tracked.length > 0 ? tracked : [];
       },
     });
 
@@ -159,9 +159,9 @@ describe('array', () => {
 
         const obj = {};
 
-        tracked.forEach((val) => {
+        for (const val of tracked) {
           obj[val] = true;
-        });
+        }
 
         return obj;
       },
@@ -186,9 +186,9 @@ describe('array', () => {
 
         let returnVal = false;
 
-        tracked.forEach(({ value }) => {
+        for (const { value } of tracked) {
           if (value) returnVal = true;
-        });
+        }
 
         return returnVal;
       },

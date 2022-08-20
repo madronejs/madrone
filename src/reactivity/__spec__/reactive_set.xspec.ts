@@ -6,9 +6,9 @@ describe('Reactive sets', () => {
     const set = new Set([{ foo: true }, { foo: false }, { foo: true }]);
     const obs = Reactive(set);
 
-    obs.forEach((item) => {
+    for (const item of obs) {
       expect(isReactive(item)).toEqual(true);
-    });
+    }
   });
 
   it('makes reactive array from Array.from', () => {
@@ -17,8 +17,8 @@ describe('Reactive sets', () => {
 
     obs.entries();
 
-    Array.from(obs).forEach((item) => {
+    for (const item of obs) {
       expect(isReactive(item)).toEqual(true);
-    });
+    }
   });
 });
