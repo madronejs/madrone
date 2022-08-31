@@ -8,7 +8,7 @@ const GLOBAL_INTEGRATIONS = new Set<Integration>();
 let CURRENT_INTEGRATION: Integration;
 
 export function getIntegrations() {
-  return Array.from(GLOBAL_INTEGRATIONS) as Array<Integration>;
+  return [...GLOBAL_INTEGRATIONS] as Array<Integration>;
 }
 
 function getLastIntegration() {

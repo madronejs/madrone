@@ -29,12 +29,13 @@ export function merge<A extends object[]>(...types: [...A]) {
   const defs = {} as PropertyDescriptorMap;
   const newVal = {};
 
-  types.forEach((type) => {
+  for (const type of types) {
     // @ts-ignore
     const theType = typeof type === 'function' ? type() : type;
 
     Object.assign(defs, Object.getOwnPropertyDescriptors(theType ?? type ?? {}));
-  });
+  }
+
   Object.defineProperties(newVal, defs);
 
   return newVal as Spread<A>;
@@ -48,19 +49,19 @@ export function merge<A extends object[]>(...types: [...A]) {
 export function applyClassMixins(base: any, mixins: [...any]) {
   Object.defineProperties(
     base.prototype,
-    Object.getOwnPropertyDescriptors(merge(...mixins.concat(base).map((item) => item.prototype)))
+    Object.getOwnPropertyDescriptors(merge(...[...mixins, base].map((item) => item.prototype)))
   );
 }
 
 export function getDefaultDescriptors(obj, defaults?) {
   const descriptors = Object.getOwnPropertyDescriptors(obj);
-  const newDefaults = { configurable: true, enumerable: false, ...(defaults || {}) };
+  const newDefaults = { configurable: true, enumerable: false, ...defaults };
 
-  Object.keys(descriptors).forEach((key) => {
-    Object.entries(newDefaults).forEach(([descKey, descValue]) => {
+  for (const key of Object.keys(descriptors)) {
+    for (const [descKey, descValue] of Object.entries(newDefaults)) {
       descriptors[key][descKey] = descValue;
-    });
-  });
+    }
+  }
 
   return descriptors;
 }

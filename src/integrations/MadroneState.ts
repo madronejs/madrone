@@ -86,8 +86,6 @@ export function defineProperty(
   Object.defineProperty(target, name, describeProperty(name, config, options));
 }
 
-export { Watcher as watch };
-
 export default {
   toRaw,
   watch: Watcher,
@@ -96,3 +94,5 @@ export default {
   describeComputed,
   defineComputed,
 };
+
+export { Watcher as watch } from '@/reactivity';

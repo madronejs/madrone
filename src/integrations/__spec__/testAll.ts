@@ -18,5 +18,7 @@ export default function testAll(
 ) {
   const toTest = omit(testObj, options?.blacklist || []);
 
-  Object.values(toTest).forEach((item: any) => item(name, integration));
+  for (const item of Object.values(toTest)) {
+    item(name, integration);
+  }
 }

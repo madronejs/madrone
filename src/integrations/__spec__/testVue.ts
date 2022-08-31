@@ -2,6 +2,23 @@ import lodashSet from 'lodash/set';
 import Madrone from '../../index';
 import { delay } from '@/test/util';
 
+const makeGenericModel = ({ cache = true } = {}) => ({
+  create() {
+    return Madrone.auto(
+      {
+        foo: 'foo1',
+        bar: 'bar1',
+        get fooBar() {
+          return `${this.foo}${this.bar}`;
+        },
+      },
+      {
+        fooBar: { cache },
+      }
+    );
+  },
+});
+
 export default function testVue(name, integration, options) {
   const { create } = options || {};
 
@@ -10,23 +27,6 @@ export default function testVue(name, integration, options) {
   });
   afterAll(() => {
     Madrone.unuse(integration);
-  });
-
-  const makeGenericModel = ({ cache = true } = {}) => ({
-    create() {
-      return Madrone.auto(
-        {
-          foo: 'foo1',
-          bar: 'bar1',
-          get fooBar() {
-            return `${this.foo}${this.bar}`;
-          },
-        },
-        {
-          fooBar: { cache },
-        }
-      );
-    },
   });
 
   describe('vue usage', () => {

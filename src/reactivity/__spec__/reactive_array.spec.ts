@@ -6,9 +6,9 @@ describe('Reactive arrays', () => {
     const array = [{ foo: true }, { foo: false }];
     const obs = Reactive(array);
 
-    obs.forEach((item) => {
+    for (const item of obs) {
       expect(isReactive(item)).toEqual(true);
-    });
+    }
   });
 
   it('iterates using reactive filter', () => {

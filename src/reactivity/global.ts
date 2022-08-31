@@ -47,7 +47,7 @@ const doTasksIfNeeded = () => {
 
       TASK_QUEUE = [];
 
-      while (queue.length) {
+      while (queue.length > 0) {
         queue.shift()();
       }
 
@@ -74,9 +74,9 @@ export const observerClear = (
   const trackers = proxies?.get(key);
 
   if (trackers) {
-    trackers.forEach((trk) => {
+    for (const trk of trackers) {
       PROXY_TO_OBSERVERS.get(trk).delete(obs);
-    });
+    }
 
     trackers.clear();
     proxies.delete(key);
@@ -147,14 +147,14 @@ export const dependTarget = (target: object, key: string | symbol) => {
 export const trackerChanged = (trk, key) => {
   const observers = PROXY_TO_OBSERVERS.get(trk);
 
-  if (observers) {
-    observers?.get(key)?.forEach((obs) => {
+  if (observers?.get(key)) {
+    for (const obs of observers.get(key)) {
       // tell the observer it needs to run again
       obs.setDirty();
       // the observer is dirty, so we don't need to track it
       // anymore until the observer runs again
       observerClear(obs, key);
-    });
+    }
   }
 };
 

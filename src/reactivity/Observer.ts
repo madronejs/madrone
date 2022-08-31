@@ -129,7 +129,7 @@ class ObservableItem<T> {
       this.set(val);
       this.callHook(OBSERVER_HOOKS.onSet);
     } else {
-      throw new Error(`No setter defined for "${this.name}"`);
+      throw new TypeError(`No setter defined for "${this.name}"`);
     }
   }
 }

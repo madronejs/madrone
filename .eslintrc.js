@@ -2,7 +2,13 @@ module.exports = {
   root: true,
   parser: '@typescript-eslint/parser',
   plugins: ['@typescript-eslint'],
-  extends: ['airbnb-base', 'plugin:prettier/recommended', 'plugin:@typescript-eslint/recommended'],
+  extends: [
+    'eslint:recommended',
+    'airbnb-base',
+    'plugin:prettier/recommended',
+    'plugin:@typescript-eslint/recommended',
+    'plugin:unicorn/recommended',
+  ],
   env: {
     browser: true,
     node: true,
@@ -80,6 +86,25 @@ module.exports = {
       },
     ],
     'no-underscore-dangle': 'off',
+    // reverse airbnb no-restricted-syntax rule (allow for..of)
+    'no-restricted-syntax': [
+      'error',
+      {
+        selector: 'ForInStatement',
+        message:
+          'for..in iterates over the entire prototype chain, use for..of or Object.{ keys, values, entries } instead.',
+      },
+      {
+        selector: 'LabeledStatement',
+        message:
+          'Labels are a form of GOTO; using them makes code confusing and hard to maintain and understand.',
+      },
+      {
+        selector: 'WithStatement',
+        message:
+          '`with` is disallowed in strict mode because it makes code impossible to predict and optimize.',
+      },
+    ],
     'padding-line-between-statements': [
       2,
       // Always require blank lines after directive (like 'use-strict'), except between directives
@@ -113,5 +138,11 @@ module.exports = {
       { blankLine: 'any', prev: '*', next: 'return' },
     ],
     'lines-between-class-members': ['error', 'always', { exceptAfterSingleLine: true }],
+
+    // Unicorn overrides
+    'unicorn/filename-case': ['off', { case: 'camelCase' }],
+    'unicorn/no-null': 'off',
+    'unicorn/no-useless-undefined': 'off',
+    'unicorn/prevent-abbreviations': 'off',
   },
 };

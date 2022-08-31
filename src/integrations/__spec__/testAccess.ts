@@ -1,6 +1,34 @@
 /* eslint-disable max-classes-per-file */
 import Madrone, { computed, reactive } from '../../index';
 
+const PersonFactory = ({ name = undefined } = {}) =>
+  Madrone.auto({
+    name,
+    // when using reactivity integration, getters become cached computeds
+    get greeting() {
+      return 'test';
+    },
+  });
+
+const PersonFactoryLevel2 = ({ name = undefined } = {}) => {
+  const personInner = Madrone.auto({
+    foo: true,
+    get test() {
+      return 'test';
+    },
+  });
+  const person = Madrone.auto({
+    personInner,
+    name,
+    // when using reactivity integration, getters become cached computeds
+    get greeting() {
+      return 'test';
+    },
+  });
+
+  return { person, personInner };
+};
+
 export default function testClass(integrationName, integration) {
   beforeAll(() => {
     Madrone.use(integration);
@@ -11,15 +39,6 @@ export default function testClass(integrationName, integration) {
 
   describe('auto', () => {
     describe('one level deep', () => {
-      const PersonFactory = ({ name = undefined } = {}) =>
-        Madrone.auto({
-          name,
-          // when using reactivity integration, getters become cached computeds
-          get greeting() {
-            return 'test';
-          },
-        });
-
       test('reactive property', async () => {
         const person = PersonFactory({ name: 'Greg' });
 
@@ -38,27 +57,8 @@ export default function testClass(integrationName, integration) {
     });
 
     describe('two levels deep', () => {
-      const PersonFactory = ({ name = undefined } = {}) => {
-        const personInner = Madrone.auto({
-          foo: true,
-          get test() {
-            return 'test';
-          },
-        });
-        const person = Madrone.auto({
-          personInner,
-          name,
-          // when using reactivity integration, getters become cached computeds
-          get greeting() {
-            return 'test';
-          },
-        });
-
-        return { person, personInner };
-      };
-
       test('reactive property', async () => {
-        const { person, personInner } = PersonFactory({ name: 'Greg' });
+        const { person, personInner } = PersonFactoryLevel2({ name: 'Greg' });
 
         expect(Madrone.lastAccessed(person)).toBeUndefined();
         expect(Madrone.lastAccessed(personInner)).toBeUndefined();
@@ -71,7 +71,7 @@ export default function testClass(integrationName, integration) {
       });
 
       test('computed property', async () => {
-        const { person, personInner } = PersonFactory({ name: 'Greg' });
+        const { person, personInner } = PersonFactoryLevel2({ name: 'Greg' });
 
         expect(Madrone.lastAccessed(person)).toBeUndefined();
         expect(person.greeting).toEqual('test');
@@ -138,7 +138,7 @@ export default function testClass(integrationName, integration) {
         }
       }
 
-      function PersonFactory(options) {
+      function PersonFactory3(options) {
         const person = new Person(options);
         const personInner = new PersonInner();
 
@@ -148,7 +148,7 @@ export default function testClass(integrationName, integration) {
       }
 
       test('reactive property', async () => {
-        const { person, personInner } = PersonFactory({ name: 'Greg' });
+        const { person, personInner } = PersonFactory3({ name: 'Greg' });
 
         expect(Madrone.lastAccessed(person)).toBeUndefined();
         expect(Madrone.lastAccessed(personInner)).toBeUndefined();
@@ -161,7 +161,7 @@ export default function testClass(integrationName, integration) {
       });
 
       test('computed property', async () => {
-        const { person, personInner } = PersonFactory({ name: 'Greg' });
+        const { person, personInner } = PersonFactory3({ name: 'Greg' });
 
         expect(Madrone.lastAccessed(person)).toBeUndefined();
         expect(person.greeting).toEqual('test');
