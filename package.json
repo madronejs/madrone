@@ -23,6 +23,7 @@
   "scripts": {
     "lint": "eslint src/ --ext .js,.jsx,.ts,.tsx",
     "test": "jest --watch",
+    "test-ci": "CI=true NODE_ENV=test jest --coverage",
     "docs": "typedoc --entryPoints src/index.ts",
     "cleanup": "rm -rf ./dist && rm -rf ./types",
     "cov": "CI=true NODE_ENV=test jest --coverage && open coverage/lcov-report/index.html",
