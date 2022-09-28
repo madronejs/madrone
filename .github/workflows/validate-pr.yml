@@ -30,15 +30,15 @@ jobs:
       - name: 'Install and Prepare'
         shell: bash
         run: |
-          yarn --frozen-lockfile
-          # yarn build-types
+          pnpm --frozen-lockfile
+          # pnpm build-types
 
       - name: ESLint
         shell: bash
         run: |
-          yarn lint
+          pnpm lint
 
       - name: 'Unit Tests with Coverage'
         shell: bash
         run: |
-          yarn test-ci
+          pnpm test-ci

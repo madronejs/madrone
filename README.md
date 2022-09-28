@@ -8,6 +8,9 @@ Madrone is an easy way to make reactive objects in JS.
 // npm
 npm install madronejs --save
 
+// pnpm
+pnpm install madronejs
+
 // yarn
 yarn add madronejs
 ```
