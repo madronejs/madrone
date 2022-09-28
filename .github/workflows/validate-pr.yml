@@ -19,26 +19,43 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 'Checkout the commit'
+      - name: Checkout the commit
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v3
+        with:
+          node-version: 18
 
-      - name: 'Install and Prepare'
+      - name: Install pnpm
+        id: pnpm-install
         shell: bash
         run: |
-          yarn --frozen-lockfile
-          # yarn build-types
+          corepack enable
+          echo "::set-output name=pnpm_cache_dir::$(pnpm store path)"
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.pnpm-install.outputs.pnpm_cache_dir }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies and prepare
+        shell: bash
+        run: |
+          pnpm install --frozen-lockfile
+          # pnpm build-types
 
       - name: ESLint
         shell: bash
         run: |
-          yarn lint
+          pnpm lint
 
       - name: 'Unit Tests with Coverage'
         shell: bash
         run: |
-          yarn test-ci
+          pnpm test-ci

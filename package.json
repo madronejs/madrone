@@ -29,7 +29,7 @@
     "cov": "CI=true NODE_ENV=test jest --coverage && open coverage/lcov-report/index.html",
     "build": "node ./esbuild.config.js",
     "build-types": "tsc -p ./tsconfig.types.json && tsc-alias -p tsconfig.types.json",
-    "build-all": "yarn cleanup && yarn build && yarn build-types"
+    "build-all": "pnpm cleanup && pnpm build && pnpm build-types"
   },
   "keywords": [
     "reactivity",
@@ -38,6 +38,9 @@
     "madrone",
     "vue"
   ],
+  "dependencies": {
+    "lodash": "4.17.21"
+  },
   "devDependencies": {
     "@types/jest": "^27.5.0",
     "@types/lodash": "^4.14.182",
@@ -55,11 +58,13 @@
     "ts-jest": "^27.0.5",
     "tsc-alias": "^1.6.7",
     "typedoc": "^0.23.10",
-    "typescript": "4.7.x",
-    "vue2": "npm:vue@^2.7.1",
-    "vue3": "npm:vue@^3.2.0"
+    "typescript": "^4.8.4",
+    "vue2": "npm:vue@^2.7.10",
+    "vue3": "npm:vue@^3.2.39"
   },
-  "dependencies": {
-    "lodash": "4.17.x"
-  }
+  "engines": {
+    "node": "^16.17 || 18.x",
+    "pnpm": "^7.12"
+  },
+  "packageManager": "pnpm@7.12.2"
 }
