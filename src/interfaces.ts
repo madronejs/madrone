@@ -6,6 +6,14 @@ export interface MadroneDescriptorMap {
   [key: string]: MadroneDescriptor;
 }
 
+export type DecoratorDescriptorType = Omit<
+  PropertyDescriptor,
+  'get' | 'set' | 'writable' | 'value'
+>;
+export type DecoratorOptionType = {
+  descriptors?: DecoratorDescriptorType;
+};
+
 export interface Integration {
   defineProperty: (
     target: any,
