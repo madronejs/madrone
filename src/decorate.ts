@@ -2,6 +2,7 @@
 import { getIntegration } from '@/global';
 import { applyClassMixins } from '@/util';
 import { define } from '@/auto';
+import { DecoratorOptionType, DecoratorDescriptorType } from './interfaces';
 
 const itemMap: WeakMap<any, Set<string>> = new WeakMap();
 
@@ -29,7 +30,16 @@ function setTargetObserved(target, key) {
   itemMap.get(target).add(key);
 }
 
-function computedIfNeeded(target: any, key: string, descriptor: PropertyDescriptor) {
+// ////////////////////////////
+// COMPUTED
+// ////////////////////////////
+
+function computedIfNeeded(
+  target: any,
+  key: string,
+  descriptor: PropertyDescriptor,
+  options?: DecoratorOptionType
+) {
   const pl = getIntegration();
 
   if (pl && !checkTargetObserved(target, key)) {
@@ -38,6 +48,7 @@ function computedIfNeeded(target: any, key: string, descriptor: PropertyDescript
       get: descriptor.get.bind(target),
       set: descriptor.set?.bind(target),
       enumerable: true,
+      ...options?.descriptors,
       cache: true,
     });
     setTargetObserved(target, key);
@@ -45,6 +56,35 @@ function computedIfNeeded(target: any, key: string, descriptor: PropertyDescript
   }
 
   return false;
+}
+
+function decorateComputed(
+  target: any,
+  key: string,
+  descriptor: PropertyDescriptor,
+  options?: DecoratorOptionType
+) {
+  if (typeof descriptor.get === 'function') {
+    const newDescriptor = {
+      ...descriptor,
+      enumerable: true,
+      configurable: true,
+    };
+
+    newDescriptor.get = function computedGetter() {
+      computedIfNeeded(this, key, descriptor, options);
+      return this[key];
+    };
+
+    newDescriptor.set = function computedSetter(val) {
+      computedIfNeeded(this, key, descriptor, options);
+      this[key] = val;
+    };
+
+    return newDescriptor;
+  }
+
+  return descriptor;
 }
 
 /**
@@ -55,26 +95,19 @@ function computedIfNeeded(target: any, key: string, descriptor: PropertyDescript
  * @returns the modified property descriptors
  */
 export function computed(target: any, key: string, descriptor: PropertyDescriptor) {
-  if (typeof descriptor.get === 'function') {
-    const newDescriptor = { ...descriptor, enumerable: true, configurable: true };
-
-    newDescriptor.get = function computedGetter() {
-      computedIfNeeded(this, key, descriptor);
-      return this[key];
-    };
-
-    newDescriptor.set = function computedSetter(val) {
-      computedIfNeeded(this, key, descriptor);
-      this[key] = val;
-    };
-
-    return newDescriptor;
-  }
-
-  return descriptor;
+  return decorateComputed(target, key, descriptor);
 }
 
-function reactiveIfNeeded(target: any, key: string) {
+computed.configure = function configureComputed(descriptorOverrides: DecoratorDescriptorType) {
+  return (target: any, key: string, descriptor: PropertyDescriptor) =>
+    decorateComputed(target, key, descriptor, { descriptors: descriptorOverrides });
+};
+
+// ////////////////////////////
+// REACTIVE
+// ////////////////////////////
+
+function reactiveIfNeeded(target: any, key: string, options?: DecoratorOptionType) {
   const pl = getIntegration();
 
   if (pl && !checkTargetObserved(target, key)) {
@@ -82,6 +115,7 @@ function reactiveIfNeeded(target: any, key: string) {
     define(target, key, {
       ...Object.getOwnPropertyDescriptor(target, key),
       enumerable: true,
+      ...options?.descriptors,
     });
     return true;
   }
@@ -89,12 +123,7 @@ function reactiveIfNeeded(target: any, key: string) {
   return false;
 }
 
-/**
- * Configure a reactive property
- * @param target The target to add the reactive property to
- * @param key The name of the reactive property
- */
-export function reactive(target: any, key: string) {
+function decorateReactive(target: any, key: string, options?: DecoratorOptionType) {
   if (typeof target === 'function') {
     // handle the static case
     reactiveIfNeeded(target, key);
@@ -104,17 +133,31 @@ export function reactive(target: any, key: string) {
       configurable: true,
       enumerable: true,
       get() {
-        if (reactiveIfNeeded(this, key)) {
+        if (reactiveIfNeeded(this, key, options)) {
           return this[key];
         }
 
         return undefined;
       },
       set(val) {
-        if (reactiveIfNeeded(this, key)) {
+        if (reactiveIfNeeded(this, key, options)) {
           this[key] = val;
         }
       },
     });
   }
 }
+
+/**
+ * Configure a reactive property
+ * @param target The target to add the reactive property to
+ * @param key The name of the reactive property
+ */
+export function reactive(target: any, key: string) {
+  return decorateReactive(target, key);
+}
+
+reactive.configure = function configureReactive(descriptorOverrides: DecoratorDescriptorType) {
+  return (target: any, key: string) =>
+    decorateReactive(target, key, { descriptors: descriptorOverrides });
+};
