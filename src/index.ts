@@ -26,3 +26,4 @@ export default Madrone;
 export * from './integrations';
 export * from './decorate';
 export { merge, applyClassMixins } from './util';
+export { watch, auto } from '@/auto';
