@@ -50,21 +50,6 @@ describe('Reactive objects', () => {
     expect(obs.nested === obs2).toEqual(true);
   });
 
-  it('creates nested Reactives', () => {
-    const object = { one: { two: { string: 'hello' } } };
-
-    expect(isReactiveTarget(object)).toEqual(false);
-
-    const obs = Reactive(object);
-
-    expect(isReactiveTarget(object)).toEqual(true);
-    expect(isReactive(object)).toEqual(false);
-    expect(isReactive(obs)).toEqual(true);
-    expect(isReactive(obs.one)).toEqual(true);
-    expect(isReactive(obs.one.two)).toEqual(true);
-    expect(isReactive(obs.one.two.string)).toEqual(false);
-  });
-
   it('calls "onGet" hook', () => {
     let counter = 0;
     const keyArray = [];
@@ -109,5 +94,47 @@ describe('Reactive objects', () => {
     expect(counter).toEqual(3);
     expect(keyArray).toEqual(['string', 'one', 'foobar']);
     expect(valueArray).toEqual(['hello world', { foobar: 'baz' }, 'baz']);
+  });
+
+  describe('deep Reactive', () => {
+    it('creates nested Reactives', () => {
+      const object = { one: { two: { string: 'hello' } } };
+
+      expect(isReactiveTarget(object)).toEqual(false);
+
+      const obs = Reactive(object);
+
+      expect(isReactiveTarget(object)).toEqual(true);
+      expect(isReactive(object)).toEqual(false);
+      expect(isReactive(obs)).toEqual(true);
+      expect(isReactive(obs.one)).toEqual(true);
+      expect(isReactive(obs.one.two)).toEqual(true);
+      expect(isReactive(obs.one.two.string)).toEqual(false);
+    });
+
+    it('creates can be a shallow Reactive', () => {
+      const object = { one: { two: { string: 'hello' } } };
+      const obs = Reactive(object, { deep: false });
+
+      expect(isReactiveTarget(object)).toEqual(true);
+      expect(isReactive(object)).toEqual(false);
+      expect(isReactive(obs)).toEqual(true);
+      expect(isReactive(obs.one)).toEqual(false);
+    });
+
+    it('can selectively be a deep Reactive', () => {
+      const object = {
+        willProxy: { two: { string: 'hello' } },
+        willNOTProxy: { two: { string: 'hello' } },
+      };
+      const obs = Reactive(object, {
+        needsProxy: ({ key }) => key !== 'willNOTProxy',
+      });
+
+      expect(isReactiveTarget(object)).toEqual(true);
+      expect(isReactive(object)).toEqual(false);
+      expect(isReactive(obs.willNOTProxy)).toEqual(false);
+      expect(isReactive(obs.willProxy)).toEqual(true);
+    });
   });
 });
