@@ -101,4 +101,53 @@ describe('Watcher', () => {
     expect(newValues).toEqual([{ test: { nested: false } }, { test: true }]);
     expect(oldValues).toEqual([{ test: { nested: true } }, { test: { nested: false } }]);
   });
+
+  it('does not immediately call handler', async () => {
+    const object = { test: { nested: true } };
+    const tracked = Reactive(object);
+    const newValues = [];
+    const oldValues = [];
+
+    Watcher(
+      () => tracked.test.nested,
+      (val, old) => {
+        newValues.push(val);
+        oldValues.push(old);
+      }
+    );
+
+    expect(newValues).toEqual([]);
+    expect(oldValues).toEqual([]);
+    await delay();
+    tracked.test.nested = false;
+    await delay();
+    expect(newValues).toEqual([false]);
+    expect(oldValues).toEqual([true]);
+  });
+
+  it('can immediately call handler', async () => {
+    const object = { test: { nested: true } };
+    const tracked = Reactive(object);
+    const newValues = [];
+    const oldValues = [];
+
+    Watcher(
+      () => tracked.test.nested,
+      (val, old) => {
+        newValues.push(val);
+        oldValues.push(old);
+      },
+      {
+        immediate: true,
+      }
+    );
+
+    expect(newValues).toEqual([true]);
+    expect(oldValues).toEqual([undefined]);
+    await delay();
+    tracked.test.nested = false;
+    await delay();
+    expect(newValues).toEqual([true, false]);
+    expect(oldValues).toEqual([undefined, true]);
+  });
 });

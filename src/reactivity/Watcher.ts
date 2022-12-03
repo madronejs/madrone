@@ -11,7 +11,10 @@ import Observer from './Observer';
 export default function Watcher<T>(
   get: () => T,
   handler: (val?: T, old?: T) => any,
-  options?: { deep?: boolean }
+  options?: {
+    deep?: boolean;
+    immediate?: boolean;
+  }
 ) {
   let getter = get;
 
@@ -25,7 +28,11 @@ export default function Watcher<T>(
   });
 
   // run the observer immediately to get the dependencies
-  obs.run();
+  const val = obs.run();
+
+  if (options?.immediate) {
+    handler(val);
+  }
 
   // return disposer to stop watching
   return () => obs.dispose();

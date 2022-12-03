@@ -7,18 +7,20 @@ export function getCurrentObserver() {
   return GLOBAL_STACK[GLOBAL_STACK.length - 1];
 }
 
-enum OBSERVER_HOOK {
+export enum OBSERVER_HOOK {
   onGet = 'onGet',
   onSet = 'onSet',
   onChange = 'onChange',
   onImmediateChange = 'onImmediateChange',
 }
 
+export type ObservableHookType<T> = (obs: ObservableItem<T>) => void;
+
 export type ObservableHooksType<T> = {
-  onGet?: (obs: ObservableItem<T>) => void;
-  onSet?: (obs: ObservableItem<T>) => void;
-  onChange?: (obs: ObservableItem<T>) => void;
-  onImmediateChange?: (obs: ObservableItem<T>) => void;
+  onGet?: ObservableHookType<T>;
+  onSet?: ObservableHookType<T>;
+  onChange?: ObservableHookType<T>;
+  onImmediateChange?: ObservableHookType<T>;
 };
 
 export type ObservableOptions<T> = {
@@ -85,6 +87,10 @@ class ObservableItem<T> {
 
     GLOBAL_STACK.pop();
     return val;
+  }
+
+  setHook(hook: OBSERVER_HOOK, cb: ObservableHookType<T>) {
+    this.hooks[hook] = cb;
   }
 
   setDirty() {
