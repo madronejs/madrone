@@ -8,9 +8,9 @@ import Observer from './Observer';
  * @param {Boolean} [options.deep] deeply watch the value
  * @returns a disposer
  */
-export default function Watcher(
-  get: () => any,
-  handler: (val?: any, old?: any) => any,
+export default function Watcher<T>(
+  get: () => T,
+  handler: (val?: T, old?: T) => any,
   options?: { deep?: boolean }
 ) {
   let getter = get;

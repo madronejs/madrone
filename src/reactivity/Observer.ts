@@ -29,8 +29,8 @@ export type ObservableOptions<T> = {
 } & ObservableHooksType<T>;
 
 class ObservableItem<T> {
-  static create(...args: ConstructorParameters<typeof ObservableItem>) {
-    return new ObservableItem(...args);
+  static create<CType>(...args: ConstructorParameters<typeof ObservableItem<CType>>) {
+    return new ObservableItem<CType>(...args);
   }
 
   constructor(options: ObservableOptions<T>) {
@@ -139,6 +139,6 @@ class ObservableItem<T> {
 
 export { ObservableItem };
 
-export default function Observer(...args: Parameters<typeof ObservableItem.create>) {
-  return ObservableItem.create(...args);
+export default function Observer<T = any>(...args: Parameters<typeof ObservableItem.create<T>>) {
+  return ObservableItem.create<T>(...args);
 }

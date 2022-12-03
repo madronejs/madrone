@@ -18,8 +18,9 @@ export function describeComputed<T = any>(
   let setter;
 
   if (config.cache) {
-    const cp = Computed({
+    const cp = Computed<T>({
       ...config,
+      get: config.get,
       name,
       onImmediateChange: options?.computed?.onImmediateChange,
       onChange: options?.computed?.onChange,
