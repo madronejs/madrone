@@ -24,7 +24,6 @@ export type Spread<A extends readonly [...any]> = A extends [infer L, ...infer R
  * @param types
  * @returns The new object definition
  */
-// eslint-disable-next-line @typescript-eslint/ban-types
 export function merge<A extends object[]>(...types: [...A]) {
   const defs = {} as PropertyDescriptorMap;
   const newVal = {};
