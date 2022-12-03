@@ -1,9 +1,13 @@
 import { objectAccessed } from '@/global';
+import { ReactiveOptions } from '@/reactivity/interfaces';
+import { ObservableHooksType } from '@/reactivity/Observer';
 import * as MadroneState from './MadroneState';
 
-export default ({ observable, set }) => {
-  const VALUE = 'value';
-  const FORBIDDEN = new Set(['__proto__']);
+const FORBIDDEN = new Set(['__proto__', '__ob__']);
+const VALUE = 'value';
+
+export default (opts) => {
+  const { observable, set } = opts;
   // store all reactive properties
   const reactiveMappings = new WeakMap();
   // get or add a tracked property
@@ -51,36 +55,36 @@ export default ({ observable, set }) => {
     reactiveMappings.delete(parent);
   };
 
-  const onDelete = ({ target, key }) => {
-    deleteIfNeeded(target, key);
+  const reactiveOptions: ReactiveOptions = {
+    onGet: ({ target, key }) => {
+      objectAccessed(target);
+      depend(target, key);
+    },
+    onHas: ({ target, key }) => {
+      depend(target, key);
+    },
+    onDelete: ({ target, key }) => {
+      deleteIfNeeded(target, key);
+    },
+    onSet: ({ target, key, keysChanged }) => {
+      notify(target, key);
+
+      if (keysChanged) notify(target);
+    },
+    needsProxy: ({ key }) => !FORBIDDEN.has(key),
   };
-
-  const onChange = ({ target, key, keysChanged }) => {
-    notify(target, key);
-
-    if (keysChanged) notify(target);
+  const computedOptions: ObservableHooksType<any> = {
+    onGet: (cp) => {
+      depend(cp, cp.name);
+    },
+    onImmediateChange: (cp) => {
+      notify(cp, cp.name);
+    },
   };
 
   const options = {
-    computed: {
-      onGet: (cp) => {
-        depend(cp, cp.name);
-      },
-      onImmediateChange: (cp) => {
-        notify(cp, cp.name);
-      },
-    },
-    reactive: {
-      onGet: ({ target, key }) => {
-        objectAccessed(target);
-        depend(target, key);
-      },
-      onHas: ({ target }) => {
-        depend(target);
-      },
-      onDelete,
-      onSet: onChange,
-    },
+    computed: computedOptions,
+    reactive: reactiveOptions,
   };
 
   function describeComputed(name, config) {
