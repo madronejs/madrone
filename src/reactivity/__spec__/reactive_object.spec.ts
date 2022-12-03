@@ -25,7 +25,7 @@ describe('Reactive objects', () => {
       },
     });
 
-    const obs = Reactive(object);
+    const obs = Reactive<any>(object);
 
     expect(isReactive(obs.isConfigurable)).toEqual(true);
     expect(isReactive(obs.nonConfigurable)).toEqual(false);
@@ -42,7 +42,7 @@ describe('Reactive objects', () => {
   it('reuses existing tracked item set as child to other tracked item', () => {
     const object = { one: true };
     const object2 = { two: false };
-    const obs = Reactive(object);
+    const obs = Reactive<any>(object);
     const obs2 = Reactive(object2);
 
     obs.nested = obs2;
@@ -76,7 +76,7 @@ describe('Reactive objects', () => {
     const keyArray = [];
     const valueArray = [];
     const object = { one: { two: { string: 'hello' } } };
-    const obs = Reactive(object, {
+    const obs = Reactive<any>(object, {
       deep: true,
       onSet: ({ key, value }) => {
         counter += 1;

@@ -79,7 +79,7 @@ describe('Watcher', () => {
 
   it('can deep watch changes', async () => {
     const object = { test: { nested: true } };
-    const tracked = Reactive(object);
+    const tracked = Reactive<any>(object);
     const newValues = [];
     const oldValues = [];
 

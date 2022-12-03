@@ -8,7 +8,7 @@ import { ReactiveOptions } from './interfaces';
  * @param {Object} options the observation options
  * @returns {Proxy} a proxied version of the object that can be observed
  */
-export default function Reactive(target: any, options?: ReactiveOptions) {
+export default function Reactive<T extends object>(target: T, options?: ReactiveOptions<T>): T {
   // if we've already made an Reactive from the target, return the existing one
   if (isReactiveTarget(target)) return getReactive(target);
 
