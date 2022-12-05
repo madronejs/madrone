@@ -1,18 +1,30 @@
 import { objectAccessed } from '@/global';
+import { MadroneDescriptor } from '@/interfaces';
 import { Computed, Reactive, Watcher, toRaw } from '@/reactivity';
+import { ReactiveOptions } from '@/reactivity/interfaces';
+import { ObservableHooksType } from '@/reactivity/Observer';
 
-export function describeComputed(name, config, options) {
+type MadroneStateOptions<T = any> = {
+  reactive?: ReactiveOptions;
+  computed?: ObservableHooksType<T>;
+};
+
+export function describeComputed<T = any>(
+  name: string,
+  config: MadroneDescriptor,
+  options?: MadroneStateOptions<T>
+) {
   let getter;
   let setter;
 
   if (config.cache) {
-    const cp = Computed({
+    const cp = Computed<T>({
       ...config,
+      get: config.get,
       name,
       onImmediateChange: options?.computed?.onImmediateChange,
       onChange: options?.computed?.onChange,
       onGet: options?.computed?.onGet,
-      onHas: options?.computed?.onHas,
       onSet: options?.computed?.onSet,
     });
 
@@ -41,7 +53,11 @@ export function describeComputed(name, config, options) {
   };
 }
 
-export function describeProperty(name, config, options) {
+export function describeProperty(
+  name: string,
+  config: PropertyDescriptor,
+  options?: MadroneStateOptions
+) {
   const tg = { value: config.value };
   const atom = Reactive(tg, {
     name,
@@ -49,7 +65,7 @@ export function describeProperty(name, config, options) {
     onHas: options?.reactive?.onHas,
     onSet: options?.reactive?.onSet,
     onDelete: options?.reactive?.onDelete,
-    options: { name, property: () => atom },
+    needsProxy: options?.reactive?.needsProxy,
   });
 
   return {

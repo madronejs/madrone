@@ -7,30 +7,35 @@ export function getCurrentObserver() {
   return GLOBAL_STACK[GLOBAL_STACK.length - 1];
 }
 
-const OBSERVER_HOOKS = Object.freeze({
-  onGet: 'onGet' as const,
-  onSet: 'onSet' as const,
-  onChange: 'onChange' as const,
-  onImmediateChange: 'onImmediateChange' as const,
-});
+export enum OBSERVER_HOOK {
+  onGet = 'onGet',
+  onSet = 'onSet',
+  onChange = 'onChange',
+  onImmediateChange = 'onImmediateChange',
+}
 
-type ObserverHook = typeof OBSERVER_HOOKS[keyof typeof OBSERVER_HOOKS];
+export type ObservableHookType<T> = (obs: ObservableItem<T>) => void;
+
+export type ObservableHooksType<T> = {
+  onGet?: ObservableHookType<T>;
+  onSet?: ObservableHookType<T>;
+  onChange?: ObservableHookType<T>;
+  onImmediateChange?: ObservableHookType<T>;
+};
+
+export type ObservableOptions<T> = {
+  get: () => T;
+  name?: string;
+  set?: (val: T) => void;
+  cache?: boolean;
+} & ObservableHooksType<T>;
 
 class ObservableItem<T> {
-  static create(...args: ConstructorParameters<typeof ObservableItem>) {
-    return new ObservableItem(...args);
+  static create<CType>(...args: ConstructorParameters<typeof ObservableItem<CType>>) {
+    return new ObservableItem<CType>(...args);
   }
 
-  constructor(options: {
-    get: () => T;
-    name?: string;
-    set?: (val: T) => void;
-    cache?: boolean;
-    onGet?: (obs: ObservableItem<T>) => void;
-    onSet?: (obs: ObservableItem<T>) => void;
-    onChange?: (obs: ObservableItem<T>) => void;
-    onImmediateChange?: (obs: ObservableItem<T>) => void;
-  }) {
+  constructor(options: ObservableOptions<T>) {
     this.name = options.name;
     this.get = options.get;
     this.set = options.set;
@@ -39,10 +44,10 @@ class ObservableItem<T> {
     this.dirty = true;
     this.cachedVal = undefined;
     this.hooks = {
-      [OBSERVER_HOOKS.onGet]: options[OBSERVER_HOOKS.onGet],
-      [OBSERVER_HOOKS.onSet]: options[OBSERVER_HOOKS.onSet],
-      [OBSERVER_HOOKS.onChange]: options[OBSERVER_HOOKS.onChange],
-      [OBSERVER_HOOKS.onImmediateChange]: options[OBSERVER_HOOKS.onImmediateChange],
+      [OBSERVER_HOOK.onGet]: options[OBSERVER_HOOK.onGet],
+      [OBSERVER_HOOK.onSet]: options[OBSERVER_HOOK.onSet],
+      [OBSERVER_HOOK.onChange]: options[OBSERVER_HOOK.onChange],
+      [OBSERVER_HOOK.onImmediateChange]: options[OBSERVER_HOOK.onImmediateChange],
     };
   }
 
@@ -53,11 +58,11 @@ class ObservableItem<T> {
   cache: boolean;
   private cachedVal: T;
   // eslint-disable-next-line no-use-before-define
-  private hooks: Record<ObserverHook, (obs: ObservableItem<T>) => any>;
+  private hooks: Record<OBSERVER_HOOK, (obs: ObservableItem<T>) => any>;
   private get: () => T;
   private set: (val: T) => void;
 
-  private callHook(name: ObserverHook) {
+  private callHook(name: OBSERVER_HOOK) {
     if (typeof this.hooks[name] === 'function') {
       this.hooks[name](this);
     }
@@ -84,19 +89,23 @@ class ObservableItem<T> {
     return val;
   }
 
+  setHook(hook: OBSERVER_HOOK, cb: ObservableHookType<T>) {
+    this.hooks[hook] = cb;
+  }
+
   setDirty() {
     if (this.alive && !this.dirty) {
       this.dirty = true;
       trackerChanged(this, OBSERVER_SYMBOL);
       // store the previous value for the onChange
       this.prev = this.cachedVal;
-      this.callHook(OBSERVER_HOOKS.onImmediateChange);
+      this.callHook(OBSERVER_HOOK.onImmediateChange);
       schedule(() => this.notifyChange());
     }
   }
 
   private notifyChange() {
-    this.callHook(OBSERVER_HOOKS.onChange);
+    this.callHook(OBSERVER_HOOK.onChange);
     // don't hold a strong reference to the prev
     this.prev = undefined;
   }
@@ -114,7 +123,7 @@ class ObservableItem<T> {
     });
 
     dependTracker(this, OBSERVER_SYMBOL);
-    this.callHook(OBSERVER_HOOKS.onGet);
+    this.callHook(OBSERVER_HOOK.onGet);
 
     return val;
   }
@@ -127,7 +136,7 @@ class ObservableItem<T> {
   set value(val) {
     if (typeof this.set === 'function') {
       this.set(val);
-      this.callHook(OBSERVER_HOOKS.onSet);
+      this.callHook(OBSERVER_HOOK.onSet);
     } else {
       throw new TypeError(`No setter defined for "${this.name}"`);
     }
@@ -136,6 +145,6 @@ class ObservableItem<T> {
 
 export { ObservableItem };
 
-export default function Observer(...args: Parameters<typeof ObservableItem.create>) {
-  return ObservableItem.create(...args);
+export default function Observer<T = any>(...args: Parameters<typeof ObservableItem.create<T>>) {
+  return ObservableItem.create<T>(...args);
 }

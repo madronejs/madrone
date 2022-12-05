@@ -1,5 +1,6 @@
 import typeHandlers from './typeHandlers';
 import { addReactive, isReactiveTarget, isReactive, getReactive } from './global';
+import { ReactiveOptions } from './interfaces';
 
 /**
  * Observe an object
@@ -7,7 +8,7 @@ import { addReactive, isReactiveTarget, isReactive, getReactive } from './global
  * @param {Object} options the observation options
  * @returns {Proxy} a proxied version of the object that can be observed
  */
-export default function Reactive(target, options?) {
+export default function Reactive<T extends object>(target: T, options?: ReactiveOptions<T>): T {
   // if we've already made an Reactive from the target, return the existing one
   if (isReactiveTarget(target)) return getReactive(target);
 
@@ -15,7 +16,7 @@ export default function Reactive(target, options?) {
   if (isReactive(target)) return target;
 
   const opts = options || {};
-  const newOptions = { deep: true, ...opts, root: opts.root || target };
+  const newOptions = { deep: true, ...opts };
   const type = Reactive.getStringType(target);
 
   // make sure we're looking at something we can observe
@@ -29,7 +30,6 @@ export default function Reactive(target, options?) {
   return proxy;
 }
 
-Reactive.typeHandlers = typeHandlers;
 Reactive.getStringType = (obj) => Object.prototype.toString.call(obj).slice(8, -1).toLowerCase();
-Reactive.hasHandler = (type) => !!Reactive.typeHandlers[type];
-Reactive.typeHandler = (type, hooks) => Reactive.typeHandlers[type]?.(hooks);
+Reactive.hasHandler = (type) => !!typeHandlers[type];
+Reactive.typeHandler = (type, hooks) => typeHandlers[type]?.(hooks);

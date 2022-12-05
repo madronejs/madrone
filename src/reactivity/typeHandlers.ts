@@ -1,18 +1,6 @@
 import Reactive from './Reactive';
 import { KEYS_SYMBOL, dependTarget, targetChanged } from './global';
-
-interface TypeHandlerOptions {
-  options?: {
-    name?: string;
-    options?: Record<string, unknown>;
-  };
-  receiver?: any;
-  target?: any;
-  key?: string;
-  value?: any;
-  keysChanged?: boolean;
-  valueChanged?: boolean;
-}
+import { TypeHandlerOptions, ReactiveOptions } from './interfaces';
 
 // const wrap = (target, name, cb) => (...args) => {
 //   const proto = Reflect.getPrototypeOf(target);
@@ -21,32 +9,41 @@ interface TypeHandlerOptions {
 
 //   return cb({ getValue, proto, method, args });
 // };
-const makeOptions = (
-  {
-    options,
+
+const makeOptions = (handlerOptions: TypeHandlerOptions) => {
+  const {
+    name,
     target,
     key,
     receiver,
     value,
     keysChanged = false,
     valueChanged = false,
-  } = {} as TypeHandlerOptions
-) => ({
-  options: options?.options || {},
-  name: options?.name,
-  target,
-  key,
-  receiver,
-  value,
-  keysChanged,
-  valueChanged,
-});
+  } = handlerOptions;
 
-const optionGet = (options, target, key, receiver) => {
-  dependTarget(target, key);
-  options?.onGet?.(makeOptions({ options, target, key, receiver }));
+  return {
+    name,
+    target,
+    key,
+    receiver,
+    value,
+    keysChanged,
+    valueChanged,
+  };
 };
-const optionSet = (options, target, key, value) => {
+
+const optionGet = (options: ReactiveOptions, target, key, receiver) => {
+  dependTarget(target, key);
+  options?.onGet?.(
+    makeOptions({
+      name: options.name,
+      target,
+      key,
+      receiver,
+    })
+  );
+};
+const optionSet = (options: ReactiveOptions, target, key, value) => {
   const curr = target[key];
   let valueChanged = false;
   let keysChanged = false;
@@ -62,47 +59,78 @@ const optionSet = (options, target, key, value) => {
   }
 
   if (keysChanged || valueChanged) {
-    options?.onSet?.(makeOptions({ options, target, key, value, keysChanged, valueChanged }));
+    options?.onSet?.(
+      makeOptions({
+        name: options.name,
+        target,
+        key,
+        value,
+        keysChanged,
+        valueChanged,
+      })
+    );
   }
 };
-const optionDelete = (options, target, key) => {
+const optionDelete = (options: ReactiveOptions, target, key) => {
   targetChanged(target, key);
   targetChanged(target, KEYS_SYMBOL);
-  options?.onDelete?.(makeOptions({ options, target, key, keysChanged: true }));
+  options?.onDelete?.(
+    makeOptions({
+      name: options.name,
+      target,
+      key,
+      keysChanged: true,
+    })
+  );
 };
-const optionHasOwnKeys = (options, target) => {
-  // console.log('has own keys', target);
+const optionHasOwnKeys = (options: ReactiveOptions, target, key?) => {
   dependTarget(target, KEYS_SYMBOL);
-  options?.onHas?.(makeOptions({ options, target }));
+  options?.onHas?.(
+    makeOptions({
+      name: options.name,
+      target,
+      key,
+    })
+  );
 };
 
-const defaultHandlers = (options) => ({
-  get: (target, prop, receiver) => {
-    optionGet(options, target, prop, receiver);
+function defaultHandlers(options: ReactiveOptions) {
+  const needsProxy = options.needsProxy || (() => true);
 
-    if (options?.deep && Object.getOwnPropertyDescriptor(target, prop)?.configurable) {
-      return Reactive(Reflect.get(target, prop, receiver), options);
-    }
+  return {
+    get: (target, prop, receiver) => {
+      optionGet(options, target, prop, receiver);
 
-    return Reflect.get(target, prop, receiver);
-  },
-  set: (target: object, propertyKey: PropertyKey, value: any) => {
-    optionSet(options, target, propertyKey, value);
-    return Reflect.set(target, propertyKey, value);
-  },
-  deleteProperty: (...args: Parameters<typeof Reflect.deleteProperty>) => {
-    optionDelete(options, ...args);
-    return Reflect.deleteProperty(...args);
-  },
-  has: (target, key) => {
-    optionHasOwnKeys(options, target);
-    return Reflect.has(target, key);
-  },
-  ownKeys: (target) => {
-    optionHasOwnKeys(options, target);
-    return Reflect.ownKeys(target);
-  },
-});
+      const value = Reflect.get(target, prop, receiver);
+
+      if (
+        needsProxy({ target, key: prop, value }) &&
+        options?.deep &&
+        Object.getOwnPropertyDescriptor(target, prop)?.configurable
+      ) {
+        return Reactive(value, options);
+      }
+
+      return value;
+    },
+    set: (target: object, propertyKey: PropertyKey, value: any) => {
+      optionSet(options, target, propertyKey, value);
+      return Reflect.set(target, propertyKey, value);
+    },
+    deleteProperty: (...args: Parameters<typeof Reflect.deleteProperty>) => {
+      optionDelete(options, ...args);
+      return Reflect.deleteProperty(...args);
+    },
+    has: (target, key) => {
+      optionHasOwnKeys(options, target);
+      return Reflect.has(target, key);
+    },
+    ownKeys: (target) => {
+      optionHasOwnKeys(options, target);
+      return Reflect.ownKeys(target);
+    },
+  };
+}
 
 const objectHandler = (options) => ({
   ...defaultHandlers(options),
