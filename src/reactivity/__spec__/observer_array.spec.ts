@@ -2,6 +2,19 @@ import Observer from '../Observer';
 import Reactive from '../Reactive';
 
 describe('array', () => {
+  it('calls onGet on spread (...)', () => {
+    let counter = 0;
+    const object = ['one', 'two'];
+    const tracked = Reactive(object, {
+      onGet: () => {
+        counter += 1;
+      },
+    });
+
+    expect([...tracked]).toEqual(object);
+    expect(counter).toBeGreaterThan(1);
+  });
+
   it('busts cache on array set', () => {
     let counter = 0;
     const array = [];
