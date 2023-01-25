@@ -482,4 +482,88 @@ export default function testAuto(name, integration) {
       expect(oldVals.length).toBeGreaterThan(0);
     });
   });
+
+  it('can watch if array is spread', async () => {
+    let count = 0;
+    let watchCount = 0;
+
+    const instance = Madrone.auto({
+      value: ['foo'],
+      get test() {
+        count += 1;
+
+        return this.value;
+      },
+    });
+
+    Madrone.watch(
+      () => [...instance.test],
+      () => {
+        watchCount += 1;
+      },
+      { immediate: true }
+    );
+
+    await delay();
+
+    expect(instance.test).toEqual(['foo']);
+    expect(count).toEqual(1);
+    expect(watchCount).toEqual(1);
+  });
+
+  it('can watch if shallow clone of array is spread (and value pushed)', async () => {
+    let watchCount = 0;
+
+    const objArray = Madrone.auto({ value: [] });
+    const obj = Madrone.auto({
+      get test() {
+        return [...objArray.value];
+      },
+    });
+
+    Madrone.watch(
+      () => [...obj.test],
+      () => {
+        watchCount += 1;
+      }
+    );
+
+    objArray.value.push('foo');
+    await delay();
+    expect(obj.test).toEqual(['foo']);
+    expect(watchCount).toEqual(1);
+
+    objArray.value.push('bar');
+    await delay();
+    expect(watchCount).toEqual(2);
+  });
+
+  it('can watch if shallow clone of array is spread (and index set)', async () => {
+    let watchCount = 0;
+
+    const objArray = Madrone.auto({ value: [] });
+    const obj = Madrone.auto({
+      get test() {
+        return [...objArray.value];
+      },
+    });
+
+    Madrone.watch(
+      () => [...obj.test],
+      () => {
+        watchCount += 1;
+      }
+    );
+
+    objArray.value[0] = 'bar';
+    expect(obj.test).toEqual(objArray.value);
+    await delay();
+    expect(watchCount).toEqual(1);
+
+    objArray.value[2] = 'baz';
+    await delay();
+    expect(obj.test).toEqual(['bar', undefined, 'baz']);
+    expect(watchCount).toEqual(2);
+    expect(objArray.value).toEqual(['bar', undefined, 'baz']);
+  });
 }

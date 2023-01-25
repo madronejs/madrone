@@ -1,5 +1,5 @@
 import { getIntegration } from '@/global';
-import { MadroneDescriptor } from '@/interfaces';
+import { MadroneDescriptor, WatcherOptions } from '@/interfaces';
 
 export function define<T extends object>(obj: T, key: string, descriptor: MadroneDescriptor) {
   const pl = getIntegration();
@@ -50,7 +50,7 @@ export function auto<T extends object>(
 export function watch<T>(
   scope: () => T,
   handler: (val: T, old: T) => any,
-  options?: { deep?: boolean }
+  options?: WatcherOptions
 ) {
   const pl = getIntegration();
 

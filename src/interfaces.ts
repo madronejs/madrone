@@ -14,6 +14,11 @@ export type DecoratorOptionType = {
   descriptors?: DecoratorDescriptorType;
 };
 
+export type WatcherOptions = {
+  deep?: boolean;
+  immediate?: boolean;
+};
+
 export interface Integration {
   defineProperty: (
     target: any,
@@ -41,7 +46,7 @@ export interface Integration {
   watch?: <T>(
     scope: () => any,
     handler: (val: T, old?: T) => any,
-    options?: { deep?: boolean }
+    options?: WatcherOptions
   ) => () => void;
   describeComputed?: (name: string, config: MadroneDescriptor, options?: any) => PropertyDescriptor;
   describeProperty?: (

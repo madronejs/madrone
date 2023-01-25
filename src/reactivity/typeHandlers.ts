@@ -45,15 +45,20 @@ const optionGet = (options: ReactiveOptions, target, key, receiver) => {
 };
 const optionSet = (options: ReactiveOptions, target, key, value) => {
   const curr = target[key];
+  const isArray = Array.isArray(target);
   let valueChanged = false;
   let keysChanged = false;
 
   if (!(key in target)) {
     targetChanged(target, KEYS_SYMBOL);
     keysChanged = true;
+
+    if (isArray) {
+      targetChanged(target, 'length');
+    }
   }
 
-  if (curr !== value || Array.isArray(target)) {
+  if (curr !== value || isArray) {
     targetChanged(target, key);
     valueChanged = true;
   }

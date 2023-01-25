@@ -1,4 +1,5 @@
 import cloneDeep from 'lodash/cloneDeep';
+import { WatcherOptions } from '@/interfaces';
 import Observer from './Observer';
 
 /**
@@ -11,10 +12,7 @@ import Observer from './Observer';
 export default function Watcher<T>(
   get: () => T,
   handler: (val?: T, old?: T) => any,
-  options?: {
-    deep?: boolean;
-    immediate?: boolean;
-  }
+  options?: WatcherOptions
 ) {
   let getter = get;
 
