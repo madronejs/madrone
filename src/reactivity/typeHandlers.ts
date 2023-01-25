@@ -119,7 +119,6 @@ function defaultHandlers(options: ReactiveOptions) {
       return value;
     },
     set: (target: object, propertyKey: PropertyKey, value: any) => {
-      console.log('set', propertyKey);
       optionSet(options, target, propertyKey, value);
       return Reflect.set(target, propertyKey, value);
     },
