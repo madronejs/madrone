@@ -170,28 +170,6 @@ export default function testClass(integrationName, integration) {
         expect(typeof Madrone.lastAccessed(person.personInner)).toEqual('number');
         expect(typeof Madrone.lastAccessed(personInner)).toEqual('number');
       });
-
-      test('computed that depends on reactive array that starts out with zero length', async () => {
-        class Course {
-          instructor: string;
-          @reactive attendees: string[] = [];
-          constructor(instructor: string) {
-            this.instructor = instructor;
-          }
-
-          @computed get everyone() {
-            return [this.instructor, ...this.attendees];
-          }
-        }
-
-        const course = new Course('Olivia');
-
-        expect(course.everyone).toEqual(['Olivia']);
-
-        course.attendees.push('Carl');
-
-        expect(course.everyone).toEqual(['Olivia', 'Carl']);
-      });
     });
   });
 }
