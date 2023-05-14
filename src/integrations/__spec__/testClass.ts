@@ -277,6 +277,28 @@ describe('reactive classes', () => {
     });
     expect(calls).toEqual(0);
   });
+
+  it('handles computed that depends on reactive array that starts out with zero length', async () => {
+    class Course {
+      instructor: string;
+      @reactive attendees: string[] = [];
+      constructor(instructor: string) {
+        this.instructor = instructor;
+      }
+
+      @computed get everyone() {
+        return [this.instructor, ...this.attendees];
+      }
+    }
+
+    const course = new Course('Olivia');
+
+    expect(course.everyone).toEqual(['Olivia']);
+
+    course.attendees.push('Carl');
+
+    expect(course.everyone).toEqual(['Olivia', 'Carl']);
+  });
 });
 
 describe('class mixins', () => {
