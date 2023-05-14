@@ -57,6 +57,29 @@ describe('array', () => {
     expect(counter).toEqual(2);
   });
 
+  it.each([{ index: 0 }, { index: -1 }])(
+    'busts cache on array.push if listening to "at($index)"',
+    ({ index }) => {
+      let counter = 0;
+      const array = [];
+      const tracked = Reactive(array);
+      const obs = Observer({
+        get: () => {
+          counter += 1;
+          return tracked.at(index);
+        },
+      });
+
+      expect(obs.value).toEqual(undefined);
+      expect(obs.value).toEqual(undefined);
+      expect(counter).toEqual(1);
+      tracked.push('hello');
+      expect(obs.value).toEqual('hello');
+      expect(obs.value).toEqual('hello');
+      expect(counter).toEqual(2);
+    }
+  );
+
   it('busts cache on array deleteProperty', () => {
     let counter = 0;
     const array = ['baz', 'foo', 'bar'];
