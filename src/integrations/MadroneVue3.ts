@@ -1,74 +1,114 @@
 import { objectAccessed } from '@/global';
+import { ReactiveOptions } from '@/reactivity/interfaces';
+import { ObservableHooksType } from '@/reactivity/Observer';
+import * as MadroneState from './MadroneState';
 
-export default ({ reactive, computed, watch, toRaw } = {} as any) => {
-  function describeComputed(name, config) {
-    let getter;
-    let setter;
+type KeyType = string | number | symbol;
 
-    if (config.cache) {
-      const cp = computed(config);
+const FORBIDDEN = new Set<KeyType>(['__proto__', '__ob__']);
+const VALUE = 'value';
 
-      getter = function get() {
-        objectAccessed(this);
-        return cp.value;
-      };
-      setter = function set(val) {
-        cp.value = val;
-      };
-    } else {
-      getter = function get() {
-        objectAccessed(this);
-        return config.get.call(this);
-      };
-      setter = function set(...args) {
-        config.set.call(this, ...args);
-      };
+// reactive setter
+const reactiveSet = (item) => {
+  item[VALUE] += 1;
+};
+
+export default ({ reactive, toRaw } = {} as any) => {
+  const obToRaw = toRaw ?? ((val) => val);
+  // store all reactive properties
+  const reactiveMappings = new WeakMap<object, Map<string, { value: number }>>();
+  // get or add a tracked property
+  const getOrAdd = (parent, key) => {
+    const rawItem = obToRaw(parent);
+    let item = reactiveMappings.get(rawItem);
+
+    if (!item) {
+      item = new Map<string, { value: number }>();
+      reactiveMappings.set(rawItem, item);
     }
 
-    return {
-      enumerable: config.enumerable,
-      configurable: config.configurable,
-      get: getter,
-      set: setter,
-    };
-  }
+    let keyItem = item.get(key);
 
-  function defineComputed(target, name, config) {
-    Object.defineProperty(target, name, describeComputed(name, config));
+    if (!keyItem) {
+      keyItem = reactive({ [VALUE]: 0 });
+      item.set(key, keyItem);
+    }
+
+    return keyItem;
+  };
+
+  // depend on a reactive property
+  const depend = (cp, key?: KeyType) => {
+    if (FORBIDDEN.has(key)) return;
+
+    Reflect.get(getOrAdd(cp, key), VALUE);
+  };
+  // invalidate the reactive property
+  const notify = (cp, key?: KeyType) => {
+    if (FORBIDDEN.has(key)) return;
+
+    reactiveSet(getOrAdd(cp, key));
+  };
+
+  const deleteIfNeeded = (parent, key: KeyType) => {
+    const rawItem = obToRaw(parent);
+    const item = reactiveMappings.get(rawItem);
+
+    if (item) notify(item, key);
+
+    reactiveMappings.delete(rawItem);
+  };
+
+  const reactiveOptions: ReactiveOptions = {
+    onGet: ({ target, key }) => {
+      objectAccessed(target);
+      depend(target, key);
+    },
+    onHas: ({ target, key }) => {
+      depend(target, key);
+    },
+    onDelete: ({ target, key }) => {
+      deleteIfNeeded(target, key);
+    },
+    onSet: ({ target, key, keysChanged }) => {
+      notify(target, key);
+
+      if (keysChanged) notify(target);
+    },
+    needsProxy: ({ key }) => !FORBIDDEN.has(key),
+  };
+  const computedOptions: ObservableHooksType<any> = {
+    onGet: (cp) => {
+      depend(cp, cp.name);
+    },
+    onImmediateChange: (cp) => {
+      notify(cp, cp.name);
+    },
+  };
+
+  const options = {
+    computed: computedOptions,
+    reactive: reactiveOptions,
+  };
+
+  function describeComputed(name, config) {
+    return MadroneState.describeComputed(name, config, options);
   }
 
   function describeProperty(name, config) {
-    const tg = { value: config.value };
-    const atom = reactive(tg);
+    return MadroneState.describeProperty(name, config, options);
+  }
 
-    return {
-      configurable: config.configurable,
-      enumerable: config.enumerable,
-      get: function get() {
-        objectAccessed(this);
-
-        const { value: atomVal } = atom;
-
-        if (Array.isArray(atomVal)) {
-          // reactivity for arrays...
-          Reflect.get(atomVal, 'length');
-        }
-
-        return atomVal;
-      },
-      set: function set(val) {
-        atom.value = val;
-      },
-    };
+  function defineComputed(target, name, config) {
+    return MadroneState.defineComputed(target, name, config, options);
   }
 
   function defineProperty(target, name, config) {
-    Object.defineProperty(target, name, describeProperty(name, config));
+    return MadroneState.defineProperty(target, name, config, options);
   }
 
   return {
-    toRaw,
-    watch,
+    watch: MadroneState.watch,
     describeProperty,
     defineProperty,
     describeComputed,
