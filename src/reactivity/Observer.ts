@@ -4,7 +4,7 @@ import { OBSERVER_SYMBOL, dependTracker, observerClear, schedule, trackerChanged
 const GLOBAL_STACK: Array<ObservableItem<any>> = [];
 
 export function getCurrentObserver() {
-  return GLOBAL_STACK[GLOBAL_STACK.length - 1];
+  return GLOBAL_STACK.at(-1);
 }
 
 export enum OBSERVER_HOOK {
