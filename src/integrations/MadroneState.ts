@@ -1,5 +1,5 @@
 import { objectAccessed } from '@/global';
-import { MadroneDescriptor } from '@/interfaces';
+import { MadroneComputedDescriptor, MadronePropertyDescriptor } from '@/interfaces';
 import { Computed, Reactive, Watcher, toRaw } from '@/reactivity';
 import { ReactiveOptions } from '@/reactivity/interfaces';
 import { ObservableHooksType } from '@/reactivity/Observer';
@@ -11,7 +11,7 @@ type MadroneStateOptions<T = any> = {
 
 export function describeComputed<T = any>(
   name: string,
-  config: MadroneDescriptor,
+  config: MadroneComputedDescriptor,
   options?: MadroneStateOptions<T>
 ) {
   let getter;
@@ -55,7 +55,7 @@ export function describeComputed<T = any>(
 
 export function describeProperty(
   name: string,
-  config: PropertyDescriptor,
+  config: MadronePropertyDescriptor,
   options?: MadroneStateOptions
 ) {
   const tg = { value: config.value };
@@ -66,6 +66,7 @@ export function describeProperty(
     onSet: options?.reactive?.onSet,
     onDelete: options?.reactive?.onDelete,
     needsProxy: options?.reactive?.needsProxy,
+    deep: config.deep ?? options?.reactive?.deep,
   });
 
   return {
@@ -89,16 +90,11 @@ export function describeProperty(
   };
 }
 
-export function defineComputed(target, name: string, config, options) {
+export function defineComputed(target, name: string, config: MadroneComputedDescriptor, options) {
   Object.defineProperty(target, name, describeComputed(name, config, options));
 }
 
-export function defineProperty(
-  target,
-  name: string,
-  config: { value?: any; enumerable?: boolean; configurable?: boolean },
-  options?
-) {
+export function defineProperty(target, name: string, config: MadronePropertyDescriptor, options?) {
   Object.defineProperty(target, name, describeProperty(name, config, options));
 }
 

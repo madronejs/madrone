@@ -1,6 +1,7 @@
 import { objectAccessed } from '@/global';
 import { ReactiveOptions } from '@/reactivity/interfaces';
 import { ObservableHooksType } from '@/reactivity/Observer';
+import MStateDefault from './MadroneState';
 import * as MadroneState from './MadroneState';
 
 type KeyType = string | number | symbol;
@@ -108,6 +109,7 @@ export default ({ reactive, toRaw } = {} as any) => {
   }
 
   return {
+    toRaw: MStateDefault.toRaw,
     watch: MadroneState.watch,
     describeProperty,
     defineProperty,
