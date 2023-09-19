@@ -299,6 +299,38 @@ describe('reactive classes', () => {
 
     expect(course.everyone).toEqual(['Olivia', 'Carl']);
   });
+
+  it('Can create a shallow reactive property', async () => {
+    class TestObj {
+      @reactive val: Record<string, any>;
+      constructor() {
+        this.val = { one: { two: { string: 'hello' } } };
+      }
+    }
+
+    const object = new TestObj();
+    let calls = 0;
+
+    Madrone.watch(
+      () => object.val,
+      () => {
+        calls += 1;
+      }
+    );
+
+    expect(calls).toEqual(0);
+    object.val.one = { ...object.val.one };
+    await new Promise((resolve) => {
+      setTimeout(resolve);
+    });
+    expect(calls).toEqual(0);
+
+    object.val = { ...object.val };
+    await new Promise((resolve) => {
+      setTimeout(resolve);
+    });
+    expect(calls).toEqual(1);
+  });
 });
 
 describe('class mixins', () => {

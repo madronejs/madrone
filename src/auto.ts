@@ -21,6 +21,7 @@ export function define<T extends object>(obj: T, key: string, descriptor: Madron
       value: descriptor.value,
       enumerable: descriptor.enumerable,
       configurable: descriptor.configurable,
+      deep: descriptor.deep,
     });
   }
 }
@@ -41,6 +42,7 @@ export function auto<T extends object>(
       enumerable: getDesc(key, 'enumerable') ?? descriptor.enumerable,
       configurable: getDesc(key, 'configurable') ?? descriptor.configurable,
       cache: getDesc(key, 'cache') ?? true,
+      deep: getDesc(key, 'deep') ?? true,
     });
   }
 

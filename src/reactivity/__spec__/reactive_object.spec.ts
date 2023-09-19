@@ -112,7 +112,7 @@ describe('Reactive objects', () => {
       expect(isReactive(obs.one.two.string)).toEqual(false);
     });
 
-    it('creates can be a shallow Reactive', () => {
+    it('can be shallow Reactive', () => {
       const object = { one: { two: { string: 'hello' } } };
       const obs = Reactive(object, { deep: false });
 

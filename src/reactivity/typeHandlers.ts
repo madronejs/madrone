@@ -134,6 +134,7 @@ function defaultHandlers(options: ReactiveOptions) {
       optionHasOwnKeys(options, target);
       return Reflect.ownKeys(target);
     },
+    getPrototypeOf: (target) => Object.getPrototypeOf(target),
   };
 }
 
