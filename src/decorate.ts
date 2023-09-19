@@ -148,6 +148,15 @@ function decorateReactive(target: any, key: string, options?: DecoratorOptionTyp
   }
 }
 
+interface reactive extends Function {
+  /** Create a shallow reactive property */
+  shallow: (target: any, key: string) => ReturnType<typeof decorateReactive>;
+  /** Configure the descriptors for a property */
+  configure: (
+    overrides: DecoratorDescriptorType
+  ) => (target: any, key: string) => ReturnType<typeof decorateReactive>;
+}
+
 /**
  * Configure a reactive property
  * @param target The target to add the reactive property to
@@ -156,6 +165,10 @@ function decorateReactive(target: any, key: string, options?: DecoratorOptionTyp
 export function reactive(target: any, key: string) {
   return decorateReactive(target, key);
 }
+
+reactive.shallow = function configureReactive(target: any, key: string) {
+  return decorateReactive(target, key, { descriptors: { deep: false } });
+};
 
 reactive.configure = function configureReactive(descriptorOverrides: DecoratorDescriptorType) {
   return (target: any, key: string) =>

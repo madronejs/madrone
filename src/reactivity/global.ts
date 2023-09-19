@@ -23,7 +23,9 @@ let TASK_QUEUE = [];
 /** The id of the timeout that will handle all scheduled tasks */
 let SCHEDULER_ID = null;
 
+/** Check if the current target has a proxy associated with it */
 export const isReactiveTarget = (target) => TARGET_TO_PROXY.has(target);
+/** Check if the current proxy has a target object */
 export const isReactive = (trk) => PROXY_TO_TARGET.has(trk);
 export const getReactive = (target) => TARGET_TO_PROXY.get(target);
 export const getTarget = (tracker) => PROXY_TO_TARGET.get(tracker);

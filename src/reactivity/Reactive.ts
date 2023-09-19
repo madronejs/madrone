@@ -16,7 +16,7 @@ export default function Reactive<T extends object>(target: T, options?: Reactive
   if (isReactive(target)) return target;
 
   const opts = options || {};
-  const newOptions = { deep: true, ...opts };
+  const newOptions = { ...opts, deep: opts?.deep ?? true };
   const type = Reactive.getStringType(target);
 
   // make sure we're looking at something we can observe
