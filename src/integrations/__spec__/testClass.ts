@@ -1,4 +1,4 @@
-/* eslint-disable max-classes-per-file */
+/* eslint-disable max-classes-per-file, @typescript-eslint/no-unsafe-declaration-merging */
 import Madrone, { computed, reactive, applyClassMixins } from '../../index';
 
 function makeClass() {

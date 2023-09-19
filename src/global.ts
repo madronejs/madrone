@@ -14,7 +14,7 @@ export function getIntegrations() {
 function getLastIntegration() {
   const integrations = getIntegrations();
 
-  return integrations[integrations.length - 1];
+  return integrations.at(-1);
 }
 
 function setCurrentIntegration() {
