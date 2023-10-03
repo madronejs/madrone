@@ -14,7 +14,7 @@
   },
   "license": "MIT",
   "files": [
-    "dist/*.js",
+    "dist/*.(mjs|js)",
     "types/**/*.d.ts"
   ],
   "repository": {
