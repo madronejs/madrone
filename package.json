@@ -1,5 +1,5 @@
 {
-  "name": "madronejs",
+  "name": "@madronejs/core",
   "version": "1.0.16",
   "description": "Object composition and reactivity framework.",
   "main": "./dist/madronejs.umd.js",
