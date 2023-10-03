@@ -4,9 +4,6 @@ import { MadroneState } from '@/integrations';
 
 addIntegration(MadroneState);
 
-/**
- * @namespace
- */
 const Madrone = {
   /** Configure a global plugin */
   use: addIntegration,
