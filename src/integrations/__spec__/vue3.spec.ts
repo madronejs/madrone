@@ -7,6 +7,5 @@ const integration = MadroneVue3(Vue);
 
 testAll('Vue3', integration);
 testVue('Vue3', integration, {
-  create: (...args: Parameters<typeof Vue.createApp>) =>
-    Vue.createApp(...args).mount(document.createElement('div')),
+  create: (...args: Parameters<typeof Vue.createApp>) => Vue.createApp(...args).mount(document.createElement('div')),
 });

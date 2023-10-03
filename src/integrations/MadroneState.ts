@@ -1,6 +1,8 @@
 import { objectAccessed } from '@/global';
 import { Integration, MadroneComputedDescriptor, MadronePropertyDescriptor } from '@/interfaces';
-import { Computed, Reactive, Watcher, toRaw } from '@/reactivity';
+import {
+  Computed, Reactive, Watcher, toRaw,
+} from '@/reactivity';
 import { ReactiveOptions } from '@/reactivity/interfaces';
 import { ObservableHooksType } from '@/reactivity/Observer';
 

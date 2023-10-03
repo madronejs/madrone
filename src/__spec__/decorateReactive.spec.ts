@@ -1,4 +1,5 @@
 /* eslint-disable max-classes-per-file */
+import { describe, it, expect } from 'vitest';
 import { reactive } from '../index';
 
 describe('reactive decorator', () => {
@@ -20,8 +21,7 @@ describe('reactive decorator', () => {
 
     it('can make properties non-enumerable', () => {
       class Test {
-        @reactive.configure({ enumerable: false })
-        test: boolean;
+        @reactive.configure({ enumerable: false }) test: boolean;
 
         constructor() {
           this.test = true;

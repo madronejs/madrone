@@ -1,4 +1,6 @@
-import { OBSERVER_SYMBOL, dependTracker, observerClear, schedule, trackerChanged } from './global';
+import {
+  OBSERVER_SYMBOL, dependTracker, observerClear, schedule, trackerChanged,
+} from './global';
 
 // eslint-disable-next-line no-use-before-define
 const GLOBAL_STACK: Array<ObservableItem<any>> = [];

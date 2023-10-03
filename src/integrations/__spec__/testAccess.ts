@@ -1,14 +1,16 @@
 /* eslint-disable max-classes-per-file */
+import {
+  describe, test, expect, beforeAll, afterAll,
+} from 'vitest';
 import Madrone, { computed, reactive } from '../../index';
 
-const PersonFactory = ({ name = undefined } = {}) =>
-  Madrone.auto({
-    name,
-    // when using reactivity integration, getters become cached computeds
-    get greeting() {
-      return 'test';
-    },
-  });
+const PersonFactory = ({ name = undefined } = {}) => Madrone.auto({
+  name,
+  // when using reactivity integration, getters become cached computeds
+  get greeting() {
+    return 'test';
+  },
+});
 
 const PersonFactoryLevel2 = ({ name = undefined } = {}) => {
   const personInner = Madrone.auto({

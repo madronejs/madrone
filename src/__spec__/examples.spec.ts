@@ -1,16 +1,16 @@
+import { describe, it, expect } from 'vitest';
 import Madrone, { computed, reactive } from '../index';
 import { delay } from '@/test/util';
 
 describe('examples', () => {
   it('makes person factory', async () => {
-    const PersonFactory = ({ name = undefined } = {}) =>
-      Madrone.auto({
-        name,
-        // when using reactivity integration, getters become cached computeds
-        get greeting() {
-          return `Hi, I'm ${this.name}`;
-        },
-      });
+    const PersonFactory = ({ name = undefined } = {}) => Madrone.auto({
+      name,
+      // when using reactivity integration, getters become cached computeds
+      get greeting() {
+        return `Hi, I'm ${this.name}`;
+      },
+    });
 
     const person = PersonFactory({ name: 'Greg' });
     const newVals = [];

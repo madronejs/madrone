@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import Observer from '../Observer';
 import Reactive from '../Reactive';
 

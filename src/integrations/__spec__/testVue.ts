@@ -1,3 +1,6 @@
+import {
+  describe, it, expect, beforeAll, afterAll,
+} from 'vitest';
 import lodashSet from 'lodash/set';
 import Madrone from '../../index';
 import { delay } from '@/test/util';

@@ -31,8 +31,7 @@ export function auto<T extends object>(
   objDescriptors?: { [K in keyof T]?: MadroneDescriptor }
 ) {
   const descriptors = Object.getOwnPropertyDescriptors(obj);
-  const getDesc = (name: string, descName: keyof MadroneDescriptor) =>
-    objDescriptors?.[name]?.[descName];
+  const getDesc = (name: string, descName: keyof MadroneDescriptor) => objDescriptors?.[name]?.[descName];
 
   for (const [key, descriptor] of Object.entries(descriptors)) {
     define(obj, key, {

@@ -109,9 +109,9 @@ function defaultHandlers(options: ReactiveOptions) {
       const value = Reflect.get(target, prop, receiver);
 
       if (
-        needsProxy({ target, key: prop, value }) &&
-        options?.deep &&
-        Object.getOwnPropertyDescriptor(target, prop)?.configurable
+        needsProxy({ target, key: prop, value })
+        && options?.deep
+        && Object.getOwnPropertyDescriptor(target, prop)?.configurable
       ) {
         return Reactive(value, options);
       }
