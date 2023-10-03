@@ -1,6 +1,6 @@
 {
   "name": "madronejs",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "description": "Object composition and reactivity framework.",
   "main": "./dist/madronejs.umd.js",
   "module": "./dist/madronejs.mjs",
