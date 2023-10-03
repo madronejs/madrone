@@ -1,3 +1,4 @@
+import cloneDeep from 'lodash/cloneDeep';
 import lodashSet from 'lodash/set';
 import Madrone from '../../index';
 import { delay } from '@/test/util';
@@ -465,12 +466,11 @@ export default function testAuto(name, integration) {
       });
 
       Madrone.watch(
-        () => instance.value,
+        () => cloneDeep(instance.value),
         (newVal, oldVal) => {
           newVals.push(newVal);
           oldVals.push(oldVal);
-        },
-        { deep: true }
+        }
       );
 
       lodashSet(instance, 'value.child1', 'hello');
