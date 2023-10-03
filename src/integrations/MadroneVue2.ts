@@ -1,6 +1,7 @@
 import { objectAccessed } from '@/global';
 import { ReactiveOptions } from '@/reactivity/interfaces';
 import { ObservableHooksType } from '@/reactivity/Observer';
+import { Integration } from '@/interfaces';
 import MStateDefault from './MadroneState';
 import * as MadroneState from './MadroneState';
 
@@ -9,7 +10,7 @@ type KeyType = string | number | symbol;
 const FORBIDDEN = new Set<KeyType>(['__proto__', '__ob__']);
 const VALUE = 'value';
 
-export default (opts) => {
+export default function MadroneVue2(opts): Integration {
   const { observable, set } = opts;
   // store all reactive properties
   const reactiveMappings = new WeakMap();
@@ -114,4 +115,4 @@ export default (opts) => {
     describeComputed,
     defineComputed,
   };
-};
+}

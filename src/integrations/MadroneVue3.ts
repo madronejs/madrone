@@ -1,6 +1,7 @@
 import { objectAccessed } from '@/global';
 import { ReactiveOptions } from '@/reactivity/interfaces';
 import { ObservableHooksType } from '@/reactivity/Observer';
+import type { Integration } from '@/interfaces';
 import MStateDefault from './MadroneState';
 import * as MadroneState from './MadroneState';
 
@@ -14,7 +15,7 @@ const reactiveSet = (item) => {
   item[VALUE] += 1;
 };
 
-export default ({ reactive, toRaw } = {} as any) => {
+export default function MadroneVue3({ reactive, toRaw } = {} as any): Integration {
   const obToRaw = toRaw ?? ((val) => val);
   // store all reactive properties
   const reactiveMappings = new WeakMap<object, Map<string, { value: number }>>();
@@ -116,4 +117,4 @@ export default ({ reactive, toRaw } = {} as any) => {
     describeComputed,
     defineComputed,
   };
-};
+}
