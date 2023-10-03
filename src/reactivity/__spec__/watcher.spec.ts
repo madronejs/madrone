@@ -1,7 +1,8 @@
+import cloneDeep from 'lodash/cloneDeep';
+import { delay } from '@/test/util';
 import Computed from '../Computed';
 import Watcher from '../Watcher';
 import Reactive from '../Reactive';
-import { delay } from '@/test/util';
 
 describe('Watcher', () => {
   it('has callback when tracked value changed', async () => {
@@ -84,13 +85,10 @@ describe('Watcher', () => {
     const oldValues = [];
 
     Watcher(
-      () => tracked,
+      () => cloneDeep(tracked),
       (val, old) => {
         newValues.push(val);
         oldValues.push(old);
-      },
-      {
-        deep: true,
       }
     );
 

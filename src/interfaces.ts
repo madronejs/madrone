@@ -23,7 +23,6 @@ export type DecoratorOptionType = {
 };
 
 export type WatcherOptions = {
-  deep?: boolean;
   immediate?: boolean;
 };
 

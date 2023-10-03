@@ -23,8 +23,9 @@ const Madrone = {
 };
 
 export default Madrone;
-export * from './integrations';
-export * from './decorate';
+export * from '@/integrations';
+export * from '@/interfaces';
+export * from '@/decorate';
 export { toRaw } from '@/global';
-export { merge, applyClassMixins } from './util';
+export { merge, applyClassMixins } from '@/util';
 export { watch, auto } from '@/auto';

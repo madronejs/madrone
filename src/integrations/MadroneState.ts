@@ -1,5 +1,5 @@
 import { objectAccessed } from '@/global';
-import { MadroneComputedDescriptor, MadronePropertyDescriptor } from '@/interfaces';
+import { Integration, MadroneComputedDescriptor, MadronePropertyDescriptor } from '@/interfaces';
 import { Computed, Reactive, Watcher, toRaw } from '@/reactivity';
 import { ReactiveOptions } from '@/reactivity/interfaces';
 import { ObservableHooksType } from '@/reactivity/Observer';
@@ -98,7 +98,7 @@ export function defineProperty(target, name: string, config: MadronePropertyDesc
   Object.defineProperty(target, name, describeProperty(name, config, options));
 }
 
-export default {
+const MadroneState: Integration = {
   toRaw,
   watch: Watcher,
   describeProperty,
@@ -107,4 +107,5 @@ export default {
   defineComputed,
 };
 
+export default MadroneState;
 export { Watcher as watch } from '@/reactivity';
