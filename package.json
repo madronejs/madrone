@@ -2,13 +2,13 @@
   "name": "@madronejs/core",
   "version": "1.0.16",
   "description": "Object composition and reactivity framework.",
-  "main": "./dist/madronejs.umd.js",
-  "module": "./dist/madronejs.mjs",
+  "main": "./dist/core.umd.js",
+  "module": "./dist/core.mjs",
   "types": "./types/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/madronejs.mjs",
-      "require": "./dist/madronejs.umd.js",
+      "import": "./dist/core.mjs",
+      "require": "./dist/core.umd.js",
       "types": "./types"
     }
   },
