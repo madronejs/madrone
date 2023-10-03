@@ -20,7 +20,7 @@ yarn add madronejs
 ### Reactivity
 
 ```javascript
-import Madrone, { MadroneState } from 'madronejs'
+import Madrone, { MadroneState } from '@madronejs/core'
 
 // add reactivity integration
 // MadroneVue2, and MadroneVue3 are also available
@@ -63,7 +63,7 @@ console.log('Old Vals:', oldVals); // ["Hi, I'm  Greg"]
 
 ```javascript
 
-import Madrone, { MadroneState, computed, reactive } from 'madronejs'
+import Madrone, { MadroneState, computed, reactive } from '@madronejs/core'
 
 Madrone.use(MadroneState);
 
