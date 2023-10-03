@@ -1,4 +1,5 @@
 /* eslint-disable max-classes-per-file */
+import { describe, it, expect } from 'vitest';
 import { computed } from '../index';
 
 describe('computed decorator', () => {

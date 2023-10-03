@@ -5,7 +5,6 @@ module.exports = {
   extends: [
     'eslint:recommended',
     'airbnb-base',
-    'plugin:prettier/recommended',
     'plugin:@typescript-eslint/recommended',
     'plugin:unicorn/recommended',
   ],
@@ -32,6 +31,7 @@ module.exports = {
   },
   rules: {
     '@typescript-eslint/explicit-module-boundary-types': 'off',
+    '@typescript-eslint/no-this-alias': 'off',
     '@typescript-eslint/no-explicit-any': 0,
     '@typescript-eslint/no-empty-function': 0,
     '@typescript-eslint/ban-ts-comment': 0,
@@ -45,6 +45,7 @@ module.exports = {
     'import/extensions': 'off',
     'import/no-extraneous-dependencies': 0,
     'import/no-unresolved': 0,
+    'import/prefer-default-export': 0,
     'arrow-parens': ['error', 'always'],
     'arrow-body-style': [2, 'as-needed'],
     'comma-dangle': [
@@ -69,7 +70,7 @@ module.exports = {
     'no-mixed-operators': [
       'error',
       {
-        // the list of arithmetic groups disallows mixing `%` and `**`
+        // The list of arithmetic groups disallows mixing `%` and `**`
         // with other arithmetic operators.
         groups: [
           ['%', '**'],
@@ -90,7 +91,7 @@ module.exports = {
       },
     ],
     'no-underscore-dangle': 'off',
-    // reverse airbnb no-restricted-syntax rule (allow for..of)
+    // Reverse airbnb no-restricted-syntax rule (allow for..of)
     'no-restricted-syntax': [
       'error',
       {
@@ -148,5 +149,7 @@ module.exports = {
     'unicorn/no-null': 'off',
     'unicorn/no-useless-undefined': 'off',
     'unicorn/prevent-abbreviations': 'off',
+    'unicorn/no-this-assignment': 'off',
+    'unicorn/prefer-dom-node-remove': 'off',
   },
 };

@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import cloneDeep from 'lodash/cloneDeep';
 import { delay } from '@/test/util';
 import Computed from '../Computed';

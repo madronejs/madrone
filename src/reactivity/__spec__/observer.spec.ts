@@ -1,6 +1,7 @@
+import { describe, it, expect } from 'vitest';
+import { delay } from '@/test/util';
 import Observer from '../Observer';
 import Reactive from '../Reactive';
-import { delay } from '@/test/util';
 
 describe('Observer', () => {
   it('caches values if nothing observed', () => {

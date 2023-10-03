@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import Madrone, { computed, reactive } from '../index';
 import { delay } from '@/test/util';
 

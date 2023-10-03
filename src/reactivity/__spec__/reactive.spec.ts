@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import Reactive from '../Reactive';
 import { isReactiveTarget, isReactive } from '../global';
 

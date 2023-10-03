@@ -1,4 +1,5 @@
 /* eslint-disable max-classes-per-file */
+import { describe, test, expect, beforeAll, afterAll } from 'vitest';
 import Madrone, { computed, reactive } from '../../index';
 
 const PersonFactory = ({ name = undefined } = {}) =>

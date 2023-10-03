@@ -1,7 +1,8 @@
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import cloneDeep from 'lodash/cloneDeep';
 import lodashSet from 'lodash/set';
-import Madrone from '../../index';
 import { delay } from '@/test/util';
+import Madrone from '../../index';
 
 export default function testAuto(name, integration) {
   beforeAll(() => {
