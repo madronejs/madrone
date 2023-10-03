@@ -29,10 +29,8 @@ export const isReactiveTarget = (target) => TARGET_TO_PROXY.has(target);
 export const isReactive = (trk) => PROXY_TO_TARGET.has(trk);
 export const getReactive = (target) => TARGET_TO_PROXY.get(target);
 export const getTarget = (tracker) => PROXY_TO_TARGET.get(tracker);
-export const getProxy = (targetOrProxy) =>
-  isReactive(targetOrProxy) ? targetOrProxy : getReactive(targetOrProxy);
-export const toRaw = (targetOrProxy) =>
-  isReactive(targetOrProxy) ? getTarget(targetOrProxy) : targetOrProxy;
+export const getProxy = (targetOrProxy) => (isReactive(targetOrProxy) ? targetOrProxy : getReactive(targetOrProxy));
+export const toRaw = (targetOrProxy) => (isReactive(targetOrProxy) ? getTarget(targetOrProxy) : targetOrProxy);
 
 export const getDependencies = (observer) => OBSERVER_TO_PROXIES.get(observer);
 /** Get the list of items that are observing a given proxy */

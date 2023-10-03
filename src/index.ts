@@ -4,8 +4,6 @@ import { MadroneState } from '@/integrations';
 
 addIntegration(MadroneState);
 
-console.log('foobarbaz!');
-
 /**
  * @namespace
  */

@@ -21,8 +21,7 @@ describe('reactive decorator', () => {
 
     it('can make properties non-enumerable', () => {
       class Test {
-        @reactive.configure({ enumerable: false })
-        test: boolean;
+        @reactive.configure({ enumerable: false }) test: boolean;
 
         constructor() {
           this.test = true;

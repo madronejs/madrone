@@ -1,4 +1,6 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import {
+  describe, it, expect, beforeAll, afterAll,
+} from 'vitest';
 import cloneDeep from 'lodash/cloneDeep';
 import lodashSet from 'lodash/set';
 import { delay } from '@/test/util';

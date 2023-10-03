@@ -36,8 +36,8 @@ export default function MadroneVue2(opts): Integration {
   const reactiveSet = set
     ? (item) => set(item, VALUE, item[VALUE] + 1)
     : (item) => {
-        item[VALUE] += 1;
-      };
+      item[VALUE] += 1;
+    };
   // depend on a reactive property
   const depend = (cp, key?: KeyType) => {
     if (FORBIDDEN.has(key)) return;

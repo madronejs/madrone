@@ -99,8 +99,7 @@ export function computed(target: any, key: string, descriptor: PropertyDescripto
 }
 
 computed.configure = function configureComputed(descriptorOverrides: DecoratorDescriptorType) {
-  return (target: any, key: string, descriptor: PropertyDescriptor) =>
-    decorateComputed(target, key, descriptor, { descriptors: descriptorOverrides });
+  return (target: any, key: string, descriptor: PropertyDescriptor) => decorateComputed(target, key, descriptor, { descriptors: descriptorOverrides });
 };
 
 // ////////////////////////////
@@ -171,6 +170,5 @@ reactive.shallow = function configureReactive(target: any, key: string) {
 };
 
 reactive.configure = function configureReactive(descriptorOverrides: DecoratorDescriptorType) {
-  return (target: any, key: string) =>
-    decorateReactive(target, key, { descriptors: descriptorOverrides });
+  return (target: any, key: string) => decorateReactive(target, key, { descriptors: descriptorOverrides });
 };

@@ -1,5 +1,7 @@
 import typeHandlers from './typeHandlers';
-import { addReactive, isReactiveTarget, isReactive, getReactive } from './global';
+import {
+  addReactive, isReactiveTarget, isReactive, getReactive,
+} from './global';
 import { ReactiveOptions } from './interfaces';
 
 /**
