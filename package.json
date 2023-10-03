@@ -2,6 +2,7 @@
   "name": "@madronejs/core",
   "version": "1.0.16",
   "description": "Object composition and reactivity framework.",
+  "private": false,
   "main": "./dist/core.umd.js",
   "module": "./dist/core.mjs",
   "types": "./types/index.d.ts",
