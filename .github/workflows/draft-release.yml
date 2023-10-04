@@ -15,4 +15,4 @@ on:
 
 jobs:
   launch:
-    uses: madronejs/.github/.github/workflows/draft-release.hml@main
+    uses: madronejs/.github/.github/workflows/draft-release.yml@main
