@@ -34,7 +34,7 @@
     "test": "vitest",
     "test-ci": "CI=true NODE_ENV=test vitest run --coverage",
     "docs": "typedoc --entryPoints src/index.ts",
-    "cleanup": "rm -rf ./dist && rm -rf ./types",
+    "cleanup": "rm -rf ./dist/* && rm -rf ./types/*",
     "cov": "CI=true NODE_ENV=test vitest run --coverage && open coverage/lcov-report/index.html",
     "build": "vite build",
     "build-types": "tsc -p ./tsconfig.types.json && tsc-alias -p tsconfig.types.json",
