@@ -42,7 +42,9 @@ export const addReactive = (target, proxy) => {
 };
 const doTasksIfNeeded = () => {
   if (SCHEDULER_ID === null) {
-    SCHEDULER_ID = setTimeout(() => {
+    SCHEDULER_ID = Symbol('scheduler');
+
+    Promise.resolve().then(() => {
       const queue = TASK_QUEUE;
 
       TASK_QUEUE = [];
