@@ -19,7 +19,7 @@ const OBSERVER_TO_PROXIES = new WeakMap<
   Map<string | symbol | ObservableItem<any>, Set<any>>
 >();
 /** List of scheduled tasks */
-let TASK_QUEUE = [];
+let TASK_QUEUE: (() => void)[] = [];
 /** The id of the timeout that will handle all scheduled tasks */
 let SCHEDULER_ID = null;
 
@@ -43,8 +43,7 @@ export const addReactive = (target, proxy) => {
 const doTasksIfNeeded = () => {
   if (SCHEDULER_ID === null) {
     SCHEDULER_ID = Symbol('scheduler');
-
-    Promise.resolve().then(() => {
+    setTimeout(() => {
       const queue = TASK_QUEUE;
 
       TASK_QUEUE = [];
