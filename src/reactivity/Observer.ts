@@ -91,16 +91,13 @@ class ObservableItem<T> {
     return val;
   }
 
-  setHook(hook: OBSERVER_HOOK, cb: ObservableHookType<T>) {
-    this.hooks[hook] = cb;
-  }
-
   setDirty() {
     if (this.alive && !this.dirty) {
       this.dirty = true;
       trackerChanged(this, OBSERVER_SYMBOL);
       // store the previous value for the onChange
       this.prev = this.cachedVal;
+      this.cachedVal = undefined;
       this.callHook(OBSERVER_HOOK.onImmediateChange);
       schedule(() => this.notifyChange());
     }
