@@ -63,12 +63,11 @@
     "typescript": "^5.3.3",
     "vite": "^5.0.12",
     "vitest": "^1.2.2",
-    "vue2": "npm:vue@^2.7.14",
     "vue3": "npm:vue@^3.3.4"
   },
   "engines": {
     "node": "^18.8 || ^20.10",
-    "pnpm": "^8.14.0"
+    "pnpm": "^9.11.0"
   },
-  "packageManager": "pnpm@8.14.3"
+  "packageManager": "pnpm@9.11.0"
 }
