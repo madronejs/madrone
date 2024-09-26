@@ -1,10 +1,14 @@
-import typescriptEslint from '@typescript-eslint/eslint-plugin';
 import globals from 'globals';
 import tsParser from '@typescript-eslint/parser';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import js from '@eslint/js';
 import { FlatCompat } from '@eslint/eslintrc';
+
+import eslintJs from '@eslint/js';
+import tseslint from 'typescript-eslint';
+import eslintPluginUnicorn from 'eslint-plugin-unicorn';
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,41 +18,51 @@ const compat = new FlatCompat({
   allConfig: js.configs.all,
 });
 
-export default [...compat.extends(
-  'eslint:recommended',
-  'airbnb-base',
-  'plugin:@typescript-eslint/recommended',
-  'plugin:unicorn/recommended',
-), {
-  plugins: {
-    '@typescript-eslint': typescriptEslint,
+
+export default [
+  {
+    name: 'global ignore',
+    ignores: [
+      'build/**/*',
+      'coverage/**/*',
+      'dist/**/*',
+      'docs/**/*',
+      'node_modules/**/*',
+      'tmp/**/*',
+      'types/**/*',
+      '**/*.d.ts',
+      '*.{js,cjs,mjs}', // don't lint root level js files (vite.config.js, eslint.config.js, etc...)
+    ],
   },
-
-  languageOptions: {
-    globals: {
-      ...globals.browser,
-      ...globals.node,
-      ...globals.jest,
-      argv: 'readonly',
-    },
-
-    parser: tsParser,
-    ecmaVersion: 2020,
-    sourceType: 'module',
-
-    parserOptions: {
-      parser: '@typescript-eslint/parser',
-    },
-  },
-
-  settings: {
-    'import/resolver': {
-      node: {
-        extensions: ['.js', '.ts'],
+  {
+    name: 'global lang options',
+    files: ['src/**/*.{js,ts,tsx}'],
+    languageOptions: {
+      ecmaVersion: 2024,
+      parser: tsParser,
+      sourceType: 'module',
+      globals: {
+        ...globals.builtin,
+        ...globals.browser,
+        ...globals.node,
+        argv: 'readonly',
       },
     },
+    plugins: { '@typescript-eslint': tseslint.plugin },
   },
+  eslintJs.configs.recommended,
+  eslintPluginUnicorn.configs['flat/recommended'],
+  ...tseslint.configs.recommended,
 
+//   settings: {
+//     'import/resolver': {
+//       node: {
+//         extensions: ['.js', '.ts'],
+//       },
+//     },
+//   },
+
+  {
   rules: {
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/no-this-alias': 'off',
@@ -177,4 +191,5 @@ export default [...compat.extends(
     'unicorn/no-this-assignment': 'off',
     'unicorn/prefer-dom-node-remove': 'off',
   },
-}];
+  },
+];
