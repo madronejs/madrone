@@ -1,8 +1,8 @@
 export interface MadroneDescriptor extends PropertyDescriptor {
   /** Cache a computed property */
-  cache?: boolean;
+  cache?: boolean,
   /** Define a deeply reactive property */
-  deep?: boolean;
+  deep?: boolean,
 }
 export type MadroneComputedDescriptor = Pick<
   MadroneDescriptor,
@@ -14,16 +14,16 @@ export type MadronePropertyDescriptor = Pick<
 >;
 
 export interface MadroneDescriptorMap {
-  [key: string]: MadroneDescriptor;
+  [key: string]: MadroneDescriptor,
 }
 
 export type DecoratorDescriptorType = Omit<MadroneDescriptor, 'get' | 'set' | 'writable' | 'value'>;
 export type DecoratorOptionType = {
-  descriptors?: DecoratorDescriptorType;
+  descriptors?: DecoratorDescriptorType,
 };
 
 export type WatcherOptions = {
-  immediate?: boolean;
+  immediate?: boolean,
 };
 
 export interface Integration {
@@ -32,27 +32,27 @@ export interface Integration {
     name: string,
     config: MadronePropertyDescriptor,
     options?: any
-  ) => any;
+  ) => any,
   defineComputed: (
     target: any,
     name: string,
     config: MadroneComputedDescriptor,
     options?: any
-  ) => any;
-  toRaw?: <T>(target: T) => T;
+  ) => any,
+  toRaw?: <T>(target: T) => T,
   watch?: <T>(
     scope: () => any,
     handler: (val: T, old?: T) => any,
     options?: WatcherOptions
-  ) => () => void;
+  ) => () => void,
   describeComputed?: (
     name: string,
     config: MadroneComputedDescriptor,
     options?: any
-  ) => PropertyDescriptor;
+  ) => PropertyDescriptor,
   describeProperty?: (
     name: string,
     config: MadronePropertyDescriptor,
     options?: any
-  ) => PropertyDescriptor;
+  ) => PropertyDescriptor,
 }

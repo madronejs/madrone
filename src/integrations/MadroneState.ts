@@ -7,8 +7,8 @@ import { ReactiveOptions } from '@/reactivity/interfaces';
 import { ObservableHooksType } from '@/reactivity/Observer';
 
 type MadroneStateOptions<T = any> = {
-  reactive?: ReactiveOptions;
-  computed?: ObservableHooksType<T>;
+  reactive?: ReactiveOptions,
+  computed?: ObservableHooksType<T>,
 };
 
 export function describeComputed<T = any>(

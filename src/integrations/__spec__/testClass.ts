@@ -153,7 +153,7 @@ describe('reactive classes', () => {
     const failMessage = 'Cannot set the value of a read-only property!';
 
     try {
-      // @ts-ignore
+      // @ts-expect-error set readonly property for testing
       fooInstance.summary = 'foo!';
       throw new Error(failMessage);
     } catch (error) {
