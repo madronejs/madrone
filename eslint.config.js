@@ -1,13 +1,15 @@
 import globals from 'globals';
-import tsParser from '@typescript-eslint/parser';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import js from '@eslint/js';
+import { fixupPluginRules } from '@eslint/compat';
 import { FlatCompat } from '@eslint/eslintrc';
 
-import eslintJs from '@eslint/js';
+import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import eslintPluginUnicorn from 'eslint-plugin-unicorn';
+import importRules from 'eslint-plugin-import';
+import airbnbAll from './config/eslint/airbnbRules/index.js';
+import style from './config/eslint/style.js';
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -39,7 +41,7 @@ export default [
     files: ['src/**/*.{js,ts,tsx}'],
     languageOptions: {
       ecmaVersion: 2024,
-      parser: tsParser,
+      parser: tseslint.parser,
       sourceType: 'module',
       globals: {
         ...globals.builtin,
@@ -48,12 +50,17 @@ export default [
         argv: 'readonly',
       },
     },
-    plugins: { '@typescript-eslint': tseslint.plugin },
+    plugins: {
+      import: fixupPluginRules(importRules),
+      '@typescript-eslint': tseslint.plugin
+    },
   },
-  eslintJs.configs.recommended,
+  js.configs.recommended,
+  // get airbnb out of the way firsts so we can override things we don't like - this should eventually be deprecated and removed
+  { rules: airbnbAll },
   eslintPluginUnicorn.configs['flat/recommended'],
   ...tseslint.configs.recommended,
-
+  ...style,
 //   settings: {
 //     'import/resolver': {
 //       node: {
@@ -66,20 +73,26 @@ export default [
   rules: {
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/no-this-alias': 'off',
-    '@typescript-eslint/no-explicit-any': 0,
-    '@typescript-eslint/no-empty-function': 0,
-    '@typescript-eslint/ban-ts-comment': 0,
+    '@typescript-eslint/no-explicit-any': 'off',
+    '@typescript-eslint/no-empty-function': 'off',
+    '@typescript-eslint/ban-ts-comment': 'error',
+    '@typescript-eslint/no-dupe-class-members': 'error',
+    '@typescript-eslint/no-empty-interface': ['error', {
+      allowSingleExtends: true,
+    }],
+    '@typescript-eslint/no-empty-object-type': ['error', {
+      allowInterfaces: 'with-single-extends',
+    }],
     '@typescript-eslint/no-unused-vars': ['error'],
     '@typescript-eslint/no-use-before-define': ['error'],
-    '@typescript-eslint/no-empty-interface': 'off',
     '@typescript-eslint/no-shadow': ['error'],
     'no-shadow': 'off',
     'no-unused-vars': 'off',
     'no-use-before-define': 'off',
-    'import/extensions': 'off',
-    'import/no-extraneous-dependencies': 0,
-    'import/no-unresolved': 0,
-    'import/prefer-default-export': 0,
+    // 'import/extensions': 'off',
+    // 'import/no-extraneous-dependencies': 0,
+    // 'import/no-unresolved': 0,
+    // 'import/prefer-default-export': 0,
     'arrow-parens': ['error', 'always'],
     'arrow-body-style': [2, 'as-needed'],
 

@@ -31,7 +31,7 @@
     "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
-    "lint": "eslint ./",
+    "lint": "eslint src/",
     "test": "vitest",
     "test-ci": "CI=true NODE_ENV=test vitest run --coverage",
     "docs": "typedoc --entryPoints src/index.ts",
@@ -49,8 +49,10 @@
     "vue"
   ],
   "devDependencies": {
+    "@eslint/compat": "~1.1.1",
     "@eslint/eslintrc": "~3.1.0",
     "@eslint/js": "~9.11.1",
+    "@stylistic/eslint-plugin": "~2.8.0",
     "@types/lodash": "~4.17.7",
     "@vitest/coverage-v8": "~2.1.0",
     "eslint": "~9.11.1",
