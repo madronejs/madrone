@@ -56,7 +56,6 @@
     "@types/lodash": "~4.17.12",
     "@vitest/coverage-v8": "~2.1.3",
     "eslint": "~9.13.0",
-    "eslint-config-airbnb-base": "~15.0.0",
     "eslint-plugin-import": "~2.31.0",
     "eslint-plugin-unicorn": "~56.0.0",
     "globals": "~15.11.0",
@@ -68,11 +67,11 @@
     "typescript-eslint": "8.11.0",
     "vite": "~5.4.9",
     "vitest": "~2.1.3",
-    "vue3": "npm:vue@~3.4.38"
+    "vue3": "npm:vue@~3.5.12"
   },
   "engines": {
     "node": "^20.11",
     "pnpm": ">=9"
   },
-  "packageManager": "pnpm@9.11.0"
+  "packageManager": "pnpm@9.12.2"
 }
