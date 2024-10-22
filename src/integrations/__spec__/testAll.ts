@@ -13,7 +13,7 @@ export default function testAll(
   name: string,
   integration,
   options?: {
-    blacklist?: Array<string>;
+    blacklist?: Array<string>,
   }
 ) {
   const toTest = omit(testObj, options?.blacklist || []);

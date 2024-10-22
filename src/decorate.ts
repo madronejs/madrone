@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-types */
 import { getIntegration } from '@/global';
 import { applyClassMixins } from '@/util';
 import { define } from '@/auto';
@@ -6,8 +5,8 @@ import { DecoratorOptionType, DecoratorDescriptorType } from './interfaces';
 
 const itemMap: WeakMap<any, Set<string>> = new WeakMap();
 
-export function classMixin(...mixins: Array<Function>) {
-  return (target: Function) => {
+export function classMixin(...mixins: Array<() => any>) {
+  return (target: () => any) => {
     if (mixins?.length) {
       applyClassMixins(target, mixins);
     }
@@ -99,7 +98,12 @@ export function computed(target: any, key: string, descriptor: PropertyDescripto
 }
 
 computed.configure = function configureComputed(descriptorOverrides: DecoratorDescriptorType) {
-  return (target: any, key: string, descriptor: PropertyDescriptor) => decorateComputed(target, key, descriptor, { descriptors: descriptorOverrides });
+  return (target: any, key: string, descriptor: PropertyDescriptor) => decorateComputed(
+    target,
+    key,
+    descriptor,
+    { descriptors: descriptorOverrides }
+  );
 };
 
 // ////////////////////////////
@@ -147,13 +151,14 @@ function decorateReactive(target: any, key: string, options?: DecoratorOptionTyp
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 interface reactive extends Function {
   /** Create a shallow reactive property */
-  shallow: (target: any, key: string) => ReturnType<typeof decorateReactive>;
+  shallow: (target: any, key: string) => ReturnType<typeof decorateReactive>,
   /** Configure the descriptors for a property */
   configure: (
     overrides: DecoratorDescriptorType
-  ) => (target: any, key: string) => ReturnType<typeof decorateReactive>;
+  ) => (target: any, key: string) => ReturnType<typeof decorateReactive>,
 }
 
 /**

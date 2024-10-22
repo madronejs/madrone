@@ -2,7 +2,6 @@ import {
   OBSERVER_SYMBOL, dependTracker, observerClear, schedule, trackerChanged,
 } from './global';
 
-// eslint-disable-next-line no-use-before-define
 const GLOBAL_STACK: Array<ObservableItem<any>> = [];
 
 export function getCurrentObserver() {
@@ -19,17 +18,17 @@ export enum OBSERVER_HOOK {
 export type ObservableHookType<T> = (obs: ObservableItem<T>) => void;
 
 export type ObservableHooksType<T> = {
-  onGet?: ObservableHookType<T>;
-  onSet?: ObservableHookType<T>;
-  onChange?: ObservableHookType<T>;
-  onImmediateChange?: ObservableHookType<T>;
+  onGet?: ObservableHookType<T>,
+  onSet?: ObservableHookType<T>,
+  onChange?: ObservableHookType<T>,
+  onImmediateChange?: ObservableHookType<T>,
 };
 
 export type ObservableOptions<T> = {
-  get: () => T;
-  name?: string;
-  set?: (val: T) => void;
-  cache?: boolean;
+  get: () => T,
+  name?: string,
+  set?: (val: T) => void,
+  cache?: boolean,
 } & ObservableHooksType<T>;
 
 class ObservableItem<T> {
@@ -59,7 +58,7 @@ class ObservableItem<T> {
   prev: T;
   cache: boolean;
   private cachedVal: T;
-  // eslint-disable-next-line no-use-before-define
+
   private hooks: Record<OBSERVER_HOOK, (obs: ObservableItem<T>) => any>;
   private get: () => T;
   private set: (val: T) => void;
