@@ -4,7 +4,7 @@ export default [
   stylistic.configs['disable-legacy'],
   stylistic.configs['recommended-flat'],
   {
-    name: 'sdvi/style',
+    name: 'madronejs/style',
     rules: {
       // enforce line breaks after opening and before closing array brackets
       // https://eslint.style/rules/default/array-bracket-newline
