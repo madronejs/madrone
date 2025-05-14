@@ -10,9 +10,9 @@
   "types": "./types/index.d.ts",
   "exports": {
     ".": {
+      "types": "./types",
       "import": "./dist/core.mjs",
-      "require": "./dist/core.umd.js",
-      "types": "./types"
+      "require": "./dist/core.umd.js"
     }
   },
   "files": [
