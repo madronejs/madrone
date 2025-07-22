@@ -117,13 +117,9 @@ export default function testClass(integrationName, integration) {
 
     describe('two levels deep', () => {
       class PersonInner {
-        @reactive foo: boolean;
+        @reactive foo: boolean = true;
         @computed get test() {
           return 'test';
-        }
-
-        constructor() {
-          this.foo = true;
         }
       }
 
