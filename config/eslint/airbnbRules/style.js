@@ -61,7 +61,7 @@ export default {
         ObjectPattern: false,
         VariableDeclaration: false,
         NewExpression: false,
-      }
+      },
     }],
 
     // disallow padding inside computed properties
@@ -75,10 +75,6 @@ export default {
 
     // https://eslint.org/docs/rules/function-call-argument-newline
     'function-call-argument-newline': ['error', 'consistent'],
-
-    // enforce spacing between functions and their invocations
-    // https://eslint.org/docs/rules/func-call-spacing
-    'func-call-spacing': ['error', 'never'],
 
     // requires function names to match the name of the variable or property to which they are
     // assigned
@@ -125,14 +121,14 @@ export default {
       // MemberExpression: null,
       FunctionDeclaration: {
         parameters: 1,
-        body: 1
+        body: 1,
       },
       FunctionExpression: {
         parameters: 1,
-        body: 1
+        body: 1,
       },
       CallExpression: {
-        arguments: 1
+        arguments: 1,
       },
       ArrayExpression: 1,
       ObjectExpression: 1,
@@ -140,7 +136,7 @@ export default {
       flatTernaryExpressions: false,
       // list derived from https://github.com/benjamn/ast-types/blob/HEAD/def/jsx.js
       ignoredNodes: ['JSXElement', 'JSXElement > *', 'JSXAttribute', 'JSXIdentifier', 'JSXNamespacedName', 'JSXMemberExpression', 'JSXSpreadAttribute', 'JSXExpressionContainer', 'JSXOpeningElement', 'JSXClosingElement', 'JSXFragment', 'JSXOpeningFragment', 'JSXClosingFragment', 'JSXText', 'JSXEmptyExpression', 'JSXSpreadChild'],
-      ignoreComments: false
+      ignoreComments: false,
     }],
 
     // specify whether double or single quotes should be used in JSX attributes
@@ -157,8 +153,8 @@ export default {
       overrides: {
         return: { after: true },
         throw: { after: true },
-        case: { after: true }
-      }
+        case: { after: true },
+      },
     }],
 
     // enforce position of line comments
@@ -213,7 +209,7 @@ export default {
     'max-lines': ['off', {
       max: 300,
       skipBlankLines: true,
-      skipComments: true
+      skipComments: true,
     }],
 
     // enforce a maximum function length
@@ -304,7 +300,7 @@ export default {
         ['==', '!=', '===', '!=='],
         ['&&', '||'],
       ],
-      allowSamePrecedence: false
+      allowSamePrecedence: false,
     }],
 
     // disallow mixed spaces and tabs for indentation
@@ -447,7 +443,7 @@ export default {
     'space-before-function-paren': ['error', {
       anonymous: 'always',
       named: 'never',
-      asyncArrow: 'always'
+      asyncArrow: 'always',
     }],
 
     // require or disallow spaces inside parentheses
@@ -461,8 +457,7 @@ export default {
     'space-unary-ops': ['error', {
       words: true,
       nonwords: false,
-      overrides: {
-      },
+      overrides: {},
     }],
 
     // require or disallow a space immediately following the // or /* in a comment
@@ -476,7 +471,7 @@ export default {
         exceptions: ['-', '+'],
         markers: ['=', '!', ':', '::'], // space here to support sprockets directives and flow comment types
         balanced: true,
-      }
+      },
     }],
 
     // Enforce spacing around colons of switch statements
@@ -492,6 +487,6 @@ export default {
     'unicode-bom': ['error', 'never'],
 
     // require regex literals to be wrapped in parentheses
-    'wrap-regex': 'off'
-  }
+    'wrap-regex': 'off',
+  },
 };

@@ -2,7 +2,7 @@ import stylistic from '@stylistic/eslint-plugin';
 
 export default [
   stylistic.configs['disable-legacy'],
-  stylistic.configs['recommended-flat'],
+  stylistic.configs.recommended,
   {
     name: 'madronejs/style',
     rules: {
@@ -85,7 +85,7 @@ export default [
 
       // enforce spacing between functions and their invocations
       // https://eslint.org/docs/rules/func-call-spacing
-      '@stylistic/func-call-spacing': ['error', 'never'],
+      '@stylistic/function-call-spacing': ['error', 'never'],
 
       // https://eslint.style/rules/default/function-paren-newline
       '@stylistic/function-paren-newline': ['error', 'multiline-arguments'],

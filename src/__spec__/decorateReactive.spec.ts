@@ -6,11 +6,7 @@ describe('reactive decorator', () => {
   describe('enumerable', () => {
     it('makes properties enumerable by default', () => {
       class Test {
-        @reactive test: boolean;
-
-        constructor() {
-          this.test = true;
-        }
+        @reactive test: boolean = true;
       }
 
       const instance = new Test();
@@ -21,11 +17,7 @@ describe('reactive decorator', () => {
 
     it('can make properties non-enumerable', () => {
       class Test {
-        @reactive.configure({ enumerable: false }) test: boolean;
-
-        constructor() {
-          this.test = true;
-        }
+        @reactive.configure({ enumerable: false }) test: boolean = true;
       }
 
       const instance = new Test();
@@ -38,11 +30,7 @@ describe('reactive decorator', () => {
   describe('configurable', () => {
     it('makes properties non-configurable by default', () => {
       class Test {
-        @reactive test: boolean;
-
-        constructor() {
-          this.test = true;
-        }
+        @reactive test: boolean = true;
       }
 
       const instance = new Test();
@@ -64,11 +52,7 @@ describe('reactive decorator', () => {
 
     it('can make properties configurable', () => {
       class Test {
-        @reactive.configure({ configurable: true }) test: boolean;
-
-        constructor() {
-          this.test = true;
-        }
+        @reactive.configure({ configurable: true }) test: boolean = true;
       }
 
       const instance = new Test();
