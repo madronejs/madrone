@@ -2,14 +2,6 @@ import Reactive from './Reactive';
 import { KEYS_SYMBOL, dependTarget, targetChanged } from './global';
 import { TypeHandlerOptions, ReactiveOptions } from './interfaces';
 
-// const wrap = (target, name, cb) => (...args) => {
-//   const proto = Reflect.getPrototypeOf(target);
-//   const method = proto[name];
-//   const getValue = () => proto[name].call(target, ...args);
-
-//   return cb({ getValue, proto, method, args });
-// };
-
 const makeOptions = (handlerOptions: TypeHandlerOptions) => {
   const {
     name,
@@ -145,70 +137,399 @@ const arrayHandler = (options) => ({
   ...defaultHandlers(options),
 });
 
-// const setHandler = (options) => ({
-//   get: (target, key, receiver) => {
-//     const proto = Reflect.getPrototypeOf(target);
+/**
+ * Wraps a value in a Reactive proxy if deep mode is enabled and the value is an object
+ */
+const wrapIfDeep = <T>(value: T, options: ReactiveOptions): T => {
+  if (options?.deep && value && typeof value === 'object') {
+    return Reactive(value, options);
+  }
+  return value;
+};
 
-//     if (key === 'has') {
-//       return wrap(target, key, ({ getValue }) => {
-//         const value = getValue();
+/**
+ * Creates a reactive iterator that wraps yielded values
+ */
+function *reactiveIterator<T>(
+  iterator: IterableIterator<T>,
+  options: ReactiveOptions,
+  wrapValue: (val: T) => T
+): IterableIterator<T> {
+  for (const item of iterator) {
+    yield wrapValue(item);
+  }
+}
 
-//         dependTarget(target);
-//         options?.onGet?.(makeOptions({ options, target, value }));
+const setHandler = (options: ReactiveOptions) => ({
+  get: (target: Set<any>, key: PropertyKey, receiver: any) => {
+    // Handle size property
+    if (key === 'size') {
+      dependTarget(target, KEYS_SYMBOL);
+      options?.onGet?.(makeOptions({
+        name: options.name,
+        target,
+        key,
+      }));
 
-//         if (options?.deep) {
-//           return Reactive(value, options);
-//         }
+      return target.size;
+    }
 
-//         return value;
-//       });
-//     }
+    // Handle has - tracks dependency on the specific value
+    if (key === 'has') {
+      return (value: any) => {
+        dependTarget(target, KEYS_SYMBOL);
+        options?.onGet?.(makeOptions({
+          name: options.name,
+          target,
+          key,
+          value,
+        }));
 
-//     if (['add', 'clear', 'delete'].includes(key)) {
-//       const hookName = key === 'add' ? 'onSet' : 'onDelete';
+        return target.has(value);
+      };
+    }
 
-//       return wrap(target, key, ({ getValue }) => {
-//         const value = getValue();
+    // Handle add - triggers change
+    if (key === 'add') {
+      return (value: any) => {
+        const hadValue = target.has(value);
 
-//         targetChanged(target);
-//         options?.[hookName]?.(makeOptions({ options, target, value }));
+        target.add(value);
 
-//         return value;
-//       });
-//     }
+        if (!hadValue) {
+          targetChanged(target, KEYS_SYMBOL);
+          options?.onSet?.(makeOptions({
+            name: options.name,
+            target,
+            key,
+            value,
+            keysChanged: true,
+          }));
+        }
 
-//     if (key === 'forEach') {
-//       return wrap(target, key, ({ method, args }) => {
-//         const [cb] = args;
+        return receiver; // Return proxy for chaining
+      };
+    }
 
-//         dependTarget(target);
+    // Handle delete - triggers change
+    if (key === 'delete') {
+      return (value: any) => {
+        const hadValue = target.has(value);
+        const deleted = target.delete(value);
 
-//         method.call(target, (val1, val2, theSet) => {
-//           cb(
-//             Reactive(val1, options),
-//             Reactive(val2, options),
-//             Reactive(theSet, options)
-//           );
-//         });
-//       });
-//     }
+        if (hadValue) {
+          targetChanged(target, KEYS_SYMBOL);
+          options?.onDelete?.(makeOptions({
+            name: options.name,
+            target,
+            key,
+            value,
+            keysChanged: true,
+          }));
+        }
 
-//     if (key in proto) {
-//       return proto[key].bind(target);
-//     }
+        return deleted;
+      };
+    }
 
-//     return Reflect.get(target, key, receiver);
-//   },
-// });
-// const mapHandler = (options) => {};
-// const weaksetHandler = (options) => {};
-// const weakmapHandler = (options) => {};
+    // Handle clear - triggers change
+    if (key === 'clear') {
+      return () => {
+        const hadValues = target.size > 0;
+
+        target.clear();
+
+        if (hadValues) {
+          targetChanged(target, KEYS_SYMBOL);
+          options?.onDelete?.(makeOptions({
+            name: options.name,
+            target,
+            key,
+            keysChanged: true,
+          }));
+        }
+      };
+    }
+
+    // Handle forEach - tracks dependency, wraps values
+    if (key === 'forEach') {
+      return (cb: (value: any, key: any, set: Set<any>) => void, thisArg?: any) => {
+        dependTarget(target, KEYS_SYMBOL);
+        options?.onGet?.(makeOptions({
+          name: options.name,
+          target,
+          key,
+        }));
+
+        for (const [val1, val2] of target.entries()) {
+          cb.call(thisArg, wrapIfDeep(val1, options), wrapIfDeep(val2, options), receiver);
+        }
+      };
+    }
+
+    // Handle values/keys (they're the same for Set)
+    if (key === 'values' || key === 'keys') {
+      return () => {
+        dependTarget(target, KEYS_SYMBOL);
+        options?.onGet?.(makeOptions({
+          name: options.name,
+          target,
+          key,
+        }));
+
+        return reactiveIterator(target.values(), options, (v) => wrapIfDeep(v, options));
+      };
+    }
+
+    // Handle entries
+    if (key === 'entries') {
+      return () => {
+        dependTarget(target, KEYS_SYMBOL);
+        options?.onGet?.(makeOptions({
+          name: options.name,
+          target,
+          key,
+        }));
+
+        return reactiveIterator(
+          target.entries(),
+          options,
+          ([v1, v2]) => [wrapIfDeep(v1, options), wrapIfDeep(v2, options)] as [any, any]
+        );
+      };
+    }
+
+    // Handle Symbol.iterator
+    if (key === Symbol.iterator) {
+      return () => {
+        dependTarget(target, KEYS_SYMBOL);
+        options?.onGet?.(makeOptions({
+          name: options.name,
+          target,
+          key,
+        }));
+
+        return reactiveIterator(target[Symbol.iterator](), options, (v) => wrapIfDeep(v, options));
+      };
+    }
+
+    // Handle Symbol.toStringTag
+    if (key === Symbol.toStringTag) {
+      return 'Set';
+    }
+
+    return Reflect.get(target, key, receiver);
+  },
+});
+
+const mapHandler = (options: ReactiveOptions) => ({
+  get: (target: Map<any, any>, key: PropertyKey, receiver: any) => {
+    // Handle size property
+    if (key === 'size') {
+      dependTarget(target, KEYS_SYMBOL);
+      options?.onGet?.(makeOptions({
+        name: options.name,
+        target,
+        key,
+      }));
+
+      return target.size;
+    }
+
+    // Handle has - tracks dependency on the key
+    if (key === 'has') {
+      return (mapKey: any) => {
+        dependTarget(target, mapKey);
+        options?.onGet?.(makeOptions({
+          name: options.name,
+          target,
+          key: mapKey,
+        }));
+
+        return target.has(mapKey);
+      };
+    }
+
+    // Handle get - tracks dependency on the key
+    if (key === 'get') {
+      return (mapKey: any) => {
+        dependTarget(target, mapKey);
+        options?.onGet?.(makeOptions({
+          name: options.name,
+          target,
+          key: mapKey,
+        }));
+
+        return wrapIfDeep(target.get(mapKey), options);
+      };
+    }
+
+    // Handle set - triggers change
+    if (key === 'set') {
+      return (mapKey: any, value: any) => {
+        const hadKey = target.has(mapKey);
+        const oldValue = target.get(mapKey);
+
+        target.set(mapKey, value);
+
+        if (!hadKey) {
+          targetChanged(target, KEYS_SYMBOL);
+        }
+
+        if (!hadKey || oldValue !== value) {
+          targetChanged(target, mapKey);
+          options?.onSet?.(makeOptions({
+            name: options.name,
+            target,
+            key: mapKey,
+            value,
+            keysChanged: !hadKey,
+            valueChanged: oldValue !== value,
+          }));
+        }
+
+        return receiver; // Return proxy for chaining
+      };
+    }
+
+    // Handle delete - triggers change
+    if (key === 'delete') {
+      return (mapKey: any) => {
+        const hadKey = target.has(mapKey);
+        const deleted = target.delete(mapKey);
+
+        if (hadKey) {
+          targetChanged(target, KEYS_SYMBOL);
+          targetChanged(target, mapKey);
+          options?.onDelete?.(makeOptions({
+            name: options.name,
+            target,
+            key: mapKey,
+            keysChanged: true,
+          }));
+        }
+
+        return deleted;
+      };
+    }
+
+    // Handle clear - triggers change
+    if (key === 'clear') {
+      return () => {
+        const keys = [...target.keys()];
+        const hadValues = target.size > 0;
+
+        target.clear();
+
+        if (hadValues) {
+          targetChanged(target, KEYS_SYMBOL);
+
+          for (const k of keys) {
+            targetChanged(target, k);
+          }
+
+          options?.onDelete?.(makeOptions({
+            name: options.name,
+            target,
+            key,
+            keysChanged: true,
+          }));
+        }
+      };
+    }
+
+    // Handle forEach - tracks dependency, wraps values
+    if (key === 'forEach') {
+      return (cb: (value: any, key: any, map: Map<any, any>) => void, thisArg?: any) => {
+        dependTarget(target, KEYS_SYMBOL);
+        options?.onGet?.(makeOptions({
+          name: options.name,
+          target,
+          key,
+        }));
+
+        for (const [mapKey, value] of target.entries()) {
+          cb.call(thisArg, wrapIfDeep(value, options), mapKey, receiver);
+        }
+      };
+    }
+
+    // Handle keys
+    if (key === 'keys') {
+      return () => {
+        dependTarget(target, KEYS_SYMBOL);
+        options?.onGet?.(makeOptions({
+          name: options.name,
+          target,
+          key,
+        }));
+
+        return target.keys();
+      };
+    }
+
+    // Handle values
+    if (key === 'values') {
+      return () => {
+        dependTarget(target, KEYS_SYMBOL);
+        options?.onGet?.(makeOptions({
+          name: options.name,
+          target,
+          key,
+        }));
+
+        return reactiveIterator(target.values(), options, (v) => wrapIfDeep(v, options));
+      };
+    }
+
+    // Handle entries
+    if (key === 'entries') {
+      return () => {
+        dependTarget(target, KEYS_SYMBOL);
+        options?.onGet?.(makeOptions({
+          name: options.name,
+          target,
+          key,
+        }));
+
+        return reactiveIterator(
+          target.entries(),
+          options,
+          ([k, v]) => [k, wrapIfDeep(v, options)] as [any, any]
+        );
+      };
+    }
+
+    // Handle Symbol.iterator
+    if (key === Symbol.iterator) {
+      return () => {
+        dependTarget(target, KEYS_SYMBOL);
+        options?.onGet?.(makeOptions({
+          name: options.name,
+          target,
+          key,
+        }));
+
+        return reactiveIterator(
+          target[Symbol.iterator](),
+          options,
+          ([k, v]) => [k, wrapIfDeep(v, options)] as [any, any]
+        );
+      };
+    }
+
+    // Handle Symbol.toStringTag
+    if (key === Symbol.toStringTag) {
+      return 'Map';
+    }
+
+    return Reflect.get(target, key, receiver);
+  },
+});
 
 export default Object.freeze({
   object: objectHandler,
   array: arrayHandler,
-  // set: setHandler,
-  // map: mapHandler,
-  // weakset: weaksetHandler,
-  // weakmap: weakmapHandler,
+  set: setHandler,
+  map: mapHandler,
 });
