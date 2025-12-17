@@ -84,7 +84,7 @@ export const addReactive = <T extends object>(target: T, proxy: T): void => {
 const doTasksIfNeeded = (): void => {
   if (SCHEDULER_ID === null) {
     SCHEDULER_ID = Symbol('scheduler');
-    setTimeout(() => {
+    queueMicrotask(() => {
       const queue = TASK_QUEUE;
 
       TASK_QUEUE = [];
