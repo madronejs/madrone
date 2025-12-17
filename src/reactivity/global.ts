@@ -88,6 +88,7 @@ const doTasksIfNeeded = (): void => {
       // Process until queue is truly empty, including tasks added during execution
       while (TASK_QUEUE.length > 0) {
         const queue = TASK_QUEUE;
+
         TASK_QUEUE = [];
 
         for (const task of queue) {

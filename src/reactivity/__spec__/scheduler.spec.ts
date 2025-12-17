@@ -62,6 +62,7 @@ describe('scheduler', () => {
 
     const scheduleNested = (n: number) => {
       order.push(n);
+
       if (n < depth) {
         schedule(() => scheduleNested(n + 1));
       }
@@ -112,5 +113,4 @@ describe('scheduler', () => {
     await delay();
     expect(order).toEqual([1, 2]);
   });
-
 });
