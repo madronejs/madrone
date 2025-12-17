@@ -1,4 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import {
+  describe, it, expect, vi, beforeEach, afterEach,
+} from 'vitest';
 import { schedule } from '../global';
 import { delay } from '@/test/util';
 
@@ -112,5 +114,80 @@ describe('scheduler', () => {
 
     await delay();
     expect(order).toEqual([1, 2]);
+  });
+
+  describe('error handling', () => {
+    let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('continues processing tasks after one throws', async () => {
+      const order: number[] = [];
+
+      schedule(() => order.push(1));
+      schedule(() => { throw new Error('task error'); });
+      schedule(() => order.push(3));
+
+      await delay();
+
+      // Tasks before and after the error should still run
+      expect(order).toEqual([1, 3]);
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('allows scheduling new tasks after error', async () => {
+      const order: number[] = [];
+
+      schedule(() => { throw new Error('first batch error'); });
+
+      await delay();
+
+      // Scheduler should recover and allow new tasks
+      schedule(() => order.push(1));
+      schedule(() => order.push(2));
+
+      await delay();
+
+      expect(order).toEqual([1, 2]);
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('processes nested tasks after parent throws', async () => {
+      const order: number[] = [];
+
+      schedule(() => {
+        order.push(1);
+        schedule(() => order.push(2));
+        throw new Error('error after scheduling nested task');
+      });
+      schedule(() => order.push(3));
+
+      await delay();
+
+      // Task 1 ran, threw, but 2 and 3 should still run
+      expect(order).toEqual([1, 3, 2]);
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('handles multiple errors in same batch', async () => {
+      const order: number[] = [];
+
+      schedule(() => order.push(1));
+      schedule(() => { throw new Error('error 1'); });
+      schedule(() => order.push(2));
+      schedule(() => { throw new Error('error 2'); });
+      schedule(() => order.push(3));
+
+      await delay();
+
+      expect(order).toEqual([1, 2, 3]);
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(2);
+    });
   });
 });

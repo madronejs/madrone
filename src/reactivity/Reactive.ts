@@ -78,6 +78,22 @@ export default function Reactive<T extends object>(target: T, options?: Reactive
  * Uses fast instanceof checks instead of Object.prototype.toString.
  * @internal
  */
+/**
+ * Checks if an object is a plain object (created via {} or Object.create(null)).
+ * Class instances, built-in objects, and objects from external libraries
+ * should NOT be deeply proxied as they may have internal slots or methods
+ * that require the original object as `this`.
+ */
+const isPlainObject = (obj: object): boolean => {
+  const proto = Object.getPrototypeOf(obj);
+
+  // Object.create(null) has no prototype
+  if (proto === null) return true;
+
+  // Plain objects have Object.prototype as their prototype
+  return proto === Object.prototype;
+};
+
 Reactive.getStringType = (obj: unknown): string => {
   // Fast path for non-objects - return type that won't match any handler
   if (obj === null) return 'null';
@@ -89,6 +105,35 @@ Reactive.getStringType = (obj: unknown): string => {
   if (obj instanceof Map) return 'map';
 
   if (obj instanceof Set) return 'set';
+
+  // These types can't be safely proxied - their methods require the real object as `this`
+  // or they have internal slots that proxies can't access
+  if (
+    obj instanceof Promise
+    || obj instanceof WeakMap
+    || obj instanceof WeakSet
+    || obj instanceof Date
+    || obj instanceof RegExp
+    || obj instanceof Error
+    // ArrayBuffer and typed arrays have internal slots
+    || obj instanceof ArrayBuffer
+    || ArrayBuffer.isView(obj)
+  ) {
+    return 'native';
+  }
+
+  // Check for DOM nodes (if in browser environment)
+  if (typeof Node !== 'undefined' && obj instanceof Node) {
+    return 'native';
+  }
+
+  // Only proxy plain objects - class instances from external libraries
+  // often have methods that require the real object as `this` or use
+  // internal slots that proxies can't access (e.g., socket.io, axios, etc.)
+  if (!isPlainObject(obj)) {
+    return 'native';
+  }
+
   return 'object';
 };
 

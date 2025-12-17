@@ -31,6 +31,165 @@ describe('Reactive', () => {
     expect(obs.nested === obs2).toEqual(true);
   });
 
+  describe('class instance handling', () => {
+    it('does not wrap class instances in Proxy', () => {
+      class SomeClass {
+        value = 42;
+      }
+
+      const instance = new SomeClass();
+      const state = Reactive({ instance });
+
+      // The class instance should NOT be proxied (deep wrapping stops at class instances)
+      expect(isReactive(state.instance)).toBe(false);
+      expect(state.instance).toBe(instance);
+      expect(state.instance.value).toBe(42);
+    });
+
+    it('proxies plain objects but not nested class instances', () => {
+      class MyClass {
+        data = 'test';
+      }
+
+      const nested = new MyClass();
+      const state = Reactive({
+        plain: { value: 1 },
+        classInstance: nested,
+      });
+
+      // Plain nested object IS proxied
+      expect(isReactive(state.plain)).toBe(true);
+      // Class instance is NOT proxied
+      expect(isReactive(state.classInstance)).toBe(false);
+      expect(state.classInstance).toBe(nested);
+    });
+
+    it('works with Object.create(null) objects', () => {
+      const nullProto = Object.create(null);
+
+      nullProto.value = 1;
+
+      const state = Reactive({ data: nullProto });
+
+      // Object.create(null) should be treated as plain object and proxied
+      expect(isReactive(state.data)).toBe(true);
+    });
+  });
+
+  describe('built-in object handling', () => {
+    it('does not wrap Date in Proxy', () => {
+      const date = new Date();
+      const state = Reactive({ date });
+
+      expect(isReactive(state.date)).toBe(false);
+      expect(state.date).toBe(date);
+      expect(state.date.getTime()).toBe(date.getTime());
+    });
+
+    it('does not wrap RegExp in Proxy', () => {
+      const regex = /test/gi;
+      const state = Reactive({ regex });
+
+      expect(isReactive(state.regex)).toBe(false);
+      expect(state.regex).toBe(regex);
+      expect(state.regex.test('test')).toBe(true);
+    });
+
+    it('does not wrap Error in Proxy', () => {
+      const error = new Error('test error');
+      const state = Reactive({ error });
+
+      expect(isReactive(state.error)).toBe(false);
+      expect(state.error).toBe(error);
+      expect(state.error.message).toBe('test error');
+    });
+
+    it('does not wrap WeakMap in Proxy', () => {
+      const weakMap = new WeakMap();
+      const key = {};
+
+      weakMap.set(key, 'value');
+
+      const state = Reactive({ weakMap });
+
+      expect(isReactive(state.weakMap)).toBe(false);
+      expect(state.weakMap).toBe(weakMap);
+      expect(state.weakMap.get(key)).toBe('value');
+    });
+
+    it('does not wrap WeakSet in Proxy', () => {
+      const weakSet = new WeakSet();
+      const item = {};
+
+      weakSet.add(item);
+
+      const state = Reactive({ weakSet });
+
+      expect(isReactive(state.weakSet)).toBe(false);
+      expect(state.weakSet).toBe(weakSet);
+      expect(state.weakSet.has(item)).toBe(true);
+    });
+  });
+
+  describe('Promise handling', () => {
+    it('does not wrap Promises in Proxy', () => {
+      const promise = Promise.resolve('test');
+      const state = Reactive({ promise });
+
+      // The promise should be the same instance, not a proxy
+      expect(state.promise).toBe(promise);
+      expect(isReactive(state.promise)).toBe(false);
+    });
+
+    it('allows .then() to be called on nested Promises', async () => {
+      const state = Reactive({
+        promise: Promise.resolve('success'),
+      });
+
+      const result = await state.promise.then((val) => val.toUpperCase());
+
+      expect(result).toBe('SUCCESS');
+    });
+
+    it('allows Promise.all with nested Promises', async () => {
+      const state = Reactive({
+        promises: [
+          Promise.resolve(1),
+          Promise.resolve(2),
+          Promise.resolve(3),
+        ],
+      });
+
+      const results = await Promise.all(state.promises);
+
+      expect(results).toEqual([1, 2, 3]);
+    });
+
+    it('allows async/await with nested Promises', async () => {
+      const state = Reactive({
+        getData: () => Promise.resolve({ data: 'hello' }),
+      });
+
+      const result = await state.getData();
+
+      expect(result.data).toBe('hello');
+    });
+
+    it('allows .catch() and .finally() on nested Promises', async () => {
+      let finallyCalled = false;
+      const state = Reactive({
+        promise: Promise.reject(new Error('test error')),
+      });
+
+      const result = await state.promise
+        .catch((error) => error.message)
+        .finally(() => { finallyCalled = true; });
+
+      expect(result).toBe('test error');
+      expect(finallyCalled).toBe(true);
+    });
+  });
+
   describe('object', () => {
     it('creates nested Reactives', () => {
       const object = { one: { two: { string: 'hello' } } };
