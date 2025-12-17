@@ -1,47 +1,81 @@
+/**
+ * @module reactivity/global
+ *
+ * Global state and dependency tracking for the reactivity system.
+ *
+ * This module manages the core data structures that enable automatic
+ * dependency tracking and change notification. It maintains mappings
+ * between reactive proxies, their targets, and the observers that
+ * depend on them.
+ *
+ * @internal
+ */
+
 import { getCurrentObserver, ObservableItem } from './Observer';
 
 // constants
+/** Symbol used to track when an object's keys change */
 export const KEYS_SYMBOL = Symbol('keys');
+/** Symbol used for observer dependency tracking */
 export const OBSERVER_SYMBOL = Symbol('computed');
 
 type DependencyKey = string | symbol | ObservableItem<unknown>;
 
-/** Mapping from target object to its proxy */
+/** Mapping from target object to its reactive proxy */
 const TARGET_TO_PROXY = new WeakMap<object, object>();
-/** Mapping from proxy to the object it proxies */
+/** Mapping from reactive proxy to its underlying target object */
 const PROXY_TO_TARGET = new WeakMap<object, object>();
-/** Mapping from proxy to the observers that depend on it */
+/** Mapping from reactive proxy to the observers that depend on it */
 const PROXY_TO_OBSERVERS = new WeakMap<
   object,
   Map<DependencyKey, Set<ObservableItem<unknown>>>
 >();
-/** Mapping from observer to its dependencies */
+/** Mapping from observer to the proxies it depends on */
 const OBSERVER_TO_PROXIES = new WeakMap<
   ObservableItem<unknown>,
   Map<DependencyKey, Set<object>>
 >();
-/** List of scheduled tasks */
+/** Queue of tasks waiting to be executed */
 let TASK_QUEUE: (() => void)[] = [];
-/** The id of the timeout that will handle all scheduled tasks */
+/** Scheduler ID to prevent multiple schedulers from running */
 let SCHEDULER_ID: symbol | null = null;
 
-/** Check if the current target has a proxy associated with it */
+/** Checks if the given object has a reactive proxy associated with it */
 export const isReactiveTarget = (target: object): boolean => TARGET_TO_PROXY.has(target);
-/** Check if the current proxy has a target object */
+
+/** Checks if the given object is a reactive proxy */
 export const isReactive = (trk: object): boolean => PROXY_TO_TARGET.has(trk);
+
+/** Gets the reactive proxy for a target object */
 export const getReactive = <T extends object>(target: T): T | undefined => TARGET_TO_PROXY.get(target) as T;
+
+/** Gets the underlying target for a reactive proxy */
 export const getTarget = <T extends object>(tracker: T): T | undefined => PROXY_TO_TARGET.get(tracker) as T;
+
+/** Gets the proxy for an object, whether passed a target or proxy */
 export const getProxy = <T extends object>(targetOrProxy: T): T | undefined => (
   isReactive(targetOrProxy) ? targetOrProxy : getReactive(targetOrProxy)
 );
+
+/**
+ * Unwraps a reactive proxy to get the raw underlying object.
+ *
+ * If the object is not a proxy, returns it unchanged.
+ */
 export const toRaw = <T extends object>(targetOrProxy: T): T => (
   isReactive(targetOrProxy) ? getTarget(targetOrProxy) : targetOrProxy
 );
 
+/** Gets all dependencies for an observer */
 export const getDependencies = (observer: ObservableItem<unknown>) => OBSERVER_TO_PROXIES.get(observer);
-/** Get the list of items that are observing a given proxy */
+
+/** Gets all observers watching a given proxy */
 export const getObservers = (tracker: object) => PROXY_TO_OBSERVERS.get(getProxy(tracker));
 
+/**
+ * Registers a target/proxy pair in the tracking system.
+ * @internal
+ */
 export const addReactive = <T extends object>(target: T, proxy: T): void => {
   TARGET_TO_PROXY.set(target, proxy);
   PROXY_TO_TARGET.set(proxy, target);
@@ -64,6 +98,15 @@ const doTasksIfNeeded = (): void => {
   }
 };
 
+/**
+ * Schedules a task to run asynchronously in the next microtask.
+ *
+ * Tasks are batched and executed together. Used to batch multiple
+ * change notifications into a single update cycle.
+ *
+ * @param task - The function to execute
+ * @internal
+ */
 export const schedule = (task: () => void): void => {
   TASK_QUEUE.push(task);
   doTasksIfNeeded();

@@ -1,3 +1,29 @@
+/**
+ * @module MadroneVue3
+ *
+ * Vue 3 integration for Madrone, bridging Madrone's reactivity with Vue's system.
+ *
+ * This integration allows you to use Madrone's composition patterns and decorators
+ * while having reactivity work seamlessly with Vue 3's rendering system. Vue
+ * components will automatically re-render when Madrone state changes.
+ *
+ * @example
+ * ```ts
+ * import Madrone from 'madrone';
+ * import MadroneVue3 from 'madrone/integrations/MadroneVue3';
+ * import { reactive, toRaw } from 'vue';
+ *
+ * // Initialize with Vue 3's reactive system
+ * Madrone.use(MadroneVue3({ reactive, toRaw }));
+ *
+ * // Now Madrone state works with Vue components
+ * const store = auto({
+ *   count: 0,
+ *   get doubled() { return this.count * 2; }
+ * });
+ * ```
+ */
+
 import { objectAccessed } from '@/global';
 import { ReactiveOptions } from '@/reactivity/interfaces';
 import { ObservableHooksType } from '@/reactivity/Observer';
@@ -11,11 +37,52 @@ const FORBIDDEN = new Set<KeyType>(['__proto__', '__ob__']);
 const VALUE = 'value';
 
 // reactive setter
-const reactiveSet = (item) => {
+const reactiveSet = (item: { value: number }) => {
   item[VALUE] += 1;
 };
 
-export default function MadroneVue3({ reactive, toRaw } = {} as any): Integration {
+/**
+ * Creates a Vue 3-compatible integration for Madrone.
+ *
+ * This factory function creates an integration that bridges Madrone's
+ * reactivity with Vue 3's reactive system. Changes to Madrone state
+ * will trigger Vue component re-renders.
+ *
+ * @param options - Vue 3 reactivity functions
+ * @param options.reactive - Vue's `reactive()` function from 'vue'
+ * @param options.toRaw - Vue's `toRaw()` function from 'vue'
+ * @returns An Integration compatible with Madrone.use()
+ *
+ * @example
+ * ```ts
+ * import Madrone from 'madrone';
+ * import MadroneVue3 from 'madrone/integrations/MadroneVue3';
+ * import { reactive, toRaw } from 'vue';
+ *
+ * // Set up the integration
+ * Madrone.use(MadroneVue3({ reactive, toRaw }));
+ *
+ * // Create reactive state
+ * class CounterStore {
+ *   @reactive count = 0;
+ *
+ *   @computed get doubled() {
+ *     return this.count * 2;
+ *   }
+ *
+ *   increment() {
+ *     this.count++;
+ *   }
+ * }
+ *
+ * // Use in Vue components - changes automatically trigger re-renders
+ * const store = new CounterStore();
+ * ```
+ */
+export default function MadroneVue3({ reactive, toRaw } = {} as {
+  reactive: <T extends object>(target: T) => T,
+  toRaw: <T>(proxy: T) => T,
+}): Integration {
   const obToRaw = toRaw ?? ((val) => val);
   // store all reactive properties
   const reactiveMappings = new WeakMap<object, Map<string, { value: number }>>();

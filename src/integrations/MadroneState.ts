@@ -1,3 +1,24 @@
+/**
+ * @module MadroneState
+ *
+ * Standalone reactivity integration using Madrone's built-in reactive system.
+ *
+ * This is the default integration for Madrone, providing a complete reactivity
+ * implementation based on JavaScript Proxies. It's the recommended integration
+ * for non-Vue applications.
+ *
+ * @example
+ * ```ts
+ * import Madrone, { MadroneState, auto } from 'madrone';
+ *
+ * // Initialize with the integration
+ * Madrone.use(MadroneState);
+ *
+ * // Now use reactive features
+ * const state = auto({ count: 0 });
+ * ```
+ */
+
 import { objectAccessed } from '@/global';
 import {
   Integration,
@@ -11,11 +32,33 @@ import {
 import { ReactiveOptions } from '@/reactivity/interfaces';
 import { ObservableHooksType } from '@/reactivity/Observer';
 
+/**
+ * Configuration options for MadroneState integration.
+ *
+ * Allows customizing the behavior of reactive properties and computed values.
+ *
+ * @typeParam T - The type of computed values (for typing onChange callbacks)
+ */
 export type MadroneStateOptions<T = unknown> = {
+  /** Options passed to Reactive() for property creation */
   reactive?: ReactiveOptions,
+  /** Hooks for computed property lifecycle events */
   computed?: ObservableHooksType<T>,
 };
 
+/**
+ * Creates a property descriptor for a computed property.
+ *
+ * The descriptor can be used with Object.defineProperty or stored
+ * for later use. If caching is enabled, creates a Computed observable
+ * that tracks dependencies automatically.
+ *
+ * @typeParam T - The computed value type
+ * @param name - Property name (used for debugging)
+ * @param config - Computed property configuration
+ * @param options - Optional hooks for lifecycle events
+ * @returns A PropertyDescriptor with reactive getter/setter
+ */
 export function describeComputed<T = unknown>(
   name: string,
   config: MadroneComputedDescriptor,
@@ -62,6 +105,17 @@ export function describeComputed<T = unknown>(
   };
 }
 
+/**
+ * Creates a property descriptor for a reactive property.
+ *
+ * The descriptor can be used with Object.defineProperty or stored
+ * for later use. Creates a Reactive proxy internally to track changes.
+ *
+ * @param name - Property name (used for debugging)
+ * @param config - Reactive property configuration
+ * @param options - Optional hooks for lifecycle events
+ * @returns A PropertyDescriptor with reactive getter/setter
+ */
 export function describeProperty(
   name: string,
   config: MadronePropertyDescriptor,
@@ -99,6 +153,16 @@ export function describeProperty(
   };
 }
 
+/**
+ * Defines a computed property directly on an object.
+ *
+ * Shorthand for calling describeComputed and Object.defineProperty.
+ *
+ * @param target - The object to define the property on
+ * @param name - The property name
+ * @param config - Computed configuration
+ * @param options - Integration-specific options
+ */
 export function defineComputed(
   target: object,
   name: string,
@@ -108,6 +172,16 @@ export function defineComputed(
   Object.defineProperty(target, name, describeComputed(name, config, options as MadroneStateOptions));
 }
 
+/**
+ * Defines a reactive property directly on an object.
+ *
+ * Shorthand for calling describeProperty and Object.defineProperty.
+ *
+ * @param target - The object to define the property on
+ * @param name - The property name
+ * @param config - Reactive property configuration
+ * @param options - Integration-specific options
+ */
 export function defineProperty(
   target: object,
   name: string,
@@ -117,6 +191,19 @@ export function defineProperty(
   Object.defineProperty(target, name, describeProperty(name, config, options as MadroneStateOptions));
 }
 
+/**
+ * The standalone MadroneState integration.
+ *
+ * Provides a complete reactivity system using JavaScript Proxies.
+ * This is the recommended integration for non-Vue applications.
+ *
+ * @example
+ * ```ts
+ * import Madrone, { MadroneState } from 'madrone';
+ *
+ * Madrone.use(MadroneState);
+ * ```
+ */
 const MadroneState: Integration = {
   toRaw,
   watch: Watcher,
@@ -127,4 +214,10 @@ const MadroneState: Integration = {
 };
 
 export default MadroneState;
+
+/**
+ * Creates a watcher that reacts to changes in reactive expressions.
+ *
+ * Re-exported from the reactivity module for convenience.
+ */
 export { Watcher as watch } from '@/reactivity';
