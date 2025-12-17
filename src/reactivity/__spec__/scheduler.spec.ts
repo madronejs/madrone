@@ -131,7 +131,9 @@ describe('scheduler', () => {
       const order: number[] = [];
 
       schedule(() => order.push(1));
-      schedule(() => { throw new Error('task error'); });
+      schedule(() => {
+        throw new Error('task error');
+      });
       schedule(() => order.push(3));
 
       await delay();
@@ -144,7 +146,9 @@ describe('scheduler', () => {
     it('allows scheduling new tasks after error', async () => {
       const order: number[] = [];
 
-      schedule(() => { throw new Error('first batch error'); });
+      schedule(() => {
+        throw new Error('first batch error');
+      });
 
       await delay();
 
@@ -179,9 +183,13 @@ describe('scheduler', () => {
       const order: number[] = [];
 
       schedule(() => order.push(1));
-      schedule(() => { throw new Error('error 1'); });
+      schedule(() => {
+        throw new Error('error 1');
+      });
       schedule(() => order.push(2));
-      schedule(() => { throw new Error('error 2'); });
+      schedule(() => {
+        throw new Error('error 2');
+      });
       schedule(() => order.push(3));
 
       await delay();
