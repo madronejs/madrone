@@ -75,9 +75,18 @@ export default function Reactive<T extends object>(target: T, options?: Reactive
 
 /**
  * Gets the type string for an object (e.g., 'object', 'array', 'set', 'map').
+ * Uses fast instanceof checks instead of Object.prototype.toString.
  * @internal
  */
-Reactive.getStringType = (obj: unknown): string => Object.prototype.toString.call(obj).slice(8, -1).toLowerCase();
+Reactive.getStringType = (obj: unknown): string => {
+  // Fast path for non-objects - return type that won't match any handler
+  if (obj === null) return 'null';
+  if (typeof obj !== 'object') return typeof obj;
+  if (Array.isArray(obj)) return 'array';
+  if (obj instanceof Map) return 'map';
+  if (obj instanceof Set) return 'set';
+  return 'object';
+};
 
 /**
  * Checks if a handler exists for the given type.
