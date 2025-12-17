@@ -8,8 +8,8 @@
  *
  * @example
  * ```ts
- * import Madrone from 'madrone';
- * import MadroneVue from 'madrone/integrations/vue';
+ * import Madrone from '@madronejs/core';
+ * import { MadroneVue } from '@madronejs/core';
  *
  * Madrone.use(MadroneVue);
  *
@@ -28,8 +28,8 @@ import createMadroneVue3 from './MadroneVue3';
  *
  * @example
  * ```ts
- * import Madrone from 'madrone';
- * import MadroneVue from 'madrone/integrations/vue';
+ * import Madrone from '@madronejs/core';
+ * import { MadroneVue } from '@madronejs/core';
  *
  * // Simple one-liner setup
  * Madrone.use(MadroneVue);

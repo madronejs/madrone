@@ -10,7 +10,7 @@
  *
  * @example
  * ```ts
- * import { reactive, computed } from 'madrone';
+ * import { reactive, computed } from '@madronejs/core';
  *
  * class Counter {
  *   @reactive count = 0;
@@ -160,7 +160,7 @@ function decorateComputed(
  *
  * @example
  * ```ts
- * import { reactive, computed } from 'madrone';
+ * import { reactive, computed } from '@madronejs/core';
  *
  * class ShoppingCart {
  *   @reactive items: Array<{ price: number }> = [];
@@ -270,7 +270,7 @@ function decorateReactive(target: object, key: string, options?: DecoratorOption
  *
  * @example
  * ```ts
- * import { reactive, computed, watch } from 'madrone';
+ * import { reactive, computed, watch } from '@madronejs/core';
  *
  * class User {
  *   @reactive name = 'Anonymous';

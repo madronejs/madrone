@@ -60,7 +60,7 @@ export type Spread<A extends readonly unknown[]> = A extends [infer L, ...infer 
  *
  * @example
  * ```ts
- * import { merge } from 'madrone';
+ * import { merge } from '@madronejs/core';
  *
  * const base = { name: 'base', value: 1 };
  * const override = { value: 2, extra: true };
@@ -108,7 +108,7 @@ type Constructor = new (...args: unknown[]) => object;
  *
  * @example
  * ```ts
- * import { applyClassMixins } from 'madrone';
+ * import { applyClassMixins } from '@madronejs/core';
  *
  * class Timestamped {
  *   createdAt = Date.now();

@@ -27,7 +27,7 @@ let CURRENT_INTEGRATION: Integration;
  *
  * @example
  * ```ts
- * import { getIntegrations } from 'madrone';
+ * import { getIntegrations } from '@madronejs/core';
  *
  * const integrations = getIntegrations();
  * console.log(`${integrations.length} integrations registered`);
@@ -59,7 +59,7 @@ function setCurrentIntegration(): void {
  *
  * @example
  * ```ts
- * import Madrone, { MadroneState } from 'madrone';
+ * import Madrone, { MadroneState } from '@madronejs/core';
  *
  * // Register the built-in state integration
  * Madrone.use(MadroneState);
@@ -85,7 +85,7 @@ export function addIntegration(integration: Integration): void {
  *
  * @example
  * ```ts
- * import { removeIntegration, MadroneState } from 'madrone';
+ * import { removeIntegration, MadroneState } from '@madronejs/core';
  *
  * // Remove when switching integrations or cleaning up
  * removeIntegration(MadroneState);
@@ -107,7 +107,7 @@ export function removeIntegration(integration: Integration): void {
  *
  * @example
  * ```ts
- * import { getIntegration } from 'madrone';
+ * import { getIntegration } from '@madronejs/core';
  *
  * const integration = getIntegration();
  * if (!integration) {
@@ -141,7 +141,7 @@ const STATS_ACCESS = new WeakMap<object, number>();
  *
  * @example
  * ```ts
- * import { auto, toRaw } from 'madrone';
+ * import { auto, toRaw } from '@madronejs/core';
  *
  * const original = { count: 0 };
  * const reactive = auto(original);
@@ -180,7 +180,7 @@ export function objectAccessed(obj: object): void {
  *
  * @example
  * ```ts
- * import { auto, lastAccessed } from 'madrone';
+ * import { auto, lastAccessed } from '@madronejs/core';
  *
  * const state = auto({ count: 0 });
  *

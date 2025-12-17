@@ -26,7 +26,7 @@ import { ReactiveOptions } from './interfaces';
  *
  * @example
  * ```ts
- * import { Reactive, Watcher } from 'madrone/reactivity';
+ * import { Reactive, Watcher } from '@madronejs/core';
  *
  * const state = Reactive({ count: 0, nested: { value: 1 } });
  *

@@ -9,8 +9,8 @@
  *
  * @example
  * ```ts
- * import Madrone from 'madrone';
- * import MadroneVue3 from 'madrone/integrations/MadroneVue3';
+ * import Madrone from '@madronejs/core';
+ * import { MadroneVue3 } from '@madronejs/core';
  * import { reactive, toRaw } from 'vue';
  *
  * // Initialize with Vue 3's reactive system
@@ -69,13 +69,13 @@ export interface MadroneVue3Options {
  * @example
  * ```ts
  * // Option 1: Use the pre-configured module (recommended)
- * import Madrone from 'madrone';
- * import MadroneVue from 'madrone/integrations/vue';
+ * import Madrone from '@madronejs/core';
+ * import { MadroneVue } from '@madronejs/core';
  * Madrone.use(MadroneVue);
  *
  * // Option 2: Manual configuration
- * import Madrone from 'madrone';
- * import createMadroneVue3 from 'madrone/integrations/MadroneVue3';
+ * import Madrone from '@madronejs/core';
+ * import { MadroneVue3 as createMadroneVue3 } from '@madronejs/core';
  * import { reactive, toRaw } from 'vue';
  * Madrone.use(createMadroneVue3({ reactive, toRaw }));
  * ```

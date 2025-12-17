@@ -24,7 +24,7 @@ import Observer from './Observer';
  *
  * @example
  * ```ts
- * import { Reactive, Watcher } from 'madrone/reactivity';
+ * import { Reactive, Watcher } from '@madronejs/core';
  *
  * const state = Reactive({ count: 0 });
  *

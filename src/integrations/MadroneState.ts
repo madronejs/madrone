@@ -9,7 +9,7 @@
  *
  * @example
  * ```ts
- * import Madrone, { MadroneState, auto } from 'madrone';
+ * import Madrone, { MadroneState, auto } from '@madronejs/core';
  *
  * // Initialize with the integration
  * Madrone.use(MadroneState);
@@ -201,7 +201,7 @@ export function defineProperty(
  *
  * @example
  * ```ts
- * import Madrone, { MadroneState } from 'madrone';
+ * import Madrone, { MadroneState } from '@madronejs/core';
  *
  * Madrone.use(MadroneState);
  * ```

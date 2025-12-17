@@ -23,7 +23,7 @@ import Observer, { ObservableOptions } from './Observer';
  *
  * @example
  * ```ts
- * import { Reactive, Computed } from 'madrone/reactivity';
+ * import { Reactive, Computed } from '@madronejs/core';
  *
  * const state = Reactive({ firstName: 'John', lastName: 'Doe' });
  *
