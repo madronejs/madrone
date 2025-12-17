@@ -150,8 +150,8 @@ const STATS_ACCESS = new WeakMap<object, number>();
  * console.log(toRaw(reactive) === original); // true
  * ```
  */
-export function toRaw<T>(obj: T): T {
-  const getRawItem = getIntegration()?.toRaw ?? (() => obj);
+export function toRaw<T extends object>(obj: T): T {
+  const getRawItem = getIntegration()?.toRaw ?? ((o: T) => o);
 
   return getRawItem(obj);
 }

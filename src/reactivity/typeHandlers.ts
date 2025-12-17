@@ -142,7 +142,7 @@ const arrayHandler = (options) => ({
  */
 const wrapIfDeep = <T>(value: T, options: ReactiveOptions): T => {
   if (options?.deep && value && typeof value === 'object') {
-    return Reactive(value, options);
+    return Reactive(value as object, options) as T;
   }
   return value;
 };

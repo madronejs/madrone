@@ -13,11 +13,24 @@
       "types": "./types/index.d.ts",
       "import": "./dist/core.js",
       "require": "./dist/core.umd.cjs"
+    },
+    "./vue": {
+      "types": "./types/integrations/vue.d.ts",
+      "import": "./dist/vue.js",
+      "require": "./dist/vue.umd.cjs"
+    }
+  },
+  "peerDependencies": {
+    "vue": "^3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "vue": {
+      "optional": true
     }
   },
   "files": [
     "dist/*.js",
-    "dist/*.mjs",
+    "dist/*.cjs",
     "types/**/*.d.ts"
   ],
   "repository": {

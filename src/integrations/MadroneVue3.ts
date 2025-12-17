@@ -42,47 +42,54 @@ const reactiveSet = (item: { value: number }) => {
 };
 
 /**
+ * Options for creating a Vue 3 integration.
+ */
+export interface MadroneVue3Options {
+  /** Vue's `reactive()` function from 'vue' */
+  reactive: <T extends object>(target: T) => unknown;
+  /** Vue's `toRaw()` function from 'vue' */
+  toRaw: <T>(proxy: T) => T;
+}
+
+/**
  * Creates a Vue 3-compatible integration for Madrone.
  *
  * This factory function creates an integration that bridges Madrone's
  * reactivity with Vue 3's reactive system. Changes to Madrone state
  * will trigger Vue component re-renders.
  *
+ * For simpler setup, use the pre-configured `madrone/integrations/vue` module instead.
+ *
  * @param options - Vue 3 reactivity functions
  * @param options.reactive - Vue's `reactive()` function from 'vue'
  * @param options.toRaw - Vue's `toRaw()` function from 'vue'
  * @returns An Integration compatible with Madrone.use()
+ * @throws Error if reactive function is not provided
  *
  * @example
  * ```ts
+ * // Option 1: Use the pre-configured module (recommended)
  * import Madrone from 'madrone';
- * import MadroneVue3 from 'madrone/integrations/MadroneVue3';
+ * import MadroneVue from 'madrone/integrations/vue';
+ * Madrone.use(MadroneVue);
+ *
+ * // Option 2: Manual configuration
+ * import Madrone from 'madrone';
+ * import createMadroneVue3 from 'madrone/integrations/MadroneVue3';
  * import { reactive, toRaw } from 'vue';
- *
- * // Set up the integration
- * Madrone.use(MadroneVue3({ reactive, toRaw }));
- *
- * // Create reactive state
- * class CounterStore {
- *   @reactive count = 0;
- *
- *   @computed get doubled() {
- *     return this.count * 2;
- *   }
- *
- *   increment() {
- *     this.count++;
- *   }
- * }
- *
- * // Use in Vue components - changes automatically trigger re-renders
- * const store = new CounterStore();
+ * Madrone.use(createMadroneVue3({ reactive, toRaw }));
  * ```
  */
-export default function MadroneVue3({ reactive, toRaw } = {} as {
-  reactive: <T extends object>(target: T) => T,
-  toRaw: <T>(proxy: T) => T,
-}): Integration {
+export default function MadroneVue3(options: MadroneVue3Options): Integration {
+  if (!options?.reactive || typeof options.reactive !== 'function') {
+    throw new Error(
+      'MadroneVue3 requires Vue\'s reactive function. '
+      + 'Either use "madrone/integrations/vue" for automatic setup, '
+      + 'or pass { reactive, toRaw } from "vue".'
+    );
+  }
+
+  const { reactive, toRaw } = options;
   const obToRaw = toRaw ?? ((val) => val);
   // store all reactive properties
   const reactiveMappings = new WeakMap<object, Map<string, { value: number }>>();
@@ -99,7 +106,7 @@ export default function MadroneVue3({ reactive, toRaw } = {} as {
     let keyItem = item.get(key);
 
     if (!keyItem) {
-      keyItem = reactive({ [VALUE]: 0 });
+      keyItem = reactive({ [VALUE]: 0 }) as { value: number };
       item.set(key, keyItem);
     }
 
@@ -155,25 +162,25 @@ export default function MadroneVue3({ reactive, toRaw } = {} as {
     },
   };
 
-  const options = {
+  const integrationOptions = {
     computed: computedOptions,
     reactive: reactiveOptions,
   };
 
   function describeComputed(name, config) {
-    return MadroneState.describeComputed(name, config, options);
+    return MadroneState.describeComputed(name, config, integrationOptions);
   }
 
   function describeProperty(name, config) {
-    return MadroneState.describeProperty(name, config, options);
+    return MadroneState.describeProperty(name, config, integrationOptions);
   }
 
   function defineComputed(target, name, config) {
-    return MadroneState.defineComputed(target, name, config, options);
+    return MadroneState.defineComputed(target, name, config, integrationOptions);
   }
 
   function defineProperty(target, name, config) {
-    return MadroneState.defineProperty(target, name, config, options);
+    return MadroneState.defineProperty(target, name, config, integrationOptions);
   }
 
   return {

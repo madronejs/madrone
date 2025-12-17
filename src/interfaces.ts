@@ -173,7 +173,7 @@ export interface Integration {
    * @param target - The potentially reactive object
    * @returns The underlying raw object
    */
-  toRaw?: <T>(target: T) => T,
+  toRaw?: <T extends object>(target: T) => T,
 
   /**
    * Creates a watcher that reacts to changes in reactive state.

@@ -66,7 +66,7 @@ export default function Reactive<T extends object>(target: T, options?: Reactive
   // if not, return the original
   if (!Reactive.hasHandler(type)) return target;
 
-  const proxy = new Proxy(target, Reactive.typeHandler(type, newOptions));
+  const proxy = new Proxy(target, Reactive.typeHandler(type, newOptions)) as T;
 
   addReactive(target, proxy);
 
