@@ -26,33 +26,38 @@ export type WatcherOptions = {
   immediate?: boolean,
 };
 
+export interface IntegrationOptions {
+  reactive?: unknown,
+  computed?: unknown,
+}
+
 export interface Integration {
   defineProperty: (
-    target: any,
+    target: object,
     name: string,
     config: MadronePropertyDescriptor,
-    options?: any
-  ) => any,
+    options?: IntegrationOptions
+  ) => void,
   defineComputed: (
-    target: any,
+    target: object,
     name: string,
     config: MadroneComputedDescriptor,
-    options?: any
-  ) => any,
+    options?: IntegrationOptions
+  ) => void,
   toRaw?: <T>(target: T) => T,
   watch?: <T>(
-    scope: () => any,
-    handler: (val: T, old?: T) => any,
+    scope: () => T,
+    handler: (val: T, old?: T) => void,
     options?: WatcherOptions
   ) => () => void,
   describeComputed?: (
     name: string,
     config: MadroneComputedDescriptor,
-    options?: any
+    options?: IntegrationOptions
   ) => PropertyDescriptor,
   describeProperty?: (
     name: string,
     config: MadronePropertyDescriptor,
-    options?: any
+    options?: IntegrationOptions
   ) => PropertyDescriptor,
 }

@@ -110,7 +110,7 @@ function defaultHandlers(options: ReactiveOptions) {
 
       return value;
     },
-    set: (target: object, propertyKey: PropertyKey, value: any) => {
+    set: (target: object, propertyKey: PropertyKey, value: unknown) => {
       optionSet(options, target, propertyKey, value);
       return Reflect.set(target, propertyKey, value);
     },
@@ -161,7 +161,7 @@ function *reactiveIterator<T>(
 }
 
 const setHandler = (options: ReactiveOptions) => ({
-  get: (target: Set<any>, key: PropertyKey, receiver: any) => {
+  get: (target: Set<unknown>, key: PropertyKey, receiver: object) => {
     // Handle size property
     if (key === 'size') {
       dependTarget(target, KEYS_SYMBOL);
@@ -176,7 +176,7 @@ const setHandler = (options: ReactiveOptions) => ({
 
     // Handle has - tracks dependency on the specific value
     if (key === 'has') {
-      return (value: any) => {
+      return (value: unknown) => {
         dependTarget(target, KEYS_SYMBOL);
         options?.onGet?.(makeOptions({
           name: options.name,
@@ -191,7 +191,7 @@ const setHandler = (options: ReactiveOptions) => ({
 
     // Handle add - triggers change
     if (key === 'add') {
-      return (value: any) => {
+      return (value: unknown) => {
         const hadValue = target.has(value);
 
         target.add(value);
@@ -213,7 +213,7 @@ const setHandler = (options: ReactiveOptions) => ({
 
     // Handle delete - triggers change
     if (key === 'delete') {
-      return (value: any) => {
+      return (value: unknown) => {
         const hadValue = target.has(value);
         const deleted = target.delete(value);
 
@@ -253,7 +253,7 @@ const setHandler = (options: ReactiveOptions) => ({
 
     // Handle forEach - tracks dependency, wraps values
     if (key === 'forEach') {
-      return (cb: (value: any, key: any, set: Set<any>) => void, thisArg?: any) => {
+      return (cb: (value: unknown, key: unknown, set: Set<unknown>) => void, thisArg?: unknown) => {
         dependTarget(target, KEYS_SYMBOL);
         options?.onGet?.(makeOptions({
           name: options.name,
@@ -323,7 +323,7 @@ const setHandler = (options: ReactiveOptions) => ({
 });
 
 const mapHandler = (options: ReactiveOptions) => ({
-  get: (target: Map<any, any>, key: PropertyKey, receiver: any) => {
+  get: (target: Map<unknown, unknown>, key: PropertyKey, receiver: object) => {
     // Handle size property
     if (key === 'size') {
       dependTarget(target, KEYS_SYMBOL);
@@ -338,12 +338,12 @@ const mapHandler = (options: ReactiveOptions) => ({
 
     // Handle has - tracks dependency on the key
     if (key === 'has') {
-      return (mapKey: any) => {
-        dependTarget(target, mapKey);
+      return (mapKey: unknown) => {
+        dependTarget(target, mapKey as string | symbol);
         options?.onGet?.(makeOptions({
           name: options.name,
           target,
-          key: mapKey,
+          key: mapKey as PropertyKey,
         }));
 
         return target.has(mapKey);
@@ -352,12 +352,12 @@ const mapHandler = (options: ReactiveOptions) => ({
 
     // Handle get - tracks dependency on the key
     if (key === 'get') {
-      return (mapKey: any) => {
-        dependTarget(target, mapKey);
+      return (mapKey: unknown) => {
+        dependTarget(target, mapKey as string | symbol);
         options?.onGet?.(makeOptions({
           name: options.name,
           target,
-          key: mapKey,
+          key: mapKey as PropertyKey,
         }));
 
         return wrapIfDeep(target.get(mapKey), options);
@@ -366,7 +366,7 @@ const mapHandler = (options: ReactiveOptions) => ({
 
     // Handle set - triggers change
     if (key === 'set') {
-      return (mapKey: any, value: any) => {
+      return (mapKey: unknown, value: unknown) => {
         const hadKey = target.has(mapKey);
         const oldValue = target.get(mapKey);
 
@@ -377,11 +377,11 @@ const mapHandler = (options: ReactiveOptions) => ({
         }
 
         if (!hadKey || oldValue !== value) {
-          targetChanged(target, mapKey);
+          targetChanged(target, mapKey as string | symbol);
           options?.onSet?.(makeOptions({
             name: options.name,
             target,
-            key: mapKey,
+            key: mapKey as PropertyKey,
             value,
             keysChanged: !hadKey,
             valueChanged: oldValue !== value,
@@ -394,17 +394,17 @@ const mapHandler = (options: ReactiveOptions) => ({
 
     // Handle delete - triggers change
     if (key === 'delete') {
-      return (mapKey: any) => {
+      return (mapKey: unknown) => {
         const hadKey = target.has(mapKey);
         const deleted = target.delete(mapKey);
 
         if (hadKey) {
           targetChanged(target, KEYS_SYMBOL);
-          targetChanged(target, mapKey);
+          targetChanged(target, mapKey as string | symbol);
           options?.onDelete?.(makeOptions({
             name: options.name,
             target,
-            key: mapKey,
+            key: mapKey as PropertyKey,
             keysChanged: true,
           }));
         }
@@ -425,7 +425,7 @@ const mapHandler = (options: ReactiveOptions) => ({
           targetChanged(target, KEYS_SYMBOL);
 
           for (const k of keys) {
-            targetChanged(target, k);
+            targetChanged(target, k as string | symbol);
           }
 
           options?.onDelete?.(makeOptions({
@@ -440,7 +440,7 @@ const mapHandler = (options: ReactiveOptions) => ({
 
     // Handle forEach - tracks dependency, wraps values
     if (key === 'forEach') {
-      return (cb: (value: any, key: any, map: Map<any, any>) => void, thisArg?: any) => {
+      return (cb: (value: unknown, key: unknown, map: Map<unknown, unknown>) => void, thisArg?: unknown) => {
         dependTarget(target, KEYS_SYMBOL);
         options?.onGet?.(makeOptions({
           name: options.name,

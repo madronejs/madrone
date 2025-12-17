@@ -1,22 +1,22 @@
-export type TypeHandlerOptions<T extends object = any> = {
+export type TypeHandlerOptions<T extends object = object> = {
   name?: string,
   deep?: boolean,
-  receiver?: any,
+  receiver?: T,
   target?: T,
-  key?: keyof T,
-  value?: T[keyof T],
+  key?: PropertyKey,
+  value?: unknown,
   keysChanged?: boolean,
   valueChanged?: boolean,
 };
 
-export type HandlerHookType<T extends object = any> = (options: TypeHandlerOptions<T>) => void;
-export type CheckProxyHookType<T extends object = any> = (options: {
+export type HandlerHookType<T extends object = object> = (options: TypeHandlerOptions<T>) => void;
+export type CheckProxyHookType<T extends object = object> = (options: {
   target: T,
-  key: keyof T,
-  value: T[keyof T],
+  key: PropertyKey,
+  value: unknown,
 }) => boolean;
 
-export type ReactiveHandlerHooks<T extends object = any> = {
+export type ReactiveHandlerHooks<T extends object = object> = {
   onGet: HandlerHookType<T>,
   onSet: HandlerHookType<T>,
   onDelete: HandlerHookType<T>,
@@ -24,7 +24,7 @@ export type ReactiveHandlerHooks<T extends object = any> = {
   needsProxy: CheckProxyHookType<T>,
 };
 
-export type ReactiveOptions<T extends object = any> = {
-  name?: any,
+export type ReactiveOptions<T extends object = object> = {
+  name?: string,
   deep?: boolean,
 } & Partial<ReactiveHandlerHooks<T>>;

@@ -3,28 +3,31 @@ import { applyClassMixins } from '@/util';
 import { define } from '@/auto';
 import { DecoratorOptionType, DecoratorDescriptorType } from './interfaces';
 
-const itemMap: WeakMap<any, Set<string>> = new WeakMap();
+type Constructor = new (...args: unknown[]) => object;
 
-export function classMixin(...mixins: Array<() => any>) {
-  return (target: () => any) => {
+const itemMap = new WeakMap<object, Set<string>>();
+
+export function classMixin(...mixins: Constructor[]) {
+  return (target: Constructor) => {
     if (mixins?.length) {
       applyClassMixins(target, mixins);
     }
   };
 }
 
-function trackTargetIfNeeded(target) {
+function trackTargetIfNeeded(target: object): void {
   if (!itemMap.has(target)) {
     itemMap.set(target, new Set());
   }
 }
 
-function checkTargetObserved(target, key) {
+function checkTargetObserved(target: object, key: string): boolean {
   trackTargetIfNeeded(target);
+
   return itemMap.get(target).has(key);
 }
 
-function setTargetObserved(target, key) {
+function setTargetObserved(target: object, key: string): void {
   trackTargetIfNeeded(target);
   itemMap.get(target).add(key);
 }
@@ -34,11 +37,11 @@ function setTargetObserved(target, key) {
 // ////////////////////////////
 
 function computedIfNeeded(
-  target: any,
+  target: object,
   key: string,
   descriptor: PropertyDescriptor,
   options?: DecoratorOptionType
-) {
+): boolean {
   const pl = getIntegration();
 
   if (pl && !checkTargetObserved(target, key)) {
@@ -51,6 +54,7 @@ function computedIfNeeded(
       cache: true,
     });
     setTargetObserved(target, key);
+
     return true;
   }
 
@@ -58,24 +62,25 @@ function computedIfNeeded(
 }
 
 function decorateComputed(
-  target: any,
+  target: object,
   key: string,
   descriptor: PropertyDescriptor,
   options?: DecoratorOptionType
-) {
+): PropertyDescriptor {
   if (typeof descriptor.get === 'function') {
-    const newDescriptor = {
+    const newDescriptor: PropertyDescriptor = {
       ...descriptor,
       enumerable: true,
       configurable: true,
     };
 
-    newDescriptor.get = function computedGetter() {
+    newDescriptor.get = function computedGetter(this: Record<string, unknown>) {
       computedIfNeeded(this, key, descriptor, options);
+
       return this[key];
     };
 
-    newDescriptor.set = function computedSetter(val) {
+    newDescriptor.set = function computedSetter(this: Record<string, unknown>, val: unknown) {
       computedIfNeeded(this, key, descriptor, options);
       this[key] = val;
     };
@@ -93,12 +98,12 @@ function decorateComputed(
  * @param descriptor property descriptors
  * @returns the modified property descriptors
  */
-export function computed(target: any, key: string, descriptor: PropertyDescriptor) {
+export function computed(target: object, key: string, descriptor: PropertyDescriptor): PropertyDescriptor {
   return decorateComputed(target, key, descriptor);
 }
 
 computed.configure = function configureComputed(descriptorOverrides: DecoratorDescriptorType) {
-  return (target: any, key: string, descriptor: PropertyDescriptor) => decorateComputed(
+  return (target: object, key: string, descriptor: PropertyDescriptor) => decorateComputed(
     target,
     key,
     descriptor,
@@ -110,7 +115,7 @@ computed.configure = function configureComputed(descriptorOverrides: DecoratorDe
 // REACTIVE
 // ////////////////////////////
 
-function reactiveIfNeeded(target: any, key: string, options?: DecoratorOptionType) {
+function reactiveIfNeeded(target: object, key: string, options?: DecoratorOptionType): boolean {
   const pl = getIntegration();
 
   if (pl && !checkTargetObserved(target, key)) {
@@ -120,13 +125,14 @@ function reactiveIfNeeded(target: any, key: string, options?: DecoratorOptionTyp
       enumerable: true,
       ...options?.descriptors,
     });
+
     return true;
   }
 
   return false;
 }
 
-function decorateReactive(target: any, key: string, options?: DecoratorOptionType) {
+function decorateReactive(target: object, key: string, options?: DecoratorOptionType): void {
   if (typeof target === 'function') {
     // handle the static case
     reactiveIfNeeded(target, key);
@@ -135,14 +141,14 @@ function decorateReactive(target: any, key: string, options?: DecoratorOptionTyp
     Object.defineProperty(target, key, {
       configurable: true,
       enumerable: true,
-      get() {
+      get(this: Record<string, unknown>) {
         if (reactiveIfNeeded(this, key, options)) {
           return this[key];
         }
 
         return undefined;
       },
-      set(val) {
+      set(this: Record<string, unknown>, val: unknown) {
         if (reactiveIfNeeded(this, key, options)) {
           this[key] = val;
         }
@@ -151,29 +157,19 @@ function decorateReactive(target: any, key: string, options?: DecoratorOptionTyp
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-interface reactive extends Function {
-  /** Create a shallow reactive property */
-  shallow: (target: any, key: string) => ReturnType<typeof decorateReactive>,
-  /** Configure the descriptors for a property */
-  configure: (
-    overrides: DecoratorDescriptorType
-  ) => (target: any, key: string) => ReturnType<typeof decorateReactive>,
-}
-
 /**
  * Configure a reactive property
  * @param target The target to add the reactive property to
  * @param key The name of the reactive property
  */
-export function reactive(target: any, key: string) {
+export function reactive(target: object, key: string): void {
   return decorateReactive(target, key);
 }
 
-reactive.shallow = function configureReactive(target: any, key: string) {
+reactive.shallow = function configureReactive(target: object, key: string): void {
   return decorateReactive(target, key, { descriptors: { deep: false } });
 };
 
 reactive.configure = function configureReactive(descriptorOverrides: DecoratorDescriptorType) {
-  return (target: any, key: string) => decorateReactive(target, key, { descriptors: descriptorOverrides });
+  return (target: object, key: string) => decorateReactive(target, key, { descriptors: descriptorOverrides });
 };
