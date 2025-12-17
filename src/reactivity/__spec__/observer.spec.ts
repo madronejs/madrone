@@ -212,4 +212,88 @@ describe('Observer', () => {
     expect(newValues).toEqual([false, true]);
     expect(oldValues).toEqual([null, false]);
   });
+
+  describe('error handling', () => {
+    it('propagates errors from getter', () => {
+      const obs = Observer({
+        get: () => {
+          throw new Error('getter error');
+        },
+      });
+
+      expect(() => obs.value).toThrow('getter error');
+    });
+
+    it('does not get stuck in dirty state after error', () => {
+      let shouldThrow = true;
+      let callCount = 0;
+      const obs = Observer({
+        get: () => {
+          callCount += 1;
+          if (shouldThrow) {
+            throw new Error('temporary error');
+          }
+
+          return 'success';
+        },
+      });
+
+      // First access throws
+      expect(() => obs.value).toThrow('temporary error');
+      expect(callCount).toEqual(1);
+
+      // Subsequent access should return cached value (undefined), not retry
+      shouldThrow = false;
+      expect(obs.value).toBeUndefined();
+      expect(callCount).toEqual(1); // Not called again because dirty was reset
+    });
+
+    it('recovers when dependencies change after error', () => {
+      const tracked = Reactive({ shouldThrow: true });
+      let callCount = 0;
+      const obs = Observer({
+        get: () => {
+          callCount += 1;
+          if (tracked.shouldThrow) {
+            throw new Error('conditional error');
+          }
+
+          return 'success';
+        },
+      });
+
+      // First access throws
+      expect(() => obs.value).toThrow('conditional error');
+      expect(callCount).toEqual(1);
+
+      // Change dependency - should mark dirty again
+      tracked.shouldThrow = false;
+
+      // Now it should work
+      expect(obs.value).toEqual('success');
+      expect(callCount).toEqual(2);
+    });
+
+    it('does not corrupt observer stack on error', () => {
+      const tracked = Reactive({ value: 1 });
+
+      const failingObs = Observer({
+        get: () => {
+          throw new Error('fail');
+        },
+      });
+
+      const workingObs = Observer({
+        get: () => tracked.value * 2,
+      });
+
+      // Failing observer throws
+      expect(() => failingObs.value).toThrow('fail');
+
+      // Working observer should still work correctly
+      expect(workingObs.value).toEqual(2);
+      tracked.value = 5;
+      expect(workingObs.value).toEqual(10);
+    });
+  });
 });

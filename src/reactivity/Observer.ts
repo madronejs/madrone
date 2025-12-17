@@ -150,13 +150,13 @@ class ObservableItem<T> {
     this.prev = undefined;
   }
 
-  private wrap<CBType>(cb: () => CBType) {
+  private wrap<CBType>(cb: () => CBType): CBType {
     GLOBAL_STACK.push(this);
-
-    const val = cb();
-
-    GLOBAL_STACK.pop();
-    return val;
+    try {
+      return cb();
+    } finally {
+      GLOBAL_STACK.pop();
+    }
   }
 
   setDirty() {
@@ -182,8 +182,13 @@ class ObservableItem<T> {
 
     const val = this.wrap(() => {
       if ((this.cache && this.dirty) || !this.cache) {
-        this.cachedVal = this.get();
-        this.dirty = false;
+        try {
+          this.cachedVal = this.get();
+        } finally {
+          // Always reset dirty to prevent infinite retry loops on persistent errors.
+          // If the getter throws, we'll rethrow but won't be stuck dirty.
+          this.dirty = false;
+        }
       }
 
       return this.cachedVal;
