@@ -81,9 +81,13 @@ export default function Reactive<T extends object>(target: T, options?: Reactive
 Reactive.getStringType = (obj: unknown): string => {
   // Fast path for non-objects - return type that won't match any handler
   if (obj === null) return 'null';
+
   if (typeof obj !== 'object') return typeof obj;
+
   if (Array.isArray(obj)) return 'array';
+
   if (obj instanceof Map) return 'map';
+
   if (obj instanceof Set) return 'set';
   return 'object';
 };
