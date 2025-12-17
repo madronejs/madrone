@@ -89,8 +89,9 @@ const doTasksIfNeeded = (): void => {
 
       TASK_QUEUE = [];
 
-      while (queue.length > 0) {
-        queue.shift()();
+      // Process tasks in O(n) instead of O(n²) from shift()
+      for (const task of queue) {
+        task();
       }
 
       SCHEDULER_ID = null;
