@@ -85,13 +85,14 @@ const doTasksIfNeeded = (): void => {
   if (SCHEDULER_ID === null) {
     SCHEDULER_ID = Symbol('scheduler');
     queueMicrotask(() => {
-      const queue = TASK_QUEUE;
+      // Process until queue is truly empty, including tasks added during execution
+      while (TASK_QUEUE.length > 0) {
+        const queue = TASK_QUEUE;
+        TASK_QUEUE = [];
 
-      TASK_QUEUE = [];
-
-      // Process tasks in O(n) instead of O(n²) from shift()
-      for (const task of queue) {
-        task();
+        for (const task of queue) {
+          task();
+        }
       }
 
       SCHEDULER_ID = null;
