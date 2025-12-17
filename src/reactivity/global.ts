@@ -116,8 +116,8 @@ export const schedule = (task: () => void): void => {
 };
 
 /**
- * Clear all of the current dependencies an observer has
- * @param obs the observable to clear it's dependencies
+ * Clear a specific dependency key for an observer
+ * @param obs the observable to clear dependencies for
  * @param key the key to clear
  */
 export const observerClear = (
@@ -129,7 +129,7 @@ export const observerClear = (
 
   if (trackers) {
     for (const trk of trackers) {
-      PROXY_TO_OBSERVERS.get(trk)?.delete(obs);
+      PROXY_TO_OBSERVERS.get(trk)?.get(key)?.delete(obs);
     }
 
     trackers.clear();
@@ -139,6 +139,25 @@ export const observerClear = (
       OBSERVER_TO_PROXIES.delete(obs);
     }
   }
+};
+
+/**
+ * Clear ALL dependencies for an observer.
+ * Called before re-running to ensure stale dependencies are removed.
+ * @param obs the observable to clear all dependencies for
+ */
+export const observerClearAll = (obs: ObservableItem<unknown>): void => {
+  const proxies = OBSERVER_TO_PROXIES.get(obs);
+
+  if (!proxies) return;
+
+  for (const [key, trackers] of proxies) {
+    for (const trk of trackers) {
+      PROXY_TO_OBSERVERS.get(trk)?.get(key)?.delete(obs);
+    }
+  }
+
+  OBSERVER_TO_PROXIES.delete(obs);
 };
 
 /**

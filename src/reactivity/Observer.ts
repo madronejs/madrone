@@ -9,7 +9,7 @@
  */
 
 import {
-  OBSERVER_SYMBOL, dependTracker, observerClear, schedule, trackerChanged,
+  OBSERVER_SYMBOL, dependTracker, observerClearAll, schedule, trackerChanged,
 } from './global';
 
 const GLOBAL_STACK: Array<ObservableItem<unknown>> = [];
@@ -143,7 +143,7 @@ class ObservableItem<T> {
    * @returns {void}
    */
   dispose() {
-    observerClear(this, OBSERVER_SYMBOL);
+    observerClearAll(this);
     this.alive = false;
     this.dirty = false;
     this.cachedVal = undefined;
@@ -183,6 +183,9 @@ class ObservableItem<T> {
 
     const val = this.wrap(() => {
       if ((this.cache && this.dirty) || !this.cache) {
+        // Clear old dependencies before re-running to prevent stale deps
+        observerClearAll(this);
+
         try {
           this.cachedVal = this.get();
         } finally {

@@ -213,6 +213,89 @@ describe('Observer', () => {
     expect(oldValues).toEqual([null, false]);
   });
 
+  describe('dependency cleanup', () => {
+    it('clears stale dependencies when they change dynamically', () => {
+      let aAccessCount = 0;
+      let bAccessCount = 0;
+
+      const state = Reactive({
+        useA: true,
+        get a() {
+          aAccessCount += 1;
+          return 1;
+        },
+        get b() {
+          bAccessCount += 1;
+          return 2;
+        },
+      });
+
+      const obs = Observer({
+        get: () => (state.useA ? state.a : state.b),
+      });
+
+      // First run: depends on useA and a
+      expect(obs.value).toEqual(1);
+      expect(aAccessCount).toEqual(1);
+      expect(bAccessCount).toEqual(0);
+
+      // Change to use b instead
+      state.useA = false;
+      expect(obs.value).toEqual(2);
+      expect(aAccessCount).toEqual(1);
+      expect(bAccessCount).toEqual(1);
+
+      // Now changing a should NOT trigger recomputation
+      // (if deps were cleaned, a is no longer tracked)
+      aAccessCount = 0;
+      bAccessCount = 0;
+
+      // Access value to confirm it's cached
+      expect(obs.value).toEqual(2);
+      expect(aAccessCount).toEqual(0);
+      expect(bAccessCount).toEqual(0);
+    });
+
+    it('does not retain references to unused reactive objects', () => {
+      const state1 = Reactive({ value: 1 });
+      const state2 = Reactive({ value: 2 });
+      const switcher = Reactive({ useFirst: true });
+
+      const obs = Observer({
+        get: () => (switcher.useFirst ? state1.value : state2.value),
+      });
+
+      // First run: depends on switcher and state1
+      expect(obs.value).toEqual(1);
+
+      // Switch to state2
+      switcher.useFirst = false;
+      expect(obs.value).toEqual(2);
+
+      // Changing state1 should not affect the observer anymore
+      let recomputeCount = 0;
+      const obs2 = Observer({
+        get: () => {
+          recomputeCount += 1;
+          return obs.value;
+        },
+      });
+
+      expect(obs2.value).toEqual(2);
+      expect(recomputeCount).toEqual(1);
+
+      // state1 change should not trigger obs or obs2
+      state1.value = 100;
+      expect(obs2.value).toEqual(2);
+      expect(recomputeCount).toEqual(1);
+
+      // state2 change should trigger both
+      state2.value = 200;
+      expect(obs2.value).toEqual(200);
+      expect(recomputeCount).toEqual(2);
+    });
+  });
+
   describe('error handling', () => {
     it('propagates errors from getter', () => {
       const obs = Observer({
