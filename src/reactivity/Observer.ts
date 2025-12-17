@@ -152,6 +152,7 @@ class ObservableItem<T> {
 
   private wrap<CBType>(cb: () => CBType): CBType {
     GLOBAL_STACK.push(this);
+
     try {
       return cb();
     } finally {

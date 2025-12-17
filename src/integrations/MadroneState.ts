@@ -122,6 +122,7 @@ export function describeProperty(
   options?: MadroneStateOptions
 ): PropertyDescriptor {
   type Atom = { value: unknown };
+
   const tg: Atom = { value: config.value };
   const atom = Reactive<Atom>(tg, {
     name,

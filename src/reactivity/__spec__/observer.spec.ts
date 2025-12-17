@@ -230,6 +230,7 @@ describe('Observer', () => {
       const obs = Observer({
         get: () => {
           callCount += 1;
+
           if (shouldThrow) {
             throw new Error('temporary error');
           }
@@ -254,6 +255,7 @@ describe('Observer', () => {
       const obs = Observer({
         get: () => {
           callCount += 1;
+
           if (tracked.shouldThrow) {
             throw new Error('conditional error');
           }

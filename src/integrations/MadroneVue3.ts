@@ -46,9 +46,9 @@ const reactiveSet = (item: { value: number }) => {
  */
 export interface MadroneVue3Options {
   /** Vue's `reactive()` function from 'vue' */
-  reactive: <T extends object>(target: T) => unknown;
+  reactive: <T extends object>(target: T) => unknown,
   /** Vue's `toRaw()` function from 'vue' */
-  toRaw: <T>(proxy: T) => T;
+  toRaw: <T>(proxy: T) => T,
 }
 
 /**
