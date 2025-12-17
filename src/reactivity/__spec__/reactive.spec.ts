@@ -253,4 +253,272 @@ describe('Reactive', () => {
       expect(valueArray).toEqual(['hello world', { foobar: 'baz' }, 'baz']);
     });
   });
+
+  describe('onDelete callback', () => {
+    it('calls onDelete when property is deleted', () => {
+      let deleteCount = 0;
+      let deletedKey = null;
+      const obj = { a: 1, b: 2 };
+      const state = Reactive<{ a?: number, b?: number }>(obj, {
+        onDelete: ({ key }) => {
+          deleteCount += 1;
+          deletedKey = key;
+        },
+      });
+
+      delete state.a;
+
+      expect(deleteCount).toBe(1);
+      expect(deletedKey).toBe('a');
+      expect(state.a).toBeUndefined();
+    });
+
+    it('provides keysChanged flag in onDelete', () => {
+      let keysChanged = false;
+      const obj = { a: 1 };
+      const state = Reactive<{ a?: number }>(obj, {
+        onDelete: (opts) => {
+          keysChanged = opts.keysChanged;
+        },
+      });
+
+      delete state.a;
+
+      expect(keysChanged).toBe(true);
+    });
+  });
+
+  describe('onHas callback', () => {
+    it('calls onHas when checking property existence with "in"', () => {
+      let hasCount = 0;
+      const obj = { a: 1 };
+      const state = Reactive(obj, {
+        onHas: () => {
+          hasCount += 1;
+        },
+      });
+
+      expect('a' in state).toBe(true);
+      expect(hasCount).toBe(1);
+
+      expect('b' in state).toBe(false);
+      expect(hasCount).toBe(2);
+    });
+
+    it('calls onHas when using Object.keys', () => {
+      let hasCount = 0;
+      const obj = { a: 1, b: 2 };
+      const state = Reactive(obj, {
+        onHas: () => {
+          hasCount += 1;
+        },
+      });
+
+      const keys = Object.keys(state);
+
+      expect(keys).toEqual(['a', 'b']);
+      expect(hasCount).toBe(1);
+    });
+  });
+
+  describe('custom needsProxy', () => {
+    it('allows custom needsProxy function to prevent proxying', () => {
+      const obj = {
+        shouldProxy: { value: 1 },
+        shouldNotProxy: { value: 2 },
+      };
+      const state = Reactive(obj, {
+        deep: true,
+        needsProxy: ({ key }) => key !== 'shouldNotProxy',
+      });
+
+      expect(isReactive(state.shouldProxy)).toBe(true);
+      expect(isReactive(state.shouldNotProxy)).toBe(false);
+    });
+
+    it('needsProxy receives target, key, and value', () => {
+      let receivedTarget = null;
+      let receivedKey = null;
+      let receivedValue = null;
+      const nested = { inner: true };
+      const obj = { nested };
+      const state = Reactive(obj, {
+        deep: true,
+        needsProxy: ({ target, key, value }) => {
+          receivedTarget = target;
+          receivedKey = key;
+          receivedValue = value;
+          return true;
+        },
+      });
+
+      // Trigger the needsProxy check by accessing nested
+      expect(state.nested).toBeDefined();
+      expect(receivedTarget).toBe(obj);
+      expect(receivedKey).toBe('nested');
+      expect(receivedValue).toBe(nested);
+    });
+  });
+
+  describe('symbols as keys', () => {
+    it('tracks symbol keys', () => {
+      const sym = Symbol('test');
+      const obj = { [sym]: 'value' };
+      const state = Reactive(obj);
+
+      expect(state[sym]).toBe('value');
+    });
+
+    it('notifies observers when symbol key changes', () => {
+      const sym = Symbol('test');
+      const obj = { [sym]: 1 };
+      const state = Reactive(obj);
+
+      expect(state[sym]).toBe(1);
+      state[sym] = 2;
+      expect(state[sym]).toBe(2);
+    });
+
+    it('handles well-known symbols correctly', () => {
+      const obj = {
+        [Symbol.toStringTag]: 'CustomObject',
+      };
+      const state = Reactive(obj);
+
+      expect(state[Symbol.toStringTag]).toBe('CustomObject');
+      expect(Object.prototype.toString.call(state)).toBe('[object CustomObject]');
+    });
+  });
+
+  describe('frozen and sealed objects', () => {
+    it('does not deeply proxy frozen objects due to non-configurable properties', () => {
+      const frozen = Object.freeze({ value: 1 });
+      const state = Reactive({ data: frozen });
+
+      // Frozen object's properties are not configurable, so deep proxying is prevented
+      // The frozen object itself is returned (not proxied further)
+      expect(isReactive(state)).toBe(true);
+      expect(state.data.value).toBe(1);
+    });
+
+    it('does not deeply proxy sealed objects due to non-configurable properties', () => {
+      const sealed = Object.seal({ value: 1 });
+      const state = Reactive({ data: sealed });
+
+      // Sealed object's properties are not configurable, so deep proxying is prevented
+      expect(isReactive(state)).toBe(true);
+      expect(state.data.value).toBe(1);
+    });
+
+    it('handles objects with non-configurable properties', () => {
+      const obj = {};
+
+      Object.defineProperty(obj, 'fixed', {
+        value: 42,
+        configurable: false,
+        enumerable: true,
+      });
+
+      const state = Reactive({ data: obj });
+
+      // Non-configurable property should return raw value
+      expect(state.data.fixed).toBe(42);
+    });
+  });
+
+  describe('shallow reactivity (deep: false)', () => {
+    it('does not proxy nested objects when deep is false', () => {
+      const nested = { inner: 1 };
+      const obj = { nested };
+      const state = Reactive(obj, { deep: false });
+
+      expect(isReactive(state)).toBe(true);
+      expect(isReactive(state.nested)).toBe(false);
+      expect(state.nested).toBe(nested);
+    });
+
+    it('still tracks top-level property changes with onSet', () => {
+      let setCount = 0;
+      const obj = { value: 1 };
+      const state = Reactive(obj, {
+        deep: false,
+        onSet: () => {
+          setCount += 1;
+        },
+      });
+
+      state.value = 2;
+      expect(setCount).toBe(1);
+      expect(state.value).toBe(2);
+    });
+  });
+
+  describe('edge cases', () => {
+    it('handles null prototype objects', () => {
+      const nullProto = Object.create(null);
+
+      nullProto.key = 'value';
+
+      const state = Reactive(nullProto);
+
+      expect(state.key).toBe('value');
+      expect(isReactive(state)).toBe(true);
+    });
+
+    it('handles objects with getters', () => {
+      let computeCount = 0;
+      const obj = {
+        _value: 1,
+        get computed() {
+          computeCount += 1;
+          return this._value * 2;
+        },
+      };
+      const state = Reactive(obj);
+
+      expect(state.computed).toBe(2);
+      expect(computeCount).toBe(1);
+      state._value = 5;
+      expect(state.computed).toBe(10);
+      expect(computeCount).toBe(2);
+    });
+
+    it('handles objects with setters', () => {
+      const obj = {
+        _value: 1,
+        get value() {
+          return this._value;
+        },
+        set value(v) {
+          this._value = v * 2;
+        },
+      };
+      const state = Reactive(obj);
+
+      state.value = 5;
+      expect(state._value).toBe(10);
+      expect(state.value).toBe(10);
+    });
+
+    it('handles circular references', () => {
+      const obj: { self?: object, value: number } = { value: 1 };
+
+      obj.self = obj;
+
+      const state = Reactive(obj);
+
+      expect(state.value).toBe(1);
+      expect(state.self).toBe(state);
+      expect((state.self as typeof obj).value).toBe(1);
+    });
+
+    it('preserves array methods on reactive arrays', () => {
+      const arr = [1, 2, 3];
+      const state = Reactive({ arr });
+
+      expect(state.arr.map((x) => x * 2)).toEqual([2, 4, 6]);
+      expect(state.arr.filter((x) => x > 1)).toEqual([2, 3]);
+      expect(state.arr.reduce((sum, x) => sum + x, 0)).toBe(6);
+    });
+  });
 });

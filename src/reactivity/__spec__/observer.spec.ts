@@ -381,4 +381,229 @@ describe('Observer', () => {
       expect(workingObs.value).toEqual(10);
     });
   });
+
+  describe('cache: false', () => {
+    it('recomputes value on every access when cache is false', () => {
+      let counter = 0;
+      const obs = Observer({
+        cache: false,
+        get: () => {
+          counter += 1;
+          return 'value';
+        },
+      });
+
+      expect(obs.value).toEqual('value');
+      expect(obs.value).toEqual('value');
+      expect(obs.value).toEqual('value');
+      expect(counter).toEqual(3);
+    });
+
+    it('still tracks dependencies with cache false', () => {
+      let counter = 0;
+      const tracked = Reactive({ value: 1 });
+      const obs = Observer({
+        cache: false,
+        get: () => {
+          counter += 1;
+          return tracked.value * 2;
+        },
+      });
+
+      expect(obs.value).toEqual(2);
+      expect(counter).toEqual(1);
+
+      tracked.value = 5;
+      expect(obs.value).toEqual(10);
+      expect(counter).toEqual(2);
+    });
+
+    it('calls onChange when dependencies change with cache false', async () => {
+      const tracked = Reactive({ value: 1 });
+      let changeCount = 0;
+      const obs = Observer({
+        cache: false,
+        get: () => tracked.value,
+        onChange: () => {
+          changeCount += 1;
+        },
+      });
+
+      expect(obs.value).toEqual(1);
+      tracked.value = 2;
+      expect(obs.value).toEqual(2);
+      await delay();
+      expect(changeCount).toEqual(1);
+    });
+  });
+
+  describe('hooks', () => {
+    describe('onGet', () => {
+      it('calls onGet when value is accessed', () => {
+        let getCalled = false;
+        const obs = Observer({
+          get: () => 'value',
+          onGet: () => {
+            getCalled = true;
+          },
+        });
+
+        expect(getCalled).toBe(false);
+        expect(obs.value).toEqual('value');
+        expect(getCalled).toBe(true);
+      });
+
+      it('calls onGet on every access (cached)', () => {
+        let getCount = 0;
+        const obs = Observer({
+          get: () => 'value',
+          onGet: () => {
+            getCount += 1;
+          },
+        });
+
+        expect(obs.value).toEqual('value');
+        expect(obs.value).toEqual('value');
+        expect(obs.value).toEqual('value');
+        expect(getCount).toEqual(3);
+      });
+
+      it('passes observer instance to onGet', () => {
+        let receivedObs = null;
+        const obs = Observer({
+          get: () => 'value',
+          onGet: (o) => {
+            receivedObs = o;
+          },
+        });
+
+        expect(obs.value).toEqual('value');
+        expect(receivedObs).toBe(obs);
+      });
+    });
+
+    describe('onImmediateChange', () => {
+      it('calls onImmediateChange synchronously when dependency changes', () => {
+        const tracked = Reactive({ value: 1 });
+        let immediateCount = 0;
+        let changeCount = 0;
+        const obs = Observer({
+          get: () => tracked.value,
+          onImmediateChange: () => {
+            immediateCount += 1;
+          },
+          onChange: () => {
+            changeCount += 1;
+          },
+        });
+
+        expect(obs.value).toEqual(1);
+        expect(immediateCount).toEqual(0);
+        expect(changeCount).toEqual(0);
+
+        tracked.value = 2;
+
+        // onImmediateChange is called synchronously
+        expect(immediateCount).toEqual(1);
+        // onChange is scheduled asynchronously
+        expect(changeCount).toEqual(0);
+      });
+
+      it('provides access to prev value in onImmediateChange', () => {
+        const tracked = Reactive({ value: 1 });
+        let prevValue = null;
+        const obs = Observer({
+          get: () => tracked.value,
+          onImmediateChange: (o) => {
+            prevValue = o.prev;
+          },
+        });
+
+        expect(obs.value).toEqual(1);
+        tracked.value = 2;
+        expect(prevValue).toEqual(1);
+      });
+    });
+  });
+
+  describe('writable computed', () => {
+    it('allows setting value with custom setter', () => {
+      const data = Reactive({ firstName: 'John', lastName: 'Doe' });
+      const obs = Observer({
+        get: () => `${data.firstName} ${data.lastName}`,
+        set: (val: string) => {
+          const [first, last] = val.split(' ');
+
+          data.firstName = first;
+          data.lastName = last;
+        },
+      });
+
+      expect(obs.value).toEqual('John Doe');
+
+      obs.value = 'Jane Smith';
+
+      expect(obs.value).toEqual('Jane Smith');
+      expect(data.firstName).toEqual('Jane');
+      expect(data.lastName).toEqual('Smith');
+    });
+
+    it('throws when setting value without setter', () => {
+      const obs = Observer({
+        name: 'testComputed',
+        get: () => 'value',
+      });
+
+      expect(() => {
+        obs.value = 'new value';
+      }).toThrow('No setter defined for "testComputed"');
+    });
+
+    it('calls onSet hook when value is set', () => {
+      let setCalled = false;
+      let receivedObs = null;
+      const data = Reactive({ value: 1 });
+      const obs = Observer({
+        get: () => data.value,
+        set: (val: number) => {
+          data.value = val;
+        },
+        onSet: (o) => {
+          setCalled = true;
+          receivedObs = o;
+        },
+      });
+
+      expect(setCalled).toBe(false);
+      obs.value = 42;
+      expect(setCalled).toBe(true);
+      expect(receivedObs).toBe(obs);
+    });
+
+    it('updates cached value after set triggers dependency change', () => {
+      const data = Reactive({ value: 1 });
+      const obs = Observer({
+        get: () => data.value * 2,
+        set: (val: number) => {
+          data.value = val / 2;
+        },
+      });
+
+      expect(obs.value).toEqual(2);
+      obs.value = 10;
+      expect(obs.value).toEqual(10);
+      expect(data.value).toEqual(5);
+    });
+  });
+
+  describe('name property', () => {
+    it('stores name for debugging', () => {
+      const obs = Observer({
+        name: 'myComputed',
+        get: () => 'value',
+      });
+
+      expect(obs.name).toEqual('myComputed');
+    });
+  });
 });
