@@ -26,15 +26,15 @@ const makeOptions = (handlerOptions: TypeHandlerOptions) => {
 
 const optionGet = (options: ReactiveOptions, target, key, receiver) => {
   dependTarget(target, key);
-  options?.onGet?.(
-    makeOptions({
-      name: options.name,
-      target,
-      key,
-      receiver,
-    })
-  );
+
+  // Only allocate options object if callback exists
+  if (options?.onGet) {
+    options.onGet(makeOptions({
+      name: options.name, target, key, receiver,
+    }));
+  }
 };
+
 const optionSet = (options: ReactiveOptions, target, key, value) => {
   const curr = target[key];
   const isArray = Array.isArray(target);
@@ -55,40 +55,33 @@ const optionSet = (options: ReactiveOptions, target, key, value) => {
     valueChanged = true;
   }
 
-  if (keysChanged || valueChanged) {
-    options?.onSet?.(
-      makeOptions({
-        name: options.name,
-        target,
-        key,
-        value,
-        keysChanged,
-        valueChanged,
-      })
-    );
+  // Only allocate options object if callback exists and something changed
+  if ((keysChanged || valueChanged) && options?.onSet) {
+    options.onSet(makeOptions({
+      name: options.name, target, key, value, keysChanged, valueChanged,
+    }));
   }
 };
+
 const optionDelete = (options: ReactiveOptions, target, key) => {
   targetChanged(target, key);
   targetChanged(target, KEYS_SYMBOL);
-  options?.onDelete?.(
-    makeOptions({
-      name: options.name,
-      target,
-      key,
-      keysChanged: true,
-    })
-  );
+
+  // Only allocate options object if callback exists
+  if (options?.onDelete) {
+    options.onDelete(makeOptions({
+      name: options.name, target, key, keysChanged: true,
+    }));
+  }
 };
+
 const optionHasOwnKeys = (options: ReactiveOptions, target, key?) => {
   dependTarget(target, KEYS_SYMBOL);
-  options?.onHas?.(
-    makeOptions({
-      name: options.name,
-      target,
-      key,
-    })
-  );
+
+  // Only allocate options object if callback exists
+  if (options?.onHas) {
+    options.onHas(makeOptions({ name: options.name, target, key }));
+  }
 };
 
 function defaultHandlers(options: ReactiveOptions) {
@@ -100,9 +93,16 @@ function defaultHandlers(options: ReactiveOptions) {
 
       const value = Reflect.get(target, prop, receiver);
 
+      // Check conditions in order of cost (cheapest first)
+      // 1. deep mode enabled (property access)
+      // 2. value is an object (typeof check)
+      // 3. needsProxy allows it (function call, usually returns true)
+      // 4. property is configurable (expensive getOwnPropertyDescriptor)
       if (
-        needsProxy({ target, key: prop, value })
-        && options?.deep
+        options?.deep
+        && value
+        && typeof value === 'object'
+        && needsProxy({ target, key: prop, value })
         && Object.getOwnPropertyDescriptor(target, prop)?.configurable
       ) {
         return Reactive(value, options);
