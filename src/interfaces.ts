@@ -136,6 +136,33 @@ export interface IntegrationOptions {
  * };
  * ```
  */
+/**
+ * A class constructor type that produces instances of type T.
+ *
+ * Unlike a simple `new (...args) => T` signature, this type also
+ * captures that constructors have a `prototype` property, which is
+ * important for mixin and class composition utilities.
+ *
+ * @typeParam T - The instance type that the constructor creates
+ *
+ * @example
+ * ```ts
+ * class MyClass {
+ *   name: string;
+ * }
+ *
+ * function mixin<T extends Constructor>(Base: T) {
+ *   return class extends Base {
+ *     // ...
+ *   };
+ * }
+ * ```
+ */
+export type Constructor<T = object> = {
+  new (...args: unknown[]): T,
+  prototype: T,
+};
+
 export interface Integration {
   /**
    * Defines a reactive property on an object.
