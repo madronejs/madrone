@@ -4,9 +4,21 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   build: {
     lib: {
-      // Could also be a dictionary or array of multiple entry points
-      entry: resolve(__dirname, 'src/index.ts'),
+      entry: {
+        core: resolve(__dirname, 'src/index.ts'),
+        vue: resolve(__dirname, 'src/integrations/vue.ts'),
+      },
       name: 'madrone',
+    },
+    rollupOptions: {
+      // Mark vue as external - users must have it installed
+      external: ['vue'],
+      output: {
+        // Provide global variable name for UMD builds
+        globals: {
+          vue: 'Vue',
+        },
+      },
     },
   },
   test: {
@@ -15,6 +27,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
+      // Alias 'vue' to 'vue3' package for testing (users will have 'vue' installed)
+      'vue': 'vue3',
     },
   },
 });

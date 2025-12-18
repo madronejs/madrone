@@ -1,41 +1,105 @@
+/**
+ * @module Observer
+ *
+ * Low-level observable implementation with dependency tracking.
+ *
+ * Observer is the foundation of Madrone's reactivity system. It tracks
+ * which reactive properties are accessed during computation and schedules
+ * updates when those dependencies change.
+ */
+
 import {
-  OBSERVER_SYMBOL, dependTracker, observerClear, schedule, trackerChanged,
+  OBSERVER_SYMBOL, dependTracker, observerClearAll, schedule, trackerChanged,
 } from './global';
 
-const GLOBAL_STACK: Array<ObservableItem<any>> = [];
+const GLOBAL_STACK: Array<ObservableItem<unknown>> = [];
 
-export function getCurrentObserver() {
+/**
+ * Returns the currently running Observer, if any.
+ *
+ * Used internally to track which Observer should be notified when
+ * reactive properties are accessed.
+ *
+ * @returns The current Observer or undefined if none is running
+ * @internal
+ */
+export function getCurrentObserver(): ObservableItem<unknown> | undefined {
   return GLOBAL_STACK.at(-1);
 }
 
+/**
+ * Lifecycle hooks that can be called on an Observer.
+ */
 export enum OBSERVER_HOOK {
+  /** Called when the computed value is read */
   onGet = 'onGet',
+  /** Called when a writable computed is set */
   onSet = 'onSet',
+  /** Called asynchronously after dependencies change */
   onChange = 'onChange',
+  /** Called synchronously when dependencies change (before async scheduling) */
   onImmediateChange = 'onImmediateChange',
 }
 
+/**
+ * Type for Observer lifecycle hook callbacks.
+ * @typeParam T - The type of the observed value
+ */
 export type ObservableHookType<T> = (obs: ObservableItem<T>) => void;
 
+/**
+ * Collection of lifecycle hooks for an Observer.
+ * @typeParam T - The type of the observed value
+ */
 export type ObservableHooksType<T> = {
+  /** Called when the value is accessed */
   onGet?: ObservableHookType<T>,
+  /** Called when the value is set (writable computed only) */
   onSet?: ObservableHookType<T>,
+  /** Called asynchronously after dependencies change */
   onChange?: ObservableHookType<T>,
+  /** Called synchronously when dependencies change */
   onImmediateChange?: ObservableHookType<T>,
 };
 
+/**
+ * Configuration options for creating an Observer.
+ * @typeParam T - The type of the observed value
+ */
 export type ObservableOptions<T> = {
+  /** Getter function that computes the value */
   get: () => T,
+  /** Optional name for debugging */
   name?: string,
+  /** Optional setter for writable computed values */
   set?: (val: T) => void,
+  /** Whether to cache the computed value (default: true) */
   cache?: boolean,
 } & ObservableHooksType<T>;
 
+/**
+ * Core observable class that tracks dependencies and caches computed values.
+ *
+ * ObservableItem wraps a getter function and automatically tracks which
+ * reactive properties are accessed when the getter runs. When those
+ * dependencies change, the cached value is invalidated and change hooks
+ * are called.
+ *
+ * @typeParam T - The type of the observed value
+ */
 class ObservableItem<T> {
+  /**
+   * Factory method to create a new ObservableItem.
+   * @internal
+   */
   static create<CType>(...args: ConstructorParameters<typeof ObservableItem<CType>>) {
     return new ObservableItem<CType>(...args);
   }
 
+  /**
+   * Creates a new ObservableItem.
+   * @param options - Configuration options
+   */
   constructor(options: ObservableOptions<T>) {
     this.name = options.name;
     this.get = options.get;
@@ -52,14 +116,19 @@ class ObservableItem<T> {
     };
   }
 
+  /** Name for debugging purposes */
   name: string;
+  /** Whether this observer is still active */
   alive: boolean;
+  /** Whether the cached value needs to be recomputed */
   dirty: boolean;
+  /** The previous value (available during onChange) */
   prev: T;
+  /** Whether to cache the computed value */
   cache: boolean;
   private cachedVal: T;
 
-  private hooks: Record<OBSERVER_HOOK, (obs: ObservableItem<T>) => any>;
+  private hooks: Record<OBSERVER_HOOK, (obs: ObservableItem<T>) => unknown>;
   private get: () => T;
   private set: (val: T) => void;
 
@@ -74,20 +143,21 @@ class ObservableItem<T> {
    * @returns {void}
    */
   dispose() {
-    observerClear(this, OBSERVER_SYMBOL);
+    observerClearAll(this);
     this.alive = false;
     this.dirty = false;
     this.cachedVal = undefined;
     this.prev = undefined;
   }
 
-  private wrap<CBType>(cb: () => CBType) {
+  private wrap<CBType>(cb: () => CBType): CBType {
     GLOBAL_STACK.push(this);
 
-    const val = cb();
-
-    GLOBAL_STACK.pop();
-    return val;
+    try {
+      return cb();
+    } finally {
+      GLOBAL_STACK.pop();
+    }
   }
 
   setDirty() {
@@ -113,8 +183,16 @@ class ObservableItem<T> {
 
     const val = this.wrap(() => {
       if ((this.cache && this.dirty) || !this.cache) {
-        this.cachedVal = this.get();
-        this.dirty = false;
+        // Clear old dependencies before re-running to prevent stale deps
+        observerClearAll(this);
+
+        try {
+          this.cachedVal = this.get();
+        } finally {
+          // Always reset dirty to prevent infinite retry loops on persistent errors.
+          // If the getter throws, we'll rethrow but won't be stuck dirty.
+          this.dirty = false;
+        }
       }
 
       return this.cachedVal;
@@ -143,6 +221,28 @@ class ObservableItem<T> {
 
 export { ObservableItem };
 
-export default function Observer<T = any>(...args: Parameters<typeof ObservableItem.create<T>>) {
+/**
+ * Creates a new Observer that tracks dependencies and caches computed values.
+ *
+ * This is the low-level API for creating reactive computations. Most users
+ * should use `Computed` or `Watcher` instead, which provide more convenient
+ * interfaces on top of Observer.
+ *
+ * @typeParam T - The type of the observed value
+ * @param args - Configuration options for the observer
+ * @returns An ObservableItem instance
+ *
+ * @example
+ * ```ts
+ * const obs = Observer({
+ *   get: () => state.count * 2,
+ *   onChange: (o) => console.log('Changed to:', o.value)
+ * });
+ *
+ * console.log(obs.value); // Runs getter, tracks dependencies
+ * state.count = 5; // Triggers onChange
+ * ```
+ */
+export default function Observer<T = unknown>(...args: Parameters<typeof ObservableItem.create<T>>) {
   return ObservableItem.create<T>(...args);
 }
