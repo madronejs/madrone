@@ -7,6 +7,8 @@
  * allowing you to build complex objects from simpler pieces.
  */
 
+import type { Constructor } from '@/interfaces';
+
 type AnyObject = Record<string, unknown>;
 
 type OptionalPropertyNames<T> = {
@@ -93,8 +95,6 @@ export function merge<A extends ObjectOrFactory[]>(...types: [...A]): Spread<A> 
 
   return newVal as Spread<A>;
 }
-
-type Constructor = new (...args: unknown[]) => object;
 
 /**
  * Applies mixin classes to a base class by merging their prototypes.

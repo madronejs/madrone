@@ -25,9 +25,7 @@
 import { getIntegration } from '@/global';
 import { applyClassMixins } from '@/util';
 import { define } from '@/auto';
-import { DecoratorOptionType, DecoratorDescriptorType } from './interfaces';
-
-type Constructor = new (...args: unknown[]) => object;
+import { DecoratorOptionType, DecoratorDescriptorType, Constructor } from './interfaces';
 
 const itemMap = new WeakMap<object, Set<string>>();
 
