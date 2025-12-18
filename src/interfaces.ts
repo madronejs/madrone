@@ -144,19 +144,6 @@ export interface IntegrationOptions {
  * important for mixin and class composition utilities.
  *
  * @typeParam T - The instance type that the constructor creates
- *
- * @example
- * ```ts
- * class MyClass {
- *   name: string;
- * }
- *
- * function mixin<T extends Constructor>(Base: T) {
- *   return class extends Base {
- *     // ...
- *   };
- * }
- * ```
  */
 export type Constructor<T = object> = {
   new (...args: unknown[]): T,
