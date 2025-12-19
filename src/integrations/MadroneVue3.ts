@@ -156,13 +156,26 @@ export default function MadroneVue3(options: MadroneVue3Options): Integration {
     reactiveSet(getOrAdd(cp, key));
   };
 
-  const deleteIfNeeded = (parent, key: KeyType) => {
+  // Notify that a property was deleted from an object
+  // Note: For Set/Map, we only notify - we don't clear mappings since the collection still exists
+  const notifyDelete = (parent, key: KeyType) => {
     const rawItem = obToRaw(parent);
     const item = reactiveMappings.get(rawItem);
 
-    if (item) notify(item, key);
+    if (item) {
+      notify(parent, key);
+    }
+  };
 
-    reactiveMappings.delete(rawItem);
+  // Helper to notify iteration keys when collection structure changes
+  const notifyIterationKeys = (target: object) => {
+    const tracked = accessedIterationKeys.get(obToRaw(target));
+
+    if (tracked) {
+      for (const iterKey of tracked) {
+        notify(target, iterKey);
+      }
+    }
   };
 
   const reactiveOptions: ReactiveOptions = {
@@ -174,8 +187,17 @@ export default function MadroneVue3(options: MadroneVue3Options): Integration {
     onHas: ({ target, key }) => {
       depend(target, key);
     },
-    onDelete: ({ target, key }) => {
-      deleteIfNeeded(target, key);
+    onDelete: ({ target, key, keysChanged }) => {
+      notifyDelete(target, key);
+
+      if (keysChanged) {
+        // Notify the general "keys changed" sentinel
+        notify(target);
+
+        // Notify iteration keys for Set/Map reactivity
+        // This is critical for Vue computed that use Array.from(set) or spread
+        notifyIterationKeys(target);
+      }
     },
     onSet: ({ target, key, keysChanged }) => {
       notify(target, key);
@@ -186,13 +208,7 @@ export default function MadroneVue3(options: MadroneVue3Options): Integration {
 
         // Notify only the iteration keys that Vue has actually accessed on this target
         // This fixes reactivity for Set/Map when Vue directly observes iteration
-        const tracked = accessedIterationKeys.get(obToRaw(target));
-
-        if (tracked) {
-          for (const iterKey of tracked) {
-            notify(target, iterKey);
-          }
-        }
+        notifyIterationKeys(target);
       }
     },
     needsProxy: ({ key }) => !FORBIDDEN.has(key),

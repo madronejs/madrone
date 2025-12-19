@@ -587,6 +587,144 @@ export default function testVueCollections(name, integration, options) {
       await delay();
       expect(vm.canDelete).toEqual(true);
     });
+
+    it('Vue computed reacts to Set.delete in dynamic Record via Map lookup', async () => {
+      const store = Madrone.auto({
+        queues: {} as Record<string, Set<string>>,
+        fileToTask: new Map<string, string>(),
+        get totalSize() {
+          let size = 0;
+
+          for (const key of Object.keys(this.queues)) {
+            size += this.queues[key].size;
+          }
+
+          return size;
+        },
+      });
+
+      // Dynamically add a Set
+      store.queues.task1 = new Set();
+      store.queues.task1.add('file1');
+      store.fileToTask.set('file1', 'task1');
+
+      const vm = create({
+        computed: {
+          total() {
+            return store.totalSize;
+          },
+        },
+        render() {},
+      });
+
+      expect(vm.total).toEqual(1);
+
+      // Delete via Map lookup (double-indirection pattern)
+      const taskId = store.fileToTask.get('file1');
+
+      store.queues[taskId!]?.delete('file1');
+
+      await delay();
+      expect(vm.total).toEqual(0);
+    });
+
+    it('Vue computed directly iterates Set returned from method', async () => {
+      // Tests pattern: Vue computed calls a method that returns a Set, then iterates with Array.from()
+      const store = Madrone.auto({
+        _buckets: {} as Record<string, Set<string>>,
+        _itemToBucket: new Map<string, string>(),
+
+        getBucket(id: string): Set<string> | undefined {
+          return this._buckets[id];
+        },
+
+        addItem(bucketId: string, item: string) {
+          this._buckets[bucketId] ||= new Set();
+          this._buckets[bucketId].add(item);
+          this._itemToBucket.set(item, bucketId);
+        },
+
+        removeItem(item: string) {
+          const bucketId = this._itemToBucket.get(item);
+
+          if (bucketId) {
+            this._buckets[bucketId]?.delete(item);
+            this._itemToBucket.delete(item);
+          }
+        },
+      });
+
+      store.addItem('bucket1', 'item1');
+      store.addItem('bucket1', 'item2');
+
+      const vm = create({
+        computed: {
+          items() {
+            const bucket = store.getBucket('bucket1');
+
+            // eslint-disable-next-line unicorn/prefer-spread -- testing Array.from specifically
+            return bucket ? Array.from(bucket) : [];
+          },
+        },
+        render() {},
+      });
+
+      expect(vm.items).toEqual(['item1', 'item2']);
+
+      store.removeItem('item1');
+
+      await delay();
+      expect(vm.items).toEqual(['item2']);
+    });
+
+    it('Vue computed reacts to Set.delete via double indirection through Map', async () => {
+      // Tests pattern: record[map.get(key)]?.delete(value) - lookup key via Map, then delete from Set
+      const store = Madrone.auto({
+        _groups: {} as Record<string, Set<string>>,
+        _memberToGroup: new Map<string, string>(),
+
+        getGroup(groupId: string): Set<string> | undefined {
+          return this._groups[groupId];
+        },
+
+        addMember(groupId: string, member: string) {
+          this._groups[groupId] ||= new Set();
+          this._groups[groupId].add(member);
+          this._memberToGroup.set(member, groupId);
+        },
+
+        removeMember(member: string) {
+          // Double indirection: lookup group via Map, then delete from Set
+          this._groups[this._memberToGroup.get(member)!]?.delete(member);
+          this._memberToGroup.delete(member);
+        },
+      });
+
+      // Pre-initialize the group
+      store._groups.group1 = new Set();
+
+      store.addMember('group1', 'alice');
+      store.addMember('group1', 'bob');
+
+      const vm = create({
+        computed: {
+          members() {
+            const group = store.getGroup('group1');
+
+            // eslint-disable-next-line unicorn/prefer-spread -- testing Array.from specifically
+            return group ? Array.from(group) : [];
+          },
+        },
+        render() {},
+      });
+
+      expect(vm.members).toEqual(['alice', 'bob']);
+
+      store.removeMember('alice');
+
+      await delay();
+      expect(vm.members).toEqual(['bob']);
+    });
   });
 
   describe(`${name} collection replacement`, () => {
