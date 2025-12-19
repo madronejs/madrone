@@ -64,3 +64,7 @@ Tests use Vitest and are colocated in `__spec__` directories:
 - `src/__spec__/` - Tests for decorators, merge utility, examples
 - `src/reactivity/__spec__/` - Tests for reactive, observer, watcher
 - `src/integrations/__spec__/` - Tests for MadroneState and Vue3 integration
+
+## Changelog
+
+All notable changes are documented in `CHANGELOG.md` following the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
