@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2025-12-19
+
 ### Changed
 
 - Updated `@eslint/compat` from 1.4.0 to 2.0.0
