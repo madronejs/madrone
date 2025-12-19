@@ -112,12 +112,15 @@ export default function MadroneVue3(options: MadroneVue3Options): Integration {
   // track an iteration key access for later notification
   const trackIterationKey = (target: object, key: KeyType) => {
     if (!ITERATION_KEYS.has(key)) return;
+
     const rawTarget = obToRaw(target);
     let keys = accessedIterationKeys.get(rawTarget);
+
     if (!keys) {
       keys = new Set();
       accessedIterationKeys.set(rawTarget, keys);
     }
+
     keys.add(key);
   };
   // get or add a tracked property
@@ -180,9 +183,11 @@ export default function MadroneVue3(options: MadroneVue3Options): Integration {
       if (keysChanged) {
         // Notify the general "keys changed" sentinel
         notify(target);
+
         // Notify only the iteration keys that Vue has actually accessed on this target
         // This fixes reactivity for Set/Map when Vue directly observes iteration
         const tracked = accessedIterationKeys.get(obToRaw(target));
+
         if (tracked) {
           for (const iterKey of tracked) {
             notify(target, iterKey);
