@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Vue 3 Integration**: Fixed `Set.delete()` not triggering Vue computed updates when the Set was returned from a method and iterated with `Array.from()` or spread. The `onDelete` handler was incorrectly clearing all reactive mappings for the target, and wasn't notifying Vue about tracked iteration keys.
+
 ## [1.1.2] - 2025-12-19
 
 ### Changed
