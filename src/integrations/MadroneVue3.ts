@@ -36,6 +36,19 @@ type KeyType = string | number | symbol;
 const FORBIDDEN = new Set<KeyType>(['__proto__', '__ob__']);
 const VALUE = 'value';
 
+// Keys that Vue may track when iterating collections (Set/Map)
+// Used to identify which accessed keys need notification on structural changes
+const ITERATION_KEYS = new Set<KeyType>([
+  Symbol.iterator,
+  'size',
+  'has',
+  'get',
+  'values',
+  'keys',
+  'entries',
+  'forEach',
+]);
+
 // reactive setter
 const reactiveSet = (item: { value: number }) => {
   item[VALUE] += 1;
@@ -93,6 +106,23 @@ export default function MadroneVue3(options: MadroneVue3Options): Integration {
   const obToRaw = toRaw ?? ((val) => val);
   // store all reactive properties
   const reactiveMappings = new WeakMap<object, Map<string, { value: number }>>();
+  // track which iteration keys Vue has accessed per target (for Set/Map reactivity)
+  const accessedIterationKeys = new WeakMap<object, Set<KeyType>>();
+
+  // track an iteration key access for later notification
+  const trackIterationKey = (target: object, key: KeyType) => {
+    if (!ITERATION_KEYS.has(key)) return;
+
+    const rawTarget = obToRaw(target);
+    let keys = accessedIterationKeys.get(rawTarget);
+
+    if (!keys) {
+      keys = new Set();
+      accessedIterationKeys.set(rawTarget, keys);
+    }
+
+    keys.add(key);
+  };
   // get or add a tracked property
   const getOrAdd = (parent, key) => {
     const rawItem = obToRaw(parent);
@@ -139,6 +169,7 @@ export default function MadroneVue3(options: MadroneVue3Options): Integration {
     onGet: ({ target, key }) => {
       objectAccessed(target);
       depend(target, key);
+      trackIterationKey(target, key);
     },
     onHas: ({ target, key }) => {
       depend(target, key);
@@ -149,7 +180,20 @@ export default function MadroneVue3(options: MadroneVue3Options): Integration {
     onSet: ({ target, key, keysChanged }) => {
       notify(target, key);
 
-      if (keysChanged) notify(target);
+      if (keysChanged) {
+        // Notify the general "keys changed" sentinel
+        notify(target);
+
+        // Notify only the iteration keys that Vue has actually accessed on this target
+        // This fixes reactivity for Set/Map when Vue directly observes iteration
+        const tracked = accessedIterationKeys.get(obToRaw(target));
+
+        if (tracked) {
+          for (const iterKey of tracked) {
+            notify(target, iterKey);
+          }
+        }
+      }
     },
     needsProxy: ({ key }) => !FORBIDDEN.has(key),
   };
