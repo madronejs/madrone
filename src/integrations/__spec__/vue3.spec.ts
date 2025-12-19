@@ -4,13 +4,16 @@ import MadroneVue3 from '../MadroneVue3';
 import MadroneVue from '../vue';
 import testAll from './testAll';
 import testVue from './testVue';
+import testVueCollections from './testVueCollections';
 
 const integration = MadroneVue3(Vue);
+const vueOptions = {
+  create: (...args: Parameters<typeof Vue.createApp>) => Vue.createApp(...args).mount(document.createElement('div')),
+};
 
 testAll('Vue3', integration);
-testVue('Vue3', integration, {
-  create: (...args: Parameters<typeof Vue.createApp>) => Vue.createApp(...args).mount(document.createElement('div')),
-});
+testVue('Vue3', integration, vueOptions);
+testVueCollections('Vue3', integration, vueOptions);
 
 describe('MadroneVue pre-configured module', () => {
   it('exports a valid integration', () => {
