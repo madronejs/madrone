@@ -122,17 +122,15 @@ function decorateComputed(
       ...descriptor,
       enumerable: true,
       configurable: true,
-    };
+      get: function computedGetter(this: Record<string, unknown>) {
+        computedIfNeeded(this, key, descriptor, options);
 
-    newDescriptor.get = function computedGetter(this: Record<string, unknown>) {
-      computedIfNeeded(this, key, descriptor, options);
-
-      return this[key];
-    };
-
-    newDescriptor.set = function computedSetter(this: Record<string, unknown>, val: unknown) {
-      computedIfNeeded(this, key, descriptor, options);
-      this[key] = val;
+        return this[key];
+      },
+      set: function computedSetter(this: Record<string, unknown>, val: unknown) {
+        computedIfNeeded(this, key, descriptor, options);
+        this[key] = val;
+      },
     };
 
     return newDescriptor;

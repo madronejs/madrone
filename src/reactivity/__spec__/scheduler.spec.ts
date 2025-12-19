@@ -6,9 +6,8 @@ import { delay } from '@/test/util';
 
 describe('scheduler', () => {
   it('executes tasks asynchronously', async () => {
-    const order: number[] = [];
+    const order: number[] = [1];
 
-    order.push(1);
     schedule(() => order.push(3));
     order.push(2);
 
