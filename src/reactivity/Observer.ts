@@ -13,6 +13,7 @@ import {
 } from './global';
 
 const GLOBAL_STACK: Array<ObservableItem<unknown>> = [];
+const RUNNING_OBSERVERS = new WeakSet<ObservableItem<unknown>>();
 
 /**
  * Returns the currently running Observer, if any.
@@ -25,6 +26,20 @@ const GLOBAL_STACK: Array<ObservableItem<unknown>> = [];
  */
 export function getCurrentObserver(): ObservableItem<unknown> | undefined {
   return GLOBAL_STACK.at(-1);
+}
+
+/**
+ * Checks if an Observer is currently running (on the execution stack).
+ *
+ * Used to prevent clearing dependencies for an observer that is still
+ * collecting dependencies during its getter execution.
+ *
+ * @param obs - The observer to check
+ * @returns true if the observer is currently running
+ * @internal
+ */
+export function isObserverRunning(obs: ObservableItem<unknown>): boolean {
+  return RUNNING_OBSERVERS.has(obs);
 }
 
 /**
@@ -152,11 +167,13 @@ class ObservableItem<T> {
 
   private wrap<CBType>(cb: () => CBType): CBType {
     GLOBAL_STACK.push(this);
+    RUNNING_OBSERVERS.add(this);
 
     try {
       return cb();
     } finally {
       GLOBAL_STACK.pop();
+      RUNNING_OBSERVERS.delete(this);
     }
   }
 

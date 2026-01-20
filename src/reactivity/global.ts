@@ -11,7 +11,7 @@
  * @internal
  */
 
-import { getCurrentObserver, ObservableItem } from './Observer';
+import { getCurrentObserver, isObserverRunning, ObservableItem } from './Observer';
 
 // constants
 /** Symbol used to track when an object's keys change */
@@ -230,9 +230,13 @@ export const trackerChanged = (trk: object, key: DependencyKey): void => {
     for (const obs of observers.get(key)) {
       // tell the observer it needs to run again
       obs.setDirty();
-      // the observer is dirty, so we don't need to track it
-      // anymore until the observer runs again
-      observerClear(obs, key);
+
+      // Only clear the dependency if the observer is NOT currently running.
+      // If it's running, it's in the middle of collecting new dependencies
+      // and we don't want to clear dependencies that were just registered.
+      if (!isObserverRunning(obs)) {
+        observerClear(obs, key);
+      }
     }
   }
 };

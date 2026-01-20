@@ -606,4 +606,160 @@ describe('Observer', () => {
       expect(obs.name).toEqual('myComputed');
     });
   });
+
+  describe('creating reactive objects during computation', () => {
+    it('maintains dependency tracking when atoms with same key are modified during computation', () => {
+      // This test verifies a bug fix where setting properties on reactive objects
+      // created during a computed's execution would clear unrelated dependencies
+      // that share the same tracking key.
+      //
+      // The bug occurred because:
+      // 1. A computed runs and clears its dependencies
+      // 2. It accesses an atom's 'value' property - registers dependency under key 'value'
+      // 3. It creates new atoms and READS from them (registering more 'value' deps)
+      // 4. It then WRITES to those atoms, triggering trackerChanged(atom, 'value')
+      // 5. trackerChanged called observerClear(obs, 'value') which cleared ALL 'value' deps
+      // 6. This cleared the dependency on the ORIGINAL atom
+      //
+      // This pattern mirrors how @reactive decorators work - each decorated property
+      // uses an atom {value: T} internally, all sharing 'value' as the tracking key.
+
+      // Create an "atom" - a reactive wrapper with a 'value' property
+      // This is how @reactive properties work internally
+      const sourceAtom = Reactive({ value: [1, 2, 3] });
+
+      let computeCount = 0;
+
+      const obs = Observer({
+        get: () => {
+          computeCount += 1;
+
+          // Access the atom's value - registers dependency under key 'value'
+          const items = sourceAtom.value;
+
+          // Create new atoms during computation
+          return items.map((item) => {
+            const wrapperAtom = Reactive({ value: item });
+
+            // READ from the atom first - this registers a dependency on wrapperAtom
+            // under key 'value'. Now the observer depends on BOTH sourceAtom.value
+            // AND wrapperAtom.value, both under the same key 'value'.
+            const currentValue = wrapperAtom.value;
+
+            // WRITE to the atom - this triggers trackerChanged(wrapperAtom, 'value')
+            // which notifies all observers of wrapperAtom.value (including us).
+            // The bug: observerClear(obs, 'value') was called unconditionally,
+            // clearing ALL 'value' dependencies including sourceAtom.value!
+            wrapperAtom.value = currentValue * 2;
+
+            return wrapperAtom;
+          });
+        },
+      });
+
+      // First access
+      const result1 = obs.value;
+
+      expect(result1).toHaveLength(3);
+      expect(result1[0].value).toEqual(2);
+      expect(computeCount).toEqual(1);
+
+      // Change the ORIGINAL atom's value
+      // This should trigger recomputation because we depend on sourceAtom.value
+      sourceAtom.value = [10, 20];
+
+      // The computed MUST rerun - this is the critical assertion
+      const result2 = obs.value;
+
+      expect(result2).toHaveLength(2);
+      expect(result2[0].value).toEqual(20);
+      expect(computeCount).toEqual(2);
+    });
+
+    it('preserves dependencies when multiple atoms share the same key', () => {
+      // Simulates the @reactive decorator pattern where multiple properties
+      // all use atoms with 'value' as the key
+
+      const atom1 = Reactive({ value: 'hello' });
+      const atom2 = Reactive({ value: 'world' });
+
+      let computeCount = 0;
+
+      const obs = Observer({
+        get: () => {
+          computeCount += 1;
+
+          // Depend on atom1.value
+          const greeting = atom1.value;
+
+          // Create a new atom during computation
+          const tempAtom = Reactive({ value: greeting });
+
+          // READ then WRITE - the read registers dependency, the write triggers change
+          const current = tempAtom.value;
+
+          tempAtom.value = current.toUpperCase(); // This SET was clearing atom1 dependency
+
+          return `${tempAtom.value} ${atom2.value}`;
+        },
+      });
+
+      expect(obs.value).toEqual('HELLO world');
+      expect(computeCount).toEqual(1);
+
+      // Changing atom1 should trigger recomputation
+      atom1.value = 'goodbye';
+
+      expect(obs.value).toEqual('GOODBYE world');
+      expect(computeCount).toEqual(2);
+
+      // Changing atom2 should also trigger recomputation
+      atom2.value = 'everyone';
+
+      expect(obs.value).toEqual('GOODBYE everyone');
+      expect(computeCount).toEqual(3);
+    });
+
+    it('handles nested computations with atom creation correctly', () => {
+      const sourceAtom = Reactive({ value: 5 });
+
+      let innerComputeCount = 0;
+      let outerComputeCount = 0;
+
+      const innerObs = Observer({
+        get: () => {
+          innerComputeCount += 1;
+
+          const val = sourceAtom.value;
+
+          // Create atom during computation
+          const temp = Reactive({ value: val });
+
+          // READ then WRITE pattern that triggers the bug
+          const current = temp.value;
+
+          temp.value = current * 2;
+          return temp.value;
+        },
+      });
+
+      const outerObs = Observer({
+        get: () => {
+          outerComputeCount += 1;
+          return innerObs.value + 1;
+        },
+      });
+
+      expect(outerObs.value).toEqual(11); // (5 * 2) + 1
+      expect(innerComputeCount).toEqual(1);
+      expect(outerComputeCount).toEqual(1);
+
+      // Change source - both should recompute
+      sourceAtom.value = 10;
+
+      expect(outerObs.value).toEqual(21); // (10 * 2) + 1
+      expect(innerComputeCount).toEqual(2);
+      expect(outerComputeCount).toEqual(2);
+    });
+  });
 });
