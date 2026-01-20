@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Observer**: Fixed dependencies being cleared when reactive objects are created during a computed's execution. Previously, writing to a new atom would clear all dependencies sharing the same key, including the original source.
+
 ## [1.1.4] - 2025-12-19
 
 ### Fixed
