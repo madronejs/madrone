@@ -1,5 +1,8 @@
 name: Draft Release
 
+permissions:
+  contents: read
+
 on:
   push:
     branches:
@@ -9,7 +12,7 @@ on:
     branches:
       - "main"
     types:
-      - open
+      - opened
       - reopened
       - synchronize
 
