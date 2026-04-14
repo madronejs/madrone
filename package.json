@@ -86,7 +86,7 @@
     "vue3": "npm:vue@~3.5.13"
   },
   "engines": {
-    "node": ">=20.11 || >=22.14",
+    "node": "^22.14 || ^24.14",
     "pnpm": ">=10"
   },
   "packageManager": "pnpm@10.30.3",
