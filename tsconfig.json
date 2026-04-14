@@ -2,12 +2,12 @@
   "compilerOptions": {
     "target": "es2020",
     "lib": ["esNext", "dom"],
-    "moduleResolution": "node",
+    "strict": false,
+    "moduleResolution": "bundler",
     "esModuleInterop": true,
     "experimentalDecorators": true,
     "skipLibCheck": true,
     "outDir": "./dist",
-    "baseUrl": "./",
     "paths": {
       "@/*": ["./src/*"],
       "vue": ["./node_modules/vue3"]
