@@ -1,0 +1,9 @@
+trustPolicy: no-downgrade # fail installation if a packages trust level has decreased
+minimumReleaseAge: 1440 # don't install dependencies less than one day old
+minimumReleaseAgeExclude:
+ # ####################
+ # our own package, we want to use it immediately when we update it
+ # has plenty of eyes on it and unlikely to be suspect of malicious supply chain attacks
+
+ # END our packages
+ # ####################
