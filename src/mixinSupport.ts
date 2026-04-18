@@ -256,19 +256,27 @@ function peekPending(instance: object, key: string | symbol): unknown {
   return (instance as Record<symbol, PendingMap | undefined>)[PENDING_VALUES]?.get(key);
 }
 
-type MixinMarkedFn = { __madroneMixin?: true } & ((...args: unknown[]) => unknown);
+// Tracks `get`/`set` functions that came from `installLazyReactive` or
+// `installMixinComputed`. We can't tag the descriptor itself
+// (`Object.defineProperty` silently drops non-standard fields), and we'd
+// rather not mutate the function objects — so membership in this WeakSet
+// is the authoritative "was this accessor installed by us" signal.
+const mixinInstalledFns = new WeakSet<object>();
+
+function markMixinFn(fn: object): void {
+  mixinInstalledFns.add(fn);
+}
 
 /**
- * Returns true if the property descriptor was installed by a mixin helper
- * (marker tagged on the function itself). Can't store the marker on the
- * descriptor — `Object.defineProperty` ignores non-standard descriptor keys.
+ * Returns true if the property descriptor's get or set function was installed
+ * by a mixin helper.
  */
 export function isMixinInstalled(descriptor: PropertyDescriptor | undefined): boolean {
   if (!descriptor) return false;
 
   return Boolean(
-    (descriptor.get as MixinMarkedFn | undefined)?.__madroneMixin
-    || (descriptor.set as MixinMarkedFn | undefined)?.__madroneMixin
+    (descriptor.get && mixinInstalledFns.has(descriptor.get))
+    || (descriptor.set && mixinInstalledFns.has(descriptor.set))
   );
 }
 
@@ -311,7 +319,7 @@ export function installLazyReactive(
     define(this, key as string, reactiveDescriptor(value, options));
 
     return (this as Record<string | symbol, unknown>)[key as string];
-  } as MixinMarkedFn;
+  };
 
   const lazySet = function lazyReactiveSet(this: object, val: unknown) {
     if (!getIntegration()) {
@@ -322,10 +330,10 @@ export function installLazyReactive(
 
     takePending(this, key);
     define(this, key as string, reactiveDescriptor(val, options));
-  } as MixinMarkedFn;
+  };
 
-  lazyGet.__madroneMixin = true;
-  lazySet.__madroneMixin = true;
+  markMixinFn(lazyGet);
+  markMixinFn(lazySet);
 
   Object.defineProperty(proto, key, {
     configurable: true,
@@ -382,7 +390,7 @@ export function installMixinComputed(
     }
 
     return (this as Record<string | symbol, unknown>)[key as string];
-  } as MixinMarkedFn;
+  };
 
   const lazySet = function lazyComputedSet(this: object, val: unknown) {
     if (!getIntegration()) {
@@ -396,10 +404,10 @@ export function installMixinComputed(
     }
 
     (this as Record<string | symbol, unknown>)[key as string] = val;
-  } as MixinMarkedFn;
+  };
 
-  lazyGet.__madroneMixin = true;
-  lazySet.__madroneMixin = true;
+  markMixinFn(lazyGet);
+  markMixinFn(lazySet);
 
   Object.defineProperty(proto, key, {
     configurable: true,
