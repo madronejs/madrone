@@ -69,11 +69,19 @@ export function classMixin(...mixins: Constructor[]) {
     if (!mixins?.length) return;
 
     // Defer mixin application until after the class body has been fully
-    // decorated. A class decorator's `addInitializer` callback runs after
-    // TS attaches `target[Symbol.metadata]`, so by the time we call
-    // `applyClassMixins`, base's own @reactive / @computed entries are
-    // readable via the standard metadata path — no need to thread
-    // `context.metadata` through as a separate parameter.
+    // decorated. Calling `applyClassMixins` synchronously here would run
+    // before TS attaches `target[Symbol.metadata]`, so `applyClassMixins`
+    // would see an empty metadata bag for `target` and fail to dedup
+    // against base's own `@reactive` / `@computed` declarations.
+    //
+    // A class decorator's `addInitializer` callback runs after metadata
+    // attachment — by the time this fires, `this[Symbol.metadata]` is
+    // populated with all of base's decorator entries and the standard
+    // metadata read in `applyClassMixins` is correct.
+    //
+    // Consumers writing their own class decorator that calls
+    // `applyClassMixins` synchronously can pass `context.metadata` as the
+    // optional third argument to get the same effect without deferring.
     context.addInitializer(function mixinInitializer() {
       applyClassMixins(this as unknown as Constructor, mixins);
     });

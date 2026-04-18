@@ -219,18 +219,20 @@ function claimProtoLazySlot(proto: object, key: string | symbol): boolean {
   return true;
 }
 
-const PENDING_VALUES = Symbol.for('@madronejs/pendingValues');
-
+// Per-instance map of pending values stashed when an integration wasn't
+// available at construction time. Kept in a WeakMap rather than as an own
+// symbol-keyed property on the instance so that `Reflect.ownKeys(instance)`
+// and similar introspection stays clean.
 type PendingMap = Map<string | symbol, unknown>;
 
+const pendingValues = new WeakMap<object, PendingMap>();
+
 function pendingMap(instance: object): PendingMap {
-  let map = (instance as Record<symbol, PendingMap | undefined>)[PENDING_VALUES];
+  let map = pendingValues.get(instance);
 
   if (!map) {
     map = new Map();
-    Object.defineProperty(instance, PENDING_VALUES, {
-      value: map, writable: false, enumerable: false, configurable: true,
-    });
+    pendingValues.set(instance, map);
   }
 
   return map;
@@ -241,7 +243,7 @@ function stashPending(instance: object, key: string | symbol, value: unknown): v
 }
 
 function takePending(instance: object, key: string | symbol): unknown {
-  const map = (instance as Record<symbol, PendingMap | undefined>)[PENDING_VALUES];
+  const map = pendingValues.get(instance);
 
   if (!map) return undefined;
 
@@ -253,7 +255,7 @@ function takePending(instance: object, key: string | symbol): unknown {
 }
 
 function peekPending(instance: object, key: string | symbol): unknown {
-  return (instance as Record<symbol, PendingMap | undefined>)[PENDING_VALUES]?.get(key);
+  return pendingValues.get(instance)?.get(key);
 }
 
 // Tracks `get`/`set` functions that came from `installLazyReactive` or

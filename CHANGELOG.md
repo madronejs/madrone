@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking
+
+- **Decorators**: Migrated from TypeScript experimental decorators to TC39 standard decorators. Consumers must use `target: "ES2022"` (or later) and `useDefineForClassFields: true` in `tsconfig.json`, and `experimentalDecorators: true` must be removed if set. Requires TypeScript 5.0+.
+- **`@computed`**: Now defaults to **non-enumerable** (matches native JS class-getter semantics). Callers that relied on `Object.keys(instance)` / `{ ...instance }` picking up computeds should use `@computed.configure({ enumerable: true })`.
+
+### Added
+
+- **Deferred install**: `@reactive` fields now install lazily when a class is instantiated before an integration is registered (`Madrone.use(...)`). Values set before integration are stashed per-instance and become reactive on first read/write after integration. Previously, pre-integration instances were silently non-reactive.
+- **`applyClassMixins`**: Optional third `baseMetadata` parameter for callers writing their own synchronous class decorators that need to thread `context.metadata` through. The common path (`@classMixin`, or calling `applyClassMixins` at module top level) doesn't need it.
+
 ### Fixed
 
 - **Observer**: Fixed dependencies being cleared when reactive objects are created during a computed's execution. Previously, writing to a new atom would clear all dependencies sharing the same key, including the original source.
