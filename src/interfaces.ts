@@ -75,11 +75,30 @@ export interface MadroneDescriptorMap {
 export type DecoratorDescriptorType = Omit<MadroneDescriptor, 'get' | 'set' | 'writable' | 'value'>;
 
 /**
+ * User-facing config accepted by `@reactive.configure({...})`. Combines
+ * descriptor overrides with reactive-specific knobs like `init`.
+ */
+export type ReactiveDecoratorConfig = DecoratorDescriptorType & {
+  /**
+   * Factory returning the initial value for the reactive field. Invoked per
+   * instance, at install time. Useful for supplying a default across the
+   * mixin boundary — mixed-in `@reactive` fields cannot carry their field
+   * initializer expression, so this is the explicit way to provide one.
+   *
+   * On the declaring class, the field initializer (`= 0`) still wins when
+   * present; `init` only fires if the field value is `undefined`.
+   */
+  init?: () => unknown,
+};
+
+/**
  * Configuration options for decorator functions.
  */
 export type DecoratorOptionType = {
   /** Property descriptor overrides */
   descriptors?: DecoratorDescriptorType,
+  /** Factory returning the initial value for a reactive field */
+  init?: () => unknown,
 };
 
 /**

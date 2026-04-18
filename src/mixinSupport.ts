@@ -342,11 +342,17 @@ export function installMixinReactive(
   // `@reactive` on the target class itself), defer to that one.
   if (existing && !isMixinInstalled(existing)) return;
 
+  // Mixed-in `@reactive` fields don't carry a field initializer expression
+  // across the mixin boundary (TC39 field decorators only run for instances
+  // of the declaring class). If the user supplied `init` via
+  // `@reactive.configure`, invoke it per-instance to produce the default.
   const lazyGet = function lazyReactiveGet(this: object) {
     if (!getIntegration()) return undefined;
 
     if (markInitialized(this, key)) {
-      define(this, key as string, reactiveDescriptor(undefined, options));
+      const initialValue = options?.init ? options.init() : undefined;
+
+      define(this, key as string, reactiveDescriptor(initialValue, options));
     }
 
     return (this as Record<string | symbol, unknown>)[key as string];

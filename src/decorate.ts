@@ -36,7 +36,9 @@ import {
   reactiveDescriptor,
   recordMeta,
 } from '@/mixinSupport';
-import { DecoratorOptionType, DecoratorDescriptorType, Constructor } from './interfaces';
+import {
+  DecoratorOptionType, DecoratorDescriptorType, ReactiveDecoratorConfig, Constructor,
+} from './interfaces';
 
 // ////////////////////////////
 // CLASS MIXIN
@@ -62,9 +64,17 @@ import { DecoratorOptionType, DecoratorDescriptorType, Constructor } from './int
  * ```
  */
 export function classMixin(...mixins: Constructor[]) {
-  return function classMixinDecorator<T extends Constructor>(target: T): void {
+  return function classMixinDecorator<T extends Constructor>(
+    target: T,
+    context: ClassDecoratorContext<T>
+  ): void {
     if (mixins?.length) {
-      applyClassMixins(target, mixins);
+      // Forward `context.metadata` — during class decoration, `target[Symbol.metadata]`
+      // isn't attached yet; the live `context.metadata` reference is where other
+      // decorators on this class wrote their entries, and where TS will attach
+      // the bag when decoration completes. Without forwarding it, `applyClassMixins`
+      // would allocate a fresh empty bag that TS later clobbers.
+      applyClassMixins(target, mixins, context.metadata);
     }
   };
 }
@@ -97,7 +107,10 @@ export interface ReactiveDecorator extends ReactiveFieldDecorator {
   /**
    * Creates a configured reactive decorator with custom descriptor options.
    *
-   * @param descriptorOverrides - Options to customize the reactive behavior
+   * @param config - Descriptor overrides plus optional `init` factory. `init`
+   * supplies a default when the field's own initializer doesn't — the primary
+   * use case is mixed-in `@reactive` fields, which cannot carry their field
+   * initializer expression across the mixin boundary.
    *
    * @example
    * ```ts
@@ -105,9 +118,14 @@ export interface ReactiveDecorator extends ReactiveFieldDecorator {
    *   @reactive.configure({ deep: false, enumerable: false })
    *   hiddenData = { secret: true };
    * }
+   *
+   * class CounterMixin {
+   *   // Mixed-in fields lose their `= 0`; use `init` to supply one.
+   *   @reactive.configure({ init: () => 0 }) count: number;
+   * }
    * ```
    */
-  configure: (descriptorOverrides: DecoratorDescriptorType) => ReactiveFieldDecorator,
+  configure: (config: ReactiveDecoratorConfig) => ReactiveFieldDecorator,
 }
 
 function createReactiveDecorator(options?: DecoratorOptionType): ReactiveFieldDecorator {
@@ -122,8 +140,14 @@ function createReactiveDecorator(options?: DecoratorOptionType): ReactiveFieldDe
       if (!markInitialized(instance, key)) return;
 
       // Under useDefineForClassFields, field initialization has already
-      // assigned the value as a plain data property. Capture it.
-      const initialValue = (instance as Record<string | symbol, unknown>)[key as string];
+      // assigned the value as a plain data property. Capture it. If the
+      // field had no initializer (undefined) and the user supplied an
+      // `init` factory via `@reactive.configure`, use the factory instead.
+      const record = instance as Record<string | symbol, unknown>;
+      const rawValue = record[key as string];
+      const initialValue = rawValue === undefined && options?.init
+        ? options.init()
+        : rawValue;
 
       if (getIntegration()) {
         // Integration active — install the reactive accessor on the instance.
@@ -165,7 +189,7 @@ export const reactive: ReactiveDecorator = Object.assign(
   createReactiveDecorator(),
   {
     shallow: createReactiveDecorator({ descriptors: { deep: false } }),
-    configure: (descriptorOverrides: DecoratorDescriptorType) => createReactiveDecorator({ descriptors: descriptorOverrides }),
+    configure: ({ init, ...descriptors }: ReactiveDecoratorConfig) => createReactiveDecorator({ descriptors, init }),
   }
 );
 
