@@ -105,6 +105,15 @@ export function getMadroneMeta(target: object): MadroneMeta[] | undefined {
 }
 
 /**
+ * Like `ensureMadroneMeta` but takes a `DecoratorMetadata` bag directly — used
+ * by `applyClassMixins` when a consumer calls it synchronously from inside a
+ * class decorator and threads `context.metadata` through as a parameter.
+ */
+export function ensureMadroneMetaOnBag(metadata: DecoratorMetadata): MadroneMeta[] {
+  return ownMadroneMetaArray(metadata as unknown as Record<symbol, MadroneMeta[]>);
+}
+
+/**
  * Returns the madrone decorator metadata array for `target`, creating (and
  * attaching) an empty one if it doesn't exist yet. Used by `applyClassMixins`
  * when `target[Symbol.metadata]` is already attached (i.e. after class
@@ -115,15 +124,6 @@ export function getMadroneMeta(target: object): MadroneMeta[] | undefined {
  * here will be overwritten when TS later assigns `context.metadata` to
  * `Class[Symbol.metadata]`.
  */
-/**
- * Like `ensureMadroneMeta` but takes a `DecoratorMetadata` bag directly — used
- * by `applyClassMixins` when a consumer calls it synchronously from inside a
- * class decorator and threads `context.metadata` through as a parameter.
- */
-export function ensureMadroneMetaOnBag(metadata: DecoratorMetadata): MadroneMeta[] {
-  return ownMadroneMetaArray(metadata as unknown as Record<symbol, MadroneMeta[]>);
-}
-
 export function ensureMadroneMeta(target: object): MadroneMeta[] {
   const sym = (Symbol as unknown as { metadata: symbol }).metadata;
   const holder = target as Record<symbol, Record<symbol, MadroneMeta[]> | undefined>;
@@ -190,11 +190,14 @@ export function computedDescriptor(
 //
 // When a decorated class is instantiated before an integration has been
 // registered (e.g. `new Foo()` runs in a module that loads before
-// `Madrone.use(...)`), we can't build the reactive atom / cached computed
-// yet. Instead of bailing silently — which would leave the instance with
-// no retry path — we install a prototype-level lazy accessor that
-// reattempts the install on first read/write once an integration becomes
-// available.
+// `Madrone.use(...)`), we can't build the reactive atom yet. Instead of
+// bailing silently — which would leave the instance with no retry path —
+// we install a prototype-level lazy accessor that reattempts the install
+// on first read/write once an integration becomes available.
+//
+// `@computed` doesn't go through this machinery — its decorator-returned
+// lazy getter sits on the prototype unconditionally and falls back to an
+// uncached call when no integration is registered (see decorate.ts).
 
 const protoLazyInstalled = new WeakMap<object, Set<string | symbol>>();
 
@@ -367,9 +370,10 @@ export function deferReactiveInstall(
  * that installs an instance-level cached reactive computed on first access.
  * Called by `applyClassMixins` during metadata replay.
  *
- * The wrapper is tagged so nested `applyClassMixins` calls can strip it from
- * the prototype merge — re-copying a mixin wrapper onto an unrelated class
- * would re-bind a setter closure captured from the wrong class.
+ * The wrapper's get/set functions are recorded in `mixinInstalledFns` so
+ * nested `applyClassMixins` calls can strip them from the prototype merge
+ * — re-copying a mixin wrapper onto an unrelated class would re-bind a
+ * setter closure captured from the wrong class.
  */
 export function installMixinComputed(
   proto: object,

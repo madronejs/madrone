@@ -43,22 +43,51 @@ import { DecoratorOptionType, DecoratorDescriptorType, Constructor } from './int
 // ////////////////////////////
 
 /**
- * Class decorator that mixes in methods from other classes.
+ * Class decorator that mixes prototype members and decorator metadata from
+ * other classes into the decorated class.
  *
- * Copies prototype properties from the mixin classes onto the decorated
- * class and replays their `@reactive` / `@computed` decorator metadata so
- * that mixed-in reactivity works on instances of the target class.
+ * Copies own prototype descriptors (methods, getters, setters) from each
+ * mixin onto the target's prototype, then replays `@reactive` / `@computed`
+ * decorator metadata so mixed-in reactivity works on target instances.
+ *
+ * ### Limitations
+ *
+ * - **`@reactive` field initializers don't carry across.** TC39 field
+ *   decorators only run on instances of the declaring class, so a mixin's
+ *   `@reactive count = 0` installs a reactive accessor on target instances
+ *   but starts `undefined`. Declare reactive state on the target class, or
+ *   use {@link compose} for native-JS inheritance where field initializers
+ *   do run.
+ * - **Types don't flow automatically.** Add `interface Target extends Mixin {}`
+ *   declaration merging next to the target class for type-safe access to
+ *   mixed-in members. Or use {@link compose}, which propagates types through
+ *   `extends` natively.
+ * - **Chaining order matters.** `@classMixin(A, B) class X {}` and
+ *   `@classMixin(A) @classMixin(B) class X {}` resolve same-key conflicts
+ *   differently — the combined form applies mixins in one pass (later wins
+ *   among mixins; base wins over all), while the stacked form runs as two
+ *   separate passes. Prefer the combined form.
+ *
+ * @see {@link compose} for the functional-mixin alternative.
  *
  * @example
  * ```ts
  * class Timestamped {
- *   createdAt = Date.now();
+ *   @reactive createdAt: number;
+ *
+ *   touch() { this.createdAt = Date.now(); }
  * }
+ *
+ * interface Model extends Timestamped {}
  *
  * @classMixin(Timestamped)
  * class Model {
- *   name: string;
+ *   @reactive name: string;
  * }
+ *
+ * const m = new Model();
+ * m.touch();       // mixed-in method
+ * m.name = 'foo';  // target reactive field
  * ```
  */
 export function classMixin(...mixins: Constructor[]) {

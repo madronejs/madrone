@@ -245,8 +245,6 @@ export function applyClassMixins(
  * @param obj - The source object
  * @param defaults - Default descriptor values to apply
  * @returns Property descriptor map with defaults applied
- *
- * @internal
  */
 export function getDefaultDescriptors(
   obj: object,
@@ -264,6 +262,19 @@ export function getDefaultDescriptors(
   return descriptors;
 }
 
+type MixinFactory = (base: Constructor) => Constructor;
+
+type UnionToIntersection<U> = (
+  U extends unknown ? (arg: U) => void : never
+) extends (arg: infer I) => void
+  ? I
+  : never;
+
+/** Intersection of return types across a tuple of mixin factories. */
+type ComposedResult<Ms extends readonly MixinFactory[]> = UnionToIntersection<
+  { [K in keyof Ms]: ReturnType<Ms[K]> }[number]
+>;
+
 /**
  * Composes multiple functional mixins — higher-order class functions of the
  * form `<B extends Constructor>(base: B) => class extends base { ... }` — into
@@ -272,11 +283,18 @@ export function getDefaultDescriptors(
  * Unlike `@classMixin`, which copies descriptors across a prototype boundary,
  * this is native JavaScript class inheritance: field initializers run, the
  * prototype chain is real, and types flow through `extends` without needing
- * `interface X extends Y {}` declaration merging.
+ * `interface X extends Y {}` declaration merging. Prefer `compose` when
+ * mixin `@reactive` fields need their initial values to carry over to
+ * target instances.
  *
  * Reduces right-to-left, so the leftmost mixin is outermost (matches Redux-
  * style `compose`, and the mental model that `class X extends compose(A, B)`
- * reads "X is an A that is a B").
+ * reads "X is an A that is a B"). Accepts any number of mixin factories —
+ * there's no hard arity cap, the typing is variadic.
+ *
+ * @see {@link classMixin} for the decorator-based alternative that doesn't
+ *   add prototype-chain layers but requires `interface X extends Y {}` type
+ *   merging and loses mixin field initializers.
  *
  * @example
  * ```ts
@@ -298,19 +316,6 @@ export function getDefaultDescriptors(
  * }
  * ```
  */
-type MixinFactory = (base: Constructor) => Constructor;
-
-type UnionToIntersection<U> = (
-  U extends unknown ? (arg: U) => void : never
-) extends (arg: infer I) => void
-  ? I
-  : never;
-
-/** Intersection of return types across a tuple of mixin factories. */
-type ComposedResult<Ms extends readonly MixinFactory[]> = UnionToIntersection<
-  { [K in keyof Ms]: ReturnType<Ms[K]> }[number]
->;
-
 export function compose<Ms extends readonly MixinFactory[]>(
   ...mixins: [...Ms]
 ): ComposedResult<Ms> {
