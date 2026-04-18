@@ -263,3 +263,62 @@ export function getDefaultDescriptors(
 
   return descriptors;
 }
+
+/**
+ * Composes multiple functional mixins — higher-order class functions of the
+ * form `<B extends Constructor>(base: B) => class extends base { ... }` — into
+ * a single base class suitable for `extends`.
+ *
+ * Unlike `@classMixin`, which copies descriptors across a prototype boundary,
+ * this is native JavaScript class inheritance: field initializers run, the
+ * prototype chain is real, and types flow through `extends` without needing
+ * `interface X extends Y {}` declaration merging.
+ *
+ * Reduces right-to-left, so the leftmost mixin is outermost (matches Redux-
+ * style `compose`, and the mental model that `class X extends compose(A, B)`
+ * reads "X is an A that is a B").
+ *
+ * @example
+ * ```ts
+ * const Timestamped = <T extends Constructor>(Base: T) => class extends Base {
+ *   @reactive createdAt = Date.now();
+ * };
+ *
+ * const Named = <T extends Constructor>(Base: T) => class extends Base {
+ *   @reactive fName = '';
+ *   @reactive lName = '';
+ *
+ *   @computed get fullName() {
+ *     return `${this.fName} ${this.lName}`;
+ *   }
+ * };
+ *
+ * class Person extends compose(Timestamped, Named) {
+ *   @reactive age = 0;
+ * }
+ * ```
+ */
+type MixinFactory = (base: Constructor) => Constructor;
+
+type UnionToIntersection<U> = (
+  U extends unknown ? (arg: U) => void : never
+) extends (arg: infer I) => void
+  ? I
+  : never;
+
+/** Intersection of return types across a tuple of mixin factories. */
+type ComposedResult<Ms extends readonly MixinFactory[]> = UnionToIntersection<
+  { [K in keyof Ms]: ReturnType<Ms[K]> }[number]
+>;
+
+export function compose<Ms extends readonly MixinFactory[]>(
+  ...mixins: [...Ms]
+): ComposedResult<Ms> {
+  let Base: Constructor = class {};
+
+  for (let i = mixins.length - 1; i >= 0; i -= 1) {
+    Base = mixins[i](Base);
+  }
+
+  return Base as ComposedResult<Ms>;
+}

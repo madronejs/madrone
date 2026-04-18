@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Deferred install**: `@reactive` fields now install lazily when a class is instantiated before an integration is registered (`Madrone.use(...)`). Values set before integration are stashed per-instance and become reactive on first read/write after integration. Previously, pre-integration instances were silently non-reactive.
 - **`applyClassMixins`**: Optional third `baseMetadata` parameter for callers writing their own synchronous class decorators that need to thread `context.metadata` through. The common path (`@classMixin`, or calling `applyClassMixins` at module top level) doesn't need it.
+- **`compose(...mixins)`**: Functional-mixin helper that folds a list of higher-order class factories (`<B extends Constructor>(Base: B) => class extends Base { ... }`) into a single composable base class for `extends`. Alternative to `@classMixin` that uses native class inheritance — field initializers run, types flow through `extends` without declaration merging, no metadata replay. Leftmost mixin is outermost (Redux-style).
 
 ### Fixed
 
