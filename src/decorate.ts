@@ -36,9 +36,7 @@ import {
   reactiveDescriptor,
   recordMeta,
 } from '@/mixinSupport';
-import {
-  DecoratorOptionType, DecoratorDescriptorType, ReactiveDecoratorConfig, Constructor,
-} from './interfaces';
+import { DecoratorOptionType, DecoratorDescriptorType, Constructor } from './interfaces';
 
 // ////////////////////////////
 // CLASS MIXIN
@@ -110,10 +108,7 @@ export interface ReactiveDecorator extends ReactiveFieldDecorator {
   /**
    * Creates a configured reactive decorator with custom descriptor options.
    *
-   * @param config - Descriptor overrides plus optional `init` factory. `init`
-   * supplies a default when the field's own initializer doesn't — the primary
-   * use case is mixed-in `@reactive` fields, which cannot carry their field
-   * initializer expression across the mixin boundary.
+   * @param descriptorOverrides - Options to customize the reactive behavior
    *
    * @example
    * ```ts
@@ -121,14 +116,9 @@ export interface ReactiveDecorator extends ReactiveFieldDecorator {
    *   @reactive.configure({ deep: false, enumerable: false })
    *   hiddenData = { secret: true };
    * }
-   *
-   * class CounterMixin {
-   *   // Mixed-in fields lose their `= 0`; use `init` to supply one.
-   *   @reactive.configure({ init: () => 0 }) count: number;
-   * }
    * ```
    */
-  configure: (config: ReactiveDecoratorConfig) => ReactiveFieldDecorator,
+  configure: (descriptorOverrides: DecoratorDescriptorType) => ReactiveFieldDecorator,
 }
 
 function createReactiveDecorator(options?: DecoratorOptionType): ReactiveFieldDecorator {
@@ -143,14 +133,8 @@ function createReactiveDecorator(options?: DecoratorOptionType): ReactiveFieldDe
       if (!markInitialized(instance, key)) return;
 
       // Under useDefineForClassFields, field initialization has already
-      // assigned the value as a plain data property. Capture it. If the
-      // field had no initializer (undefined) and the user supplied an
-      // `init` factory via `@reactive.configure`, use the factory instead.
-      const record = instance as Record<string | symbol, unknown>;
-      const rawValue = record[key as string];
-      const initialValue = rawValue === undefined && options?.init
-        ? options.init()
-        : rawValue;
+      // assigned the value as a plain data property. Capture it.
+      const initialValue = (instance as Record<string | symbol, unknown>)[key as string];
 
       if (getIntegration()) {
         // Integration active — install the reactive accessor on the instance.
@@ -192,7 +176,7 @@ export const reactive: ReactiveDecorator = Object.assign(
   createReactiveDecorator(),
   {
     shallow: createReactiveDecorator({ descriptors: { deep: false } }),
-    configure: ({ init, ...descriptors }: ReactiveDecoratorConfig) => createReactiveDecorator({ descriptors, init }),
+    configure: (descriptorOverrides: DecoratorDescriptorType) => createReactiveDecorator({ descriptors: descriptorOverrides }),
   }
 );
 

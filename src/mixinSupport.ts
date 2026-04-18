@@ -184,8 +184,6 @@ export function computedDescriptor(
   };
 }
 
-type MixinMarkedFn = { __madroneMixin?: true } & ((...args: unknown[]) => unknown);
-
 // ////////////////////////////
 // DEFERRED (LAZY) SETUP SUPPORT
 // ////////////////////////////
@@ -258,75 +256,12 @@ function peekPending(instance: object, key: string | symbol): unknown {
   return (instance as Record<symbol, PendingMap | undefined>)[PENDING_VALUES]?.get(key);
 }
 
-/**
- * Installs a lazy reactive accessor on `proto[key]` — used by `@reactive`'s
- * `addInitializer` when no integration is available at construction time.
- *
- * Call flow from the field decorator:
- * 1. Field init creates `instance.foo = value` as a plain data property.
- * 2. `addInitializer` runs, sees no integration, stashes the value in the
- *    instance's `PENDING_VALUES` map, deletes the own property, and calls
- *    this function (guarded by `claimProtoLazySlot`) to install the accessor.
- * 3. Later, after `Madrone.use(...)`, the first read/write on an instance
- *    finds no own property and reaches the prototype accessor. It then
- *    calls `define()` to replace itself with a real reactive accessor on
- *    the instance, using the stashed initial value.
- */
-export function installDeferredReactive(
-  proto: object,
-  key: string | symbol,
-  options?: DecoratorOptionType
-): void {
-  if (!claimProtoLazySlot(proto, key)) return;
-
-  Object.defineProperty(proto, key, {
-    configurable: true,
-    enumerable: true,
-    get(this: object) {
-      if (!getIntegration()) return peekPending(this, key);
-
-      const value = takePending(this, key);
-
-      define(this, key as string, reactiveDescriptor(value, options));
-
-      return (this as Record<string | symbol, unknown>)[key as string];
-    },
-    set(this: object, val: unknown) {
-      if (!getIntegration()) {
-        stashPending(this, key, val);
-
-        return;
-      }
-
-      takePending(this, key);
-      define(this, key as string, reactiveDescriptor(val, options));
-    },
-  });
-}
+type MixinMarkedFn = { __madroneMixin?: true } & ((...args: unknown[]) => unknown);
 
 /**
- * Called from `@reactive`'s `addInitializer` when no integration is
- * available — stashes the initial value, drops the own data property so
- * the prototype's deferred accessor takes over, and installs that accessor
- * (once per prototype).
- */
-export function deferReactiveInstall(
-  instance: object,
-  key: string | symbol,
-  initialValue: unknown,
-  options?: DecoratorOptionType
-): void {
-  stashPending(instance, key, initialValue);
-  delete (instance as Record<string | symbol, unknown>)[key as string];
-  installDeferredReactive(Object.getPrototypeOf(instance), key, options);
-}
-
-/**
- * Returns true if the property descriptor was installed by `installMixinReactive`
- * or `installMixinComputed` — its get/set functions are tagged with a marker
- * symbol. We can't store the marker on the descriptor itself because
- * `Object.defineProperty` ignores non-standard descriptor keys and they're
- * lost the moment the property is defined.
+ * Returns true if the property descriptor was installed by a mixin helper
+ * (marker tagged on the function itself). Can't store the marker on the
+ * descriptor — `Object.defineProperty` ignores non-standard descriptor keys.
  */
 export function isMixinInstalled(descriptor: PropertyDescriptor | undefined): boolean {
   if (!descriptor) return false;
@@ -338,46 +273,55 @@ export function isMixinInstalled(descriptor: PropertyDescriptor | undefined): bo
 }
 
 /**
- * Installs a lazy-reactive accessor on `proto` for `key`. On first read or
- * write, the accessor sets up real reactivity on the instance, mirroring
- * what `@reactive` would do if the decorator were applied directly to the
- * target class.
+ * Installs a lazy reactive accessor on `proto[key]`. On first read or write,
+ * the accessor installs a real reactive descriptor on the instance (via
+ * `define`), then future accesses hit the instance-own accessor directly.
+ *
+ * Two callers, one implementation:
+ * - **Deferred pre-integration** (`deferReactiveInstall`): the field has an
+ *   initial value the caller stashed on the instance beforehand. First
+ *   access picks up the stash, promotes to real reactive.
+ * - **Mixin replay** (`applyClassMixins`): no stash exists, so first access
+ *   starts the reactive at `undefined`. A mixed-in `@reactive` field can't
+ *   carry its field initializer across the mixin boundary — TC39 field
+ *   decorators only run for instances of the declaring class.
+ *
+ * Reads before an integration is registered return the stash directly; writes
+ * before that point replace the stash. Once an integration is registered, the
+ * next read/write promotes to a real reactive.
  */
-export function installMixinReactive(
+export function installLazyReactive(
   proto: object,
   key: string | symbol,
   options?: DecoratorOptionType
 ): void {
+  if (!claimProtoLazySlot(proto, key)) return;
+
+  // If the prototype already has a non-mixin-installed descriptor for this
+  // key (e.g. the base class declared its own accessor), leave it alone.
   const existing = Object.getOwnPropertyDescriptor(proto, key);
 
-  // If the target already declared its own descriptor (e.g. a re-applied
-  // `@reactive` on the target class itself), defer to that one.
   if (existing && !isMixinInstalled(existing)) return;
 
-  // Mixed-in `@reactive` fields don't carry a field initializer expression
-  // across the mixin boundary (TC39 field decorators only run for instances
-  // of the declaring class). If the user supplied `init` via
-  // `@reactive.configure`, invoke it per-instance to produce the default.
   const lazyGet = function lazyReactiveGet(this: object) {
-    if (!getIntegration()) return undefined;
+    if (!getIntegration()) return peekPending(this, key);
 
-    if (markInitialized(this, key)) {
-      const initialValue = options?.init ? options.init() : undefined;
+    const value = takePending(this, key);
 
-      define(this, key as string, reactiveDescriptor(initialValue, options));
-    }
+    define(this, key as string, reactiveDescriptor(value, options));
 
     return (this as Record<string | symbol, unknown>)[key as string];
   } as MixinMarkedFn;
 
   const lazySet = function lazyReactiveSet(this: object, val: unknown) {
-    if (!getIntegration()) return;
+    if (!getIntegration()) {
+      stashPending(this, key, val);
 
-    if (markInitialized(this, key)) {
-      define(this, key as string, reactiveDescriptor(val, options));
-    } else {
-      (this as Record<string | symbol, unknown>)[key as string] = val;
+      return;
     }
+
+    takePending(this, key);
+    define(this, key as string, reactiveDescriptor(val, options));
   } as MixinMarkedFn;
 
   lazyGet.__madroneMixin = true;
@@ -392,9 +336,30 @@ export function installMixinReactive(
 }
 
 /**
- * Wraps the computed getter on `proto[key]` so that the first access to a
- * target instance installs an instance-level reactive computed. Preserves an
- * un-decorated setter that pairs with the getter, if present.
+ * Called from `@reactive`'s `addInitializer` when no integration is
+ * available — stashes the initial value, drops the own data property so
+ * the prototype's lazy accessor takes over, and installs that accessor
+ * (once per prototype).
+ */
+export function deferReactiveInstall(
+  instance: object,
+  key: string | symbol,
+  initialValue: unknown,
+  options?: DecoratorOptionType
+): void {
+  stashPending(instance, key, initialValue);
+  delete (instance as Record<string | symbol, unknown>)[key as string];
+  installLazyReactive(Object.getPrototypeOf(instance), key, options);
+}
+
+/**
+ * Wraps a mixed-in `@computed` getter on `proto[key]` with a lazy wrapper
+ * that installs an instance-level cached reactive computed on first access.
+ * Called by `applyClassMixins` during metadata replay.
+ *
+ * The wrapper is tagged so nested `applyClassMixins` calls can strip it from
+ * the prototype merge — re-copying a mixin wrapper onto an unrelated class
+ * would re-bind a setter closure captured from the wrong class.
  */
 export function installMixinComputed(
   proto: object,
@@ -404,10 +369,6 @@ export function installMixinComputed(
   explicitSetter?: (this: object, val: unknown) => void
 ): void {
   const existing = Object.getOwnPropertyDescriptor(proto, key);
-  // Prefer an explicitly-passed setter (captured from the mixin's original
-  // prototype). Otherwise fall back to the existing descriptor's setter, but
-  // only if it isn't one we already installed — inheriting another mixin's
-  // lazy setter would cause infinite recursion through the Computed wrapper.
   const setter = explicitSetter
     ?? (existing && !isMixinInstalled(existing)
       ? (existing.set as ((val: unknown) => void) | undefined)
@@ -442,7 +403,7 @@ export function installMixinComputed(
 
   Object.defineProperty(proto, key, {
     configurable: true,
-    enumerable: true,
+    enumerable: false,
     get: lazyGet,
     set: lazySet,
   });

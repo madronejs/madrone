@@ -7,10 +7,10 @@ import {
 // `@classMixin` copies own prototype descriptors (methods, getters, setters)
 // from each mixin onto the target's prototype and replays `@reactive` /
 // `@computed` decorator metadata so mixed-in reactivity works on target
-// instances. One limitation under TC39 standard decorators: a mixed-in
-// `@reactive` field cannot carry its field initializer expression (`= 0`)
-// across the mixin boundary — use `@reactive.configure({ init: () => 0 })`
-// to supply a default instead.
+// instances. Under TC39 standard decorators, a `@reactive` field decorator
+// only runs for instances of its declaring class — so a mixed-in field's
+// initial value (`= 0`) is not carried across the mixin boundary. Mixed-in
+// reactive fields start as `undefined` and become reactive on first write.
 
 describe('classMixin', () => {
   describe('methods', () => {
@@ -67,7 +67,7 @@ describe('classMixin', () => {
   });
 
   describe('@reactive fields from a mixin', () => {
-    it('becomes reactive on the target; starts undefined without an init factory', async () => {
+    it('is reactive on the target; starts undefined (field initializer does not cross the boundary)', async () => {
       class NamedMixin {
         @reactive fName: string;
       }
@@ -79,7 +79,6 @@ describe('classMixin', () => {
 
       const t = new Target();
 
-      // No field-initializer expression is carried over — initial value is undefined.
       expect(t.fName).toBeUndefined();
 
       const seen: Array<string | undefined> = [];
@@ -96,46 +95,29 @@ describe('classMixin', () => {
       stop();
     });
 
-    it('uses `reactive.configure({ init })` to supply an initial value across the mixin boundary', async () => {
-      class Counter {
-        @reactive.configure({ init: () => 7 }) count: number;
+    it('keeps per-instance reactivity independent across target instances', async () => {
+      class Shared {
+        @reactive value: number;
       }
 
-      @classMixin(Counter)
+      @classMixin(Shared)
       class Target {}
 
-      interface Target extends Counter {}
-
-      const t = new Target();
-
-      expect(t.count).toEqual(7);
-
-      // Also produces an independent initial value per instance.
-      const t2 = new Target();
-
-      expect(t2.count).toEqual(7);
-      t2.count = 99;
-      expect(t.count).toEqual(7);
-      expect(t2.count).toEqual(99);
-    });
-
-    it('init factory runs per instance (fresh arrays/objects are not shared)', () => {
-      class Listy {
-        @reactive.configure({ init: () => [] as number[] }) items: number[];
-      }
-
-      @classMixin(Listy)
-      class Target {}
-
-      interface Target extends Listy {}
+      interface Target extends Shared {}
 
       const a = new Target();
       const b = new Target();
 
-      a.items.push(1);
+      a.value = 1;
+      b.value = 2;
 
-      expect(a.items).toEqual([1]);
-      expect(b.items).toEqual([]);
+      expect(a.value).toBe(1);
+      expect(b.value).toBe(2);
+
+      a.value = 10;
+
+      expect(a.value).toBe(10);
+      expect(b.value).toBe(2);
     });
   });
 
@@ -219,13 +201,13 @@ describe('classMixin', () => {
   });
 
   describe('combined @reactive + @computed through a mixin', () => {
-    it('reacts through the full chain when reactive deps are on the mixin with init factories', async () => {
+    it('reacts through the full chain once mixin @reactive fields are written', async () => {
       class NamedMixin {
-        @reactive.configure({ init: () => 'Anon' }) fName: string;
-        @reactive.configure({ init: () => 'User' }) lName: string;
+        @reactive fName: string;
+        @reactive lName: string;
 
         @computed get fullName() {
-          return `${this.fName} ${this.lName}`;
+          return `${this.fName ?? 'Anon'} ${this.lName ?? 'User'}`;
         }
       }
 
@@ -238,6 +220,7 @@ describe('classMixin', () => {
 
       const p = new Person();
 
+      // Before any write, mixin @reactive fields are undefined.
       expect(p.fullName).toEqual('Anon User');
 
       const seen: string[] = [];

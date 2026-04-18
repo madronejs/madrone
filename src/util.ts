@@ -9,7 +9,7 @@
 
 import type { Constructor } from '@/interfaces';
 import {
-  ensureMadroneMeta, ensureMadroneMetaOnBag, getMadroneMeta, installMixinComputed, installMixinReactive, isMixinInstalled,
+  ensureMadroneMeta, ensureMadroneMetaOnBag, getMadroneMeta, installLazyReactive, installMixinComputed, isMixinInstalled,
 } from '@/mixinSupport';
 
 type AnyObject = Record<string, unknown>;
@@ -183,37 +183,32 @@ export function applyClassMixins(
 
   Object.defineProperties(base.prototype, mergedDescriptors);
 
-  // Replay decorator metadata from mixins. Field decorators under TC39
-  // standard decorators produce no prototype artifacts of their own, so
-  // we install lazy accessors on the target prototype for mixed-in
-  // @reactive fields, and wrap mixed-in @computed getters. The installed
-  // entries are *also* accumulated into `base`'s metadata so that classes
+  // Replay `@reactive` metadata from mixins — field decorators under TC39
+  // produce no prototype artifacts of their own, so we install lazy-reactive
+  // accessors on the target prototype for each mixed-in reactive key.
+  // Entries are also accumulated into `base`'s metadata so that classes
   // which later mix in `base` see the full transitive chain.
   //
   // Keys the base class re-declares with its own decorator are skipped —
   // the base's own addInitializer handles reactivity, and clobbering its
-  // descriptor with a mixin wrapper would lose the base's paired setter
-  // and cause recursion on write. If called synchronously inside a class
-  // decorator, `baseMetadata` points at the live metadata bag (which TS
-  // later attaches to `base[Symbol.metadata]`). Otherwise we read the
-  // already-attached bag via `ensureMadroneMeta`.
+  // descriptor with a mixin accessor would cause recursion on write. If
+  // called synchronously inside a class decorator, `baseMetadata` points at
+  // the live metadata bag (which TS later attaches to `base[Symbol.metadata]`).
+  // Otherwise we read the already-attached bag via `ensureMadroneMeta`.
   const baseMeta = baseMetadata
     ? ensureMadroneMetaOnBag(baseMetadata)
     : ensureMadroneMeta(base);
   const baseOwnKeys = new Set(baseMeta.map((e) => e.key));
 
   // Collect mixin entries with later-wins semantics (matches the prototype
-  // merge order `[...mixins, base]`). A later mixin's entry overrides an
-  // earlier mixin's entry for the same key. Base's own entries then win
-  // over all mixin entries — `base` is always last in the merge order.
-  const resolved = new Map<string | symbol, { entry: Meta, originProto: object }>();
+  // merge order `[...mixins, base]`). Base's own entries win over all mixin
+  // entries — base is always last in the merge order.
+  type MetaEntry = ReturnType<typeof getMadroneMeta> extends (infer U)[] | undefined ? U : never;
 
-  type Meta = ReturnType<typeof getMadroneMeta> extends (infer U)[] | undefined ? U : never;
+  const resolved = new Map<string | symbol, { entry: MetaEntry, originProto: object }>();
 
   for (const mixin of mixins) {
-    const entries = getMadroneMeta(mixin) ?? [];
-
-    for (const entry of entries) {
+    for (const entry of getMadroneMeta(mixin) ?? []) {
       resolved.set(entry.key, { entry, originProto: mixin.prototype });
     }
   }
@@ -222,13 +217,13 @@ export function applyClassMixins(
 
   for (const { entry, originProto } of resolved.values()) {
     if (entry.kind === 'reactive') {
-      installMixinReactive(base.prototype, entry.key, entry.options);
+      installLazyReactive(base.prototype, entry.key, entry.options);
       baseMeta.push(entry);
     } else {
       // Resolve a paired setter: prefer one already carried on the metadata
       // entry (captured through an earlier mixin chain), else look at the
-      // originating mixin's prototype for a non-mixin setter (e.g. a
-      // `set $relLinks(val)` that pairs with `@computed get $relLinks()`).
+      // originating mixin's prototype for a non-mixin setter (a `set foo()`
+      // that pairs with `@computed get foo()`).
       const originalDesc = Object.getOwnPropertyDescriptor(originProto, entry.key);
       const resolvedSetter = entry.setter
         ?? (originalDesc && !isMixinInstalled(originalDesc)
