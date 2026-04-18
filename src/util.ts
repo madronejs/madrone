@@ -100,14 +100,34 @@ export function merge<A extends ObjectOrFactory[]>(...types: [...A]): Spread<A> 
 }
 
 /**
- * Applies mixin classes to a base class by merging their prototypes.
+ * Applies mixin classes to a base class by merging their prototypes and
+ * replaying any `@reactive` / `@computed` metadata recorded on the mixins.
  *
- * This function mutates the base class, copying all prototype properties
- * from the mixin classes onto the base class prototype. Properties from
- * the base class take precedence over mixin properties in case of conflicts.
+ * Mutates `base`: copies own prototype descriptors (methods, getters, setters)
+ * from each mixin onto `base.prototype`, then installs lazy-reactive accessors
+ * on `base.prototype` for each mixed-in `@reactive` field. Properties declared
+ * on `base` win over mixin entries with the same key.
+ *
+ * ### Timing
+ *
+ * Under TC39 standard decorators, `base[Symbol.metadata]` isn't attached
+ * until after class decoration completes. This function needs to read base's
+ * own entries from *somewhere*. Two valid patterns:
+ *
+ * - **Called after class decoration completes** (module top level, or inside
+ *   a class decorator's `context.addInitializer` callback): reads
+ *   `base[Symbol.metadata]` directly. No third argument needed.
+ * - **Called synchronously inside a class decorator**: pass `context.metadata`
+ *   as the third argument so base's own entries are found in the live
+ *   metadata bag that TS will attach once decoration finishes. The bundled
+ *   `@classMixin` uses the `addInitializer` variant, but this third-argument
+ *   form is supported for consumers building their own class decorators that
+ *   can't defer.
  *
  * @param base - The base class to extend (will be mutated)
  * @param mixins - Array of mixin classes whose prototypes will be merged in
+ * @param baseMetadata - Optional: pass `context.metadata` when calling
+ *   synchronously from inside a class decorator.
  *
  * @example
  * ```ts
@@ -120,28 +140,30 @@ export function merge<A extends ObjectOrFactory[]>(...types: [...A]): Spread<A> 
  *   }
  * }
  *
- * class Serializable {
- *   toJSON() {
- *     return JSON.stringify(this);
- *   }
- * }
- *
  * class Model {
  *   id: string;
  * }
  *
- * // Add Timestamped and Serializable methods to Model
- * applyClassMixins(Model, [Timestamped, Serializable]);
+ * applyClassMixins(Model, [Timestamped]);
+ * new Model().getAge();
+ * ```
  *
- * const model = new Model();
- * model.toJSON(); // Works!
- * model.getAge(); // Works!
+ * @example
+ * ```ts
+ * // Inside a custom class decorator, pass context.metadata so base's own
+ * // decorator entries aren't lost.
+ * function withTimestamps<T extends Constructor>(
+ *   target: T,
+ *   context: ClassDecoratorContext<T>,
+ * ) {
+ *   applyClassMixins(target, [Timestamped], context.metadata);
+ * }
  * ```
  */
 export function applyClassMixins(
   base: Constructor,
   mixins: Constructor[],
-  baseMetadata?: DecoratorMetadata
+  baseMetadata?: DecoratorMetadata,
 ): void {
   // Build the merged descriptor map for the prototype merge, but strip any
   // lazy-mixin accessors that came from a mixin's prototype. They belong to
@@ -168,15 +190,13 @@ export function applyClassMixins(
   // entries are *also* accumulated into `base`'s metadata so that classes
   // which later mix in `base` see the full transitive chain.
   //
-  // When called from an active class decorator, `baseMetadata` is the live
-  // metadata reference shared with all other decorators on the class —
-  // `base[Symbol.metadata]` is only attached after decoration completes, so
-  // reading it via the class constructor during decoration sees nothing.
-  //
   // Keys the base class re-declares with its own decorator are skipped —
   // the base's own addInitializer handles reactivity, and clobbering its
   // descriptor with a mixin wrapper would lose the base's paired setter
-  // and cause recursion on write.
+  // and cause recursion on write. If called synchronously inside a class
+  // decorator, `baseMetadata` points at the live metadata bag (which TS
+  // later attaches to `base[Symbol.metadata]`). Otherwise we read the
+  // already-attached bag via `ensureMadroneMeta`.
   const baseMeta = baseMetadata
     ? ensureMadroneMetaOnBag(baseMetadata)
     : ensureMadroneMeta(base);

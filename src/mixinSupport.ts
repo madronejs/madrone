@@ -70,13 +70,27 @@ export function isInitialized(target: object, key: string | symbol): boolean {
   return initializedMap.get(target)?.has(key) ?? false;
 }
 
+/**
+ * Returns `bag`'s own `MADRONE_META` array, creating it if necessary.
+ *
+ * Under TC39 decorators, a subclass's metadata bag is created via
+ * `Object.create(parent[Symbol.metadata])`, so bare property reads like
+ * `bag[MADRONE_META]` walk the prototype chain and find the parent's array.
+ * Pushing onto that would mutate the parent, so we seed a fresh own array
+ * with a shallow copy of any inherited entries instead — the subclass sees
+ * the full ancestor chain in its own bag, and parent arrays stay intact.
+ */
+function ownMadroneMetaArray(bag: Record<symbol, MadroneMeta[]>): MadroneMeta[] {
+  if (!Object.prototype.hasOwnProperty.call(bag, MADRONE_META)) {
+    bag[MADRONE_META] = [...(bag[MADRONE_META] ?? [])];
+  }
+
+  return bag[MADRONE_META];
+}
+
 /** Records a decorator registration onto the class's metadata bag. */
 export function recordMeta(metadata: DecoratorMetadata, entry: MadroneMeta): void {
-  const bag = metadata as unknown as Record<symbol, MadroneMeta[]>;
-
-  if (!bag[MADRONE_META]) bag[MADRONE_META] = [];
-
-  bag[MADRONE_META].push(entry);
+  ownMadroneMetaArray(metadata as unknown as Record<symbol, MadroneMeta[]>).push(entry);
 }
 
 /**
@@ -101,30 +115,28 @@ export function getMadroneMeta(target: object): MadroneMeta[] | undefined {
  * here will be overwritten when TS later assigns `context.metadata` to
  * `Class[Symbol.metadata]`.
  */
+/**
+ * Like `ensureMadroneMeta` but takes a `DecoratorMetadata` bag directly — used
+ * by `applyClassMixins` when a consumer calls it synchronously from inside a
+ * class decorator and threads `context.metadata` through as a parameter.
+ */
+export function ensureMadroneMetaOnBag(metadata: DecoratorMetadata): MadroneMeta[] {
+  return ownMadroneMetaArray(metadata as unknown as Record<symbol, MadroneMeta[]>);
+}
+
 export function ensureMadroneMeta(target: object): MadroneMeta[] {
   const sym = (Symbol as unknown as { metadata: symbol }).metadata;
   const holder = target as Record<symbol, Record<symbol, MadroneMeta[]> | undefined>;
 
-  if (!holder[sym]) holder[sym] = {} as Record<symbol, MadroneMeta[]>;
+  // Class constructors inherit static properties via their own prototype
+  // chain, so `holder[sym]` could be an inherited bag from a parent class.
+  // Give `target` its own bag chained off the inherited one so proto lookups
+  // still work for reads but writes land on `target`.
+  if (!Object.prototype.hasOwnProperty.call(holder, sym)) {
+    holder[sym] = Object.create(holder[sym] ?? null) as Record<symbol, MadroneMeta[]>;
+  }
 
-  const bag = holder[sym];
-
-  if (!bag[MADRONE_META]) bag[MADRONE_META] = [];
-
-  return bag[MADRONE_META];
-}
-
-/**
- * Like `ensureMadroneMeta` but takes a `DecoratorMetadata` bag directly — used
- * by `applyClassMixins` during active class decoration, when the bag hasn't
- * yet been attached to the class constructor.
- */
-export function ensureMadroneMetaOnBag(metadata: DecoratorMetadata): MadroneMeta[] {
-  const bag = metadata as unknown as Record<symbol, MadroneMeta[]>;
-
-  if (!bag[MADRONE_META]) bag[MADRONE_META] = [];
-
-  return bag[MADRONE_META];
+  return ownMadroneMetaArray(holder[sym]);
 }
 
 /** Walks the prototype chain to find the first descriptor that defines `key`. */

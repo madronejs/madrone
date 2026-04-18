@@ -68,14 +68,17 @@ export function classMixin(...mixins: Constructor[]) {
     target: T,
     context: ClassDecoratorContext<T>
   ): void {
-    if (mixins?.length) {
-      // Forward `context.metadata` — during class decoration, `target[Symbol.metadata]`
-      // isn't attached yet; the live `context.metadata` reference is where other
-      // decorators on this class wrote their entries, and where TS will attach
-      // the bag when decoration completes. Without forwarding it, `applyClassMixins`
-      // would allocate a fresh empty bag that TS later clobbers.
-      applyClassMixins(target, mixins, context.metadata);
-    }
+    if (!mixins?.length) return;
+
+    // Defer mixin application until after the class body has been fully
+    // decorated. A class decorator's `addInitializer` callback runs after
+    // TS attaches `target[Symbol.metadata]`, so by the time we call
+    // `applyClassMixins`, base's own @reactive / @computed entries are
+    // readable via the standard metadata path — no need to thread
+    // `context.metadata` through as a separate parameter.
+    context.addInitializer(function mixinInitializer() {
+      applyClassMixins(this as unknown as Constructor, mixins);
+    });
   };
 }
 
