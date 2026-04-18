@@ -158,7 +158,7 @@ export function reactiveDescriptor(value: unknown, options?: DecoratorOptionType
   return {
     value,
     enumerable: true,
-    configurable: false,
+    configurable: true,
     deep: true,
     ...options?.descriptors,
   };

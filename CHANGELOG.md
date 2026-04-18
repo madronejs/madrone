@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Decorators**: Migrated from TypeScript experimental decorators to TC39 standard decorators. Consumers must use `target: "ES2022"` (or later) and `useDefineForClassFields: true` in `tsconfig.json`, and `experimentalDecorators: true` must be removed if set. Requires TypeScript 5.0+.
 - **`@computed`**: Now defaults to **non-enumerable** (matches native JS class-getter semantics). Callers that relied on `Object.keys(instance)` / `{ ...instance }` picking up computeds should use `@computed.configure({ enumerable: true })`.
+- **`@reactive`**: Now defaults to **configurable: true**. Previously the installed descriptor was non-configurable, which blocked redefinition (HMR, test harnesses, downstream re-decoration). Use `@reactive.configure({ configurable: false })` for the old behavior.
 
 ### Added
 
