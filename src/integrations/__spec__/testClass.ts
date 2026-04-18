@@ -161,10 +161,16 @@ describe('reactive classes', () => {
     }
   });
 
-  it('makes accessed properties enumerable', () => {
+  it('makes decorated properties enumerable', () => {
+    // Under TC39 standard decorators with `useDefineForClassFields: true`,
+    // class fields (decorated or not) are always own instance properties, so
+    // Object.keys will include undecorated fields as well. Here we just
+    // verify that @reactive / @computed members show up as expected.
     const fooInstance = Foo.create({ name: 'foo' });
+    const keys = Object.keys(fooInstance);
 
-    expect(Object.keys(fooInstance)).toEqual(['name', 'age']);
+    expect(keys).toContain('name');
+    expect(keys).toContain('age');
   });
 
   it('caches computed', () => {
@@ -193,12 +199,17 @@ describe('reactive classes', () => {
     expect(fooInstance.getterSetter).toEqual('test!');
   });
 
-  it('accessed computed is enumerable', () => {
+  it('reactive fields are enumerable; @computed is not', () => {
+    // `@computed` defaults to non-enumerable (matches native JS semantics for
+    // class getters). `@reactive` fields stay enumerable like data props.
     const fooInstance = Foo.create();
 
     fooInstance.getterSetter = 'test!';
 
-    expect(Object.keys(fooInstance)).toEqual(['name', 'age', 'getterSetter', '_getterSetter']);
+    const keys = Object.keys(fooInstance);
+
+    expect(keys).toContain('_getterSetter');
+    expect(keys).not.toContain('getterSetter');
   });
 
   it('watches data', async () => {

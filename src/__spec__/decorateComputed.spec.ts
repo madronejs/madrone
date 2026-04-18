@@ -4,7 +4,10 @@ import { computed } from '../index';
 
 describe('computed decorator', () => {
   describe('enumerable', () => {
-    it('makes properties enumerable by default', () => {
+    it('makes properties non-enumerable by default', () => {
+      // Matches native JS semantics for class getters — `class X { get foo() {} }`
+      // puts `foo` on the prototype as non-enumerable. This also prevents
+      // `{ ...instance }` from accidentally triggering every computed getter.
       class Test {
         @computed get test() {
           return true;
@@ -14,12 +17,12 @@ describe('computed decorator', () => {
       const instance = new Test();
 
       expect(instance.test).toEqual(true);
-      expect(Object.keys(instance)).toEqual(['test']);
+      expect(Object.keys(instance)).toEqual([]);
     });
 
-    it('can make properties non-enumerable', () => {
+    it('can make properties enumerable', () => {
       class Test {
-        @computed.configure({ enumerable: false })
+        @computed.configure({ enumerable: true })
         get test() {
           return true;
         }
@@ -28,7 +31,7 @@ describe('computed decorator', () => {
       const instance = new Test();
 
       expect(instance.test).toEqual(true);
-      expect(Object.keys(instance)).toEqual([]);
+      expect(Object.keys(instance)).toEqual(['test']);
     });
   });
 

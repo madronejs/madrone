@@ -8,6 +8,9 @@
  */
 
 import type { Constructor } from '@/interfaces';
+import {
+  ensureMadroneMeta, ensureMadroneMetaOnBag, getMadroneMeta, installMixinComputed, installMixinReactive, isMixinInstalled,
+} from '@/mixinSupport';
 
 type AnyObject = Record<string, unknown>;
 
@@ -135,11 +138,87 @@ export function merge<A extends ObjectOrFactory[]>(...types: [...A]): Spread<A> 
  * model.getAge(); // Works!
  * ```
  */
-export function applyClassMixins(base: Constructor, mixins: Constructor[]): void {
-  Object.defineProperties(
-    base.prototype,
-    Object.getOwnPropertyDescriptors(merge(...[...mixins, base].map((item) => item.prototype)))
+export function applyClassMixins(
+  base: Constructor,
+  mixins: Constructor[],
+  baseMetadata?: DecoratorMetadata
+): void {
+  // Build the merged descriptor map for the prototype merge, but strip any
+  // lazy-mixin accessors that came from a mixin's prototype. They belong to
+  // that mixin's own installation — re-copying them onto `base.prototype`
+  // would propagate accessors between unrelated classes and cause writes
+  // to flow through the wrong setup (e.g. a computed setter captured from
+  // an intermediate class, causing "No setter defined" errors on write).
+  const mergedDescriptors = Object.getOwnPropertyDescriptors(
+    merge(...[...mixins, base].map((item) => item.prototype))
   );
+
+  for (const key of Object.keys(mergedDescriptors)) {
+    if (isMixinInstalled(mergedDescriptors[key])) {
+      delete mergedDescriptors[key];
+    }
+  }
+
+  Object.defineProperties(base.prototype, mergedDescriptors);
+
+  // Replay decorator metadata from mixins. Field decorators under TC39
+  // standard decorators produce no prototype artifacts of their own, so
+  // we install lazy accessors on the target prototype for mixed-in
+  // @reactive fields, and wrap mixed-in @computed getters. The installed
+  // entries are *also* accumulated into `base`'s metadata so that classes
+  // which later mix in `base` see the full transitive chain.
+  //
+  // When called from an active class decorator, `baseMetadata` is the live
+  // metadata reference shared with all other decorators on the class —
+  // `base[Symbol.metadata]` is only attached after decoration completes, so
+  // reading it via the class constructor during decoration sees nothing.
+  //
+  // Keys the base class re-declares with its own decorator are skipped —
+  // the base's own addInitializer handles reactivity, and clobbering its
+  // descriptor with a mixin wrapper would lose the base's paired setter
+  // and cause recursion on write.
+  const baseMeta = baseMetadata
+    ? ensureMadroneMetaOnBag(baseMetadata)
+    : ensureMadroneMeta(base);
+  const baseOwnKeys = new Set(baseMeta.map((e) => e.key));
+
+  // Collect mixin entries with later-wins semantics (matches the prototype
+  // merge order `[...mixins, base]`). A later mixin's entry overrides an
+  // earlier mixin's entry for the same key. Base's own entries then win
+  // over all mixin entries — `base` is always last in the merge order.
+  const resolved = new Map<string | symbol, { entry: Meta, originProto: object }>();
+
+  type Meta = ReturnType<typeof getMadroneMeta> extends (infer U)[] | undefined ? U : never;
+
+  for (const mixin of mixins) {
+    const entries = getMadroneMeta(mixin) ?? [];
+
+    for (const entry of entries) {
+      resolved.set(entry.key, { entry, originProto: mixin.prototype });
+    }
+  }
+
+  for (const key of baseOwnKeys) resolved.delete(key);
+
+  for (const { entry, originProto } of resolved.values()) {
+    if (entry.kind === 'reactive') {
+      installMixinReactive(base.prototype, entry.key, entry.options);
+      baseMeta.push(entry);
+    } else {
+      // Resolve a paired setter: prefer one already carried on the metadata
+      // entry (captured through an earlier mixin chain), else look at the
+      // originating mixin's prototype for a non-mixin setter (e.g. a
+      // `set $relLinks(val)` that pairs with `@computed get $relLinks()`).
+      const originalDesc = Object.getOwnPropertyDescriptor(originProto, entry.key);
+      const resolvedSetter = entry.setter
+        ?? (originalDesc && !isMixinInstalled(originalDesc)
+          ? (originalDesc.set as ((this: object, val: unknown) => void) | undefined)
+          : undefined);
+
+      installMixinComputed(base.prototype, entry.key, entry.getter, entry.options, resolvedSetter);
+      baseMeta.push({ ...entry, setter: resolvedSetter });
+    }
+  }
 }
 
 /**
