@@ -30,6 +30,7 @@ import { applyClassMixins } from '@/util';
 import { define } from '@/auto';
 import {
   computedDescriptor,
+  deferReactiveInstall,
   findAccessor,
   markInitialized,
   reactiveDescriptor,
@@ -120,14 +121,21 @@ function createReactiveDecorator(options?: DecoratorOptionType): ReactiveFieldDe
 
       if (!markInitialized(instance, key)) return;
 
-      if (!getIntegration()) return;
-
       // Under useDefineForClassFields, field initialization has already
-      // assigned the value as a plain data property. Capture it, then
-      // redefine the property as a reactive accessor.
+      // assigned the value as a plain data property. Capture it.
       const initialValue = (instance as Record<string | symbol, unknown>)[key as string];
 
-      define(instance, key as string, reactiveDescriptor(initialValue, options));
+      if (getIntegration()) {
+        // Integration active — install the reactive accessor on the instance.
+        define(instance, key as string, reactiveDescriptor(initialValue, options));
+      } else {
+        // No integration yet (e.g. `Madrone.use(...)` hasn't run). Defer:
+        // stash the initial value, drop the instance-own data prop, and
+        // install a prototype-level lazy accessor that retries on first
+        // read/write. Once an integration is registered, access triggers
+        // the real reactive install.
+        deferReactiveInstall(instance, key, initialValue, options);
+      }
     });
   };
 }
@@ -168,7 +176,7 @@ export const reactive: ReactiveDecorator = Object.assign(
 export type ComputedGetterDecorator = <This, Value>(
   getter: (this: This) => Value,
   context: ClassGetterDecoratorContext<This, Value>
-) => void;
+) => ((this: This) => Value) | void;
 
 export interface ComputedDecorator extends ComputedGetterDecorator {
   /**
@@ -188,7 +196,10 @@ export interface ComputedDecorator extends ComputedGetterDecorator {
 }
 
 function createComputedDecorator(options?: DecoratorOptionType): ComputedGetterDecorator {
-  return function computedDecorator(getter, context): void {
+  return function computedDecorator<This, Value>(
+    getter: (this: This) => Value,
+    context: ClassGetterDecoratorContext<This, Value>
+  ): (this: This) => Value {
     const key = context.name;
     const typedGetter = getter as unknown as (this: object) => unknown;
 
@@ -196,21 +207,32 @@ function createComputedDecorator(options?: DecoratorOptionType): ComputedGetterD
       kind: 'computed', key, options, getter: typedGetter,
     });
 
-    context.addInitializer(function addComputedInitializer() {
-      const instance = this as object;
+    // Replace the prototype's getter with a lazy wrapper. Integration setup
+    // is deferred until the first access — if no integration is registered
+    // yet (e.g. a class is instantiated before `Madrone.use(...)` runs), the
+    // wrapper falls back to the original getter with no caching. The first
+    // access *after* an integration is registered installs a real cached
+    // reactive computed on the instance (via `define`), and subsequent
+    // accesses hit the instance accessor directly instead of this wrapper.
+    return function lazyComputedGetter(this: This): Value {
+      const instance = this as unknown as object;
 
-      if (!markInitialized(instance, key)) return;
+      if (!getIntegration()) {
+        return getter.call(this);
+      }
 
-      if (!getIntegration()) return;
+      if (markInitialized(instance, key)) {
+        // TC39 getter decorators only receive the getter; if the class
+        // paired it with an un-decorated setter, pull it off the descriptor
+        // so writes flow through the reactive Computed wrapper.
+        const existing = findAccessor(instance, key);
+        const setter = existing?.set as ((val: unknown) => void) | undefined;
 
-      // TC39 getter decorators only receive the getter; if the class paired
-      // it with an un-decorated setter, pull the setter off the descriptor
-      // so writes flow through the reactive Computed wrapper.
-      const existing = findAccessor(instance, key);
-      const setter = existing?.set as ((val: unknown) => void) | undefined;
+        define(instance, key as string, computedDescriptor(typedGetter, setter, options));
+      }
 
-      define(instance, key as string, computedDescriptor(typedGetter, setter, options));
-    });
+      return (instance as Record<string | symbol, unknown>)[key as string] as Value;
+    };
   };
 }
 

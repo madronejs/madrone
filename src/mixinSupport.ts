@@ -174,6 +174,141 @@ export function computedDescriptor(
 
 type MixinMarkedFn = { __madroneMixin?: true } & ((...args: unknown[]) => unknown);
 
+// ////////////////////////////
+// DEFERRED (LAZY) SETUP SUPPORT
+// ////////////////////////////
+//
+// When a decorated class is instantiated before an integration has been
+// registered (e.g. `new Foo()` runs in a module that loads before
+// `Madrone.use(...)`), we can't build the reactive atom / cached computed
+// yet. Instead of bailing silently — which would leave the instance with
+// no retry path — we install a prototype-level lazy accessor that
+// reattempts the install on first read/write once an integration becomes
+// available.
+
+const protoLazyInstalled = new WeakMap<object, Set<string | symbol>>();
+
+/**
+ * Returns true (and records) if we should install a lazy accessor for
+ * `(proto, key)`. Returns false if one has already been installed. Per-
+ * prototype tracking keeps the accessor from being reinstalled for every
+ * instance constructed before an integration is available.
+ */
+function claimProtoLazySlot(proto: object, key: string | symbol): boolean {
+  let keys = protoLazyInstalled.get(proto);
+
+  if (!keys) {
+    keys = new Set();
+    protoLazyInstalled.set(proto, keys);
+  }
+
+  if (keys.has(key)) return false;
+
+  keys.add(key);
+
+  return true;
+}
+
+const PENDING_VALUES = Symbol.for('@madronejs/pendingValues');
+
+type PendingMap = Map<string | symbol, unknown>;
+
+function pendingMap(instance: object): PendingMap {
+  let map = (instance as Record<symbol, PendingMap | undefined>)[PENDING_VALUES];
+
+  if (!map) {
+    map = new Map();
+    Object.defineProperty(instance, PENDING_VALUES, {
+      value: map, writable: false, enumerable: false, configurable: true,
+    });
+  }
+
+  return map;
+}
+
+function stashPending(instance: object, key: string | symbol, value: unknown): void {
+  pendingMap(instance).set(key, value);
+}
+
+function takePending(instance: object, key: string | symbol): unknown {
+  const map = (instance as Record<symbol, PendingMap | undefined>)[PENDING_VALUES];
+
+  if (!map) return undefined;
+
+  const val = map.get(key);
+
+  map.delete(key);
+
+  return val;
+}
+
+function peekPending(instance: object, key: string | symbol): unknown {
+  return (instance as Record<symbol, PendingMap | undefined>)[PENDING_VALUES]?.get(key);
+}
+
+/**
+ * Installs a lazy reactive accessor on `proto[key]` — used by `@reactive`'s
+ * `addInitializer` when no integration is available at construction time.
+ *
+ * Call flow from the field decorator:
+ * 1. Field init creates `instance.foo = value` as a plain data property.
+ * 2. `addInitializer` runs, sees no integration, stashes the value in the
+ *    instance's `PENDING_VALUES` map, deletes the own property, and calls
+ *    this function (guarded by `claimProtoLazySlot`) to install the accessor.
+ * 3. Later, after `Madrone.use(...)`, the first read/write on an instance
+ *    finds no own property and reaches the prototype accessor. It then
+ *    calls `define()` to replace itself with a real reactive accessor on
+ *    the instance, using the stashed initial value.
+ */
+export function installDeferredReactive(
+  proto: object,
+  key: string | symbol,
+  options?: DecoratorOptionType
+): void {
+  if (!claimProtoLazySlot(proto, key)) return;
+
+  Object.defineProperty(proto, key, {
+    configurable: true,
+    enumerable: true,
+    get(this: object) {
+      if (!getIntegration()) return peekPending(this, key);
+
+      const value = takePending(this, key);
+
+      define(this, key as string, reactiveDescriptor(value, options));
+
+      return (this as Record<string | symbol, unknown>)[key as string];
+    },
+    set(this: object, val: unknown) {
+      if (!getIntegration()) {
+        stashPending(this, key, val);
+
+        return;
+      }
+
+      takePending(this, key);
+      define(this, key as string, reactiveDescriptor(val, options));
+    },
+  });
+}
+
+/**
+ * Called from `@reactive`'s `addInitializer` when no integration is
+ * available — stashes the initial value, drops the own data property so
+ * the prototype's deferred accessor takes over, and installs that accessor
+ * (once per prototype).
+ */
+export function deferReactiveInstall(
+  instance: object,
+  key: string | symbol,
+  initialValue: unknown,
+  options?: DecoratorOptionType
+): void {
+  stashPending(instance, key, initialValue);
+  delete (instance as Record<string | symbol, unknown>)[key as string];
+  installDeferredReactive(Object.getPrototypeOf(instance), key, options);
+}
+
 /**
  * Returns true if the property descriptor was installed by `installMixinReactive`
  * or `installMixinComputed` — its get/set functions are tagged with a marker
