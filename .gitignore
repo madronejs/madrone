@@ -3,4 +3,6 @@ node_modules
 /types
 /docs
 /coverage
-.claude
+
+# Claude Code local(user) settings
+**/.claude/*.local.*

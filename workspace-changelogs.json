@@ -1,0 +1,18 @@
+{
+  "@eslint/compat": "https://github.com/eslint/rewrite/releases",
+  "@eslint/eslintrc": "https://github.com/eslint/eslintrc/releases",
+  "@eslint/js": "https://github.com/eslint/eslint/releases",
+  "@stylistic/eslint-plugin": "https://github.com/eslint-stylistic/eslint-stylistic/releases",
+  "@vitest/coverage-v8": "https://github.com/vitest-dev/vitest/releases",
+  "eslint": "https://github.com/eslint/eslint/releases",
+  "eslint-plugin-unicorn": "https://github.com/sindresorhus/eslint-plugin-unicorn/releases",
+  "globals": "https://github.com/sindresorhus/globals/releases",
+  "happy-dom": "https://github.com/capricorn86/happy-dom/releases",
+  "lodash": "https://github.com/lodash/lodash/releases",
+  "typedoc": "https://github.com/TypeStrong/typedoc/releases",
+  "typescript": "https://github.com/microsoft/TypeScript/releases",
+  "typescript-eslint": "https://github.com/typescript-eslint/typescript-eslint/releases",
+  "vite": "https://github.com/vitejs/vite/releases",
+  "vitest": "https://github.com/vitest-dev/vitest/releases",
+  "vue": "https://github.com/vuejs/core/releases"
+}
