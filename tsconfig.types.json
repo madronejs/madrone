@@ -4,6 +4,7 @@
     "declaration": true,
     "emitDeclarationOnly": true,
     "declarationMap": true,
+    "rootDir": "./src",
     "outDir": "./types"
   },
   "exclude": ["node_modules", "**/__spec__/**", "**/*.spec.ts"]
