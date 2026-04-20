@@ -24,5 +24,5 @@ export * from '@/integrations';
 export * from '@/interfaces';
 export * from '@/decorate';
 export { toRaw } from '@/global';
-export { merge, applyClassMixins } from '@/util';
+export { merge, applyClassMixins, compose } from '@/util';
 export { watch, auto } from '@/auto';

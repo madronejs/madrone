@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
-    "target": "es2020",
+    "target": "es2022",
     "lib": ["esNext", "dom"],
     "strict": false,
     "moduleResolution": "bundler",
     "esModuleInterop": true,
-    "experimentalDecorators": true,
+    "useDefineForClassFields": true,
     "skipLibCheck": true,
     "outDir": "./dist",
     "paths": {

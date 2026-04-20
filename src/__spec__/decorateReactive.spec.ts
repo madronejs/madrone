@@ -28,7 +28,7 @@ describe('reactive decorator', () => {
   });
 
   describe('configurable', () => {
-    it('makes properties non-configurable by default', () => {
+    it('makes properties configurable by default', () => {
       class Test {
         @reactive test: boolean = true;
       }
@@ -47,12 +47,12 @@ describe('reactive decorator', () => {
         error = error_;
       }
 
-      expect(error?.message).toEqual('Cannot redefine property: test');
+      expect(error?.message).toBeUndefined();
     });
 
-    it('can make properties configurable', () => {
+    it('can make properties non-configurable', () => {
       class Test {
-        @reactive.configure({ configurable: true }) test: boolean = true;
+        @reactive.configure({ configurable: false }) test: boolean = true;
       }
 
       const instance = new Test();
@@ -69,7 +69,7 @@ describe('reactive decorator', () => {
         error = error_;
       }
 
-      expect(error?.message).toBeUndefined();
+      expect(error?.message).toEqual('Cannot redefine property: test');
     });
   });
 });

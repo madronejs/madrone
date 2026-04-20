@@ -1,12 +1,15 @@
 /**
  * @module decorate
  *
- * TypeScript decorators for class-based reactive state management.
+ * TC39 Stage 3 decorators for class-based reactive state management.
  *
  * Provides `@reactive` and `@computed` decorators that enable automatic
- * reactivity on class properties and getters. These decorators lazily
- * initialize reactive properties on first access, making them efficient
- * for large class hierarchies.
+ * reactivity on class fields and getters. Reactivity is installed per-instance
+ * via `addInitializer`, and decorator metadata is recorded on the class so
+ * that `applyClassMixins` can replicate mixed-in reactivity on the target.
+ *
+ * Requires TypeScript 5.0+ with standard decorators and
+ * `useDefineForClassFields: true` (default under `target: ES2022`+).
  *
  * @example
  * ```ts
@@ -25,244 +28,172 @@
 import { getIntegration } from '@/global';
 import { applyClassMixins } from '@/util';
 import { define } from '@/auto';
+import {
+  computedDescriptor,
+  deferReactiveInstall,
+  findAccessor,
+  markInitialized,
+  reactiveDescriptor,
+  recordMeta,
+} from '@/mixinSupport';
 import { DecoratorOptionType, DecoratorDescriptorType, Constructor } from './interfaces';
 
-const itemMap = new WeakMap<object, Set<string>>();
+// ////////////////////////////
+// CLASS MIXIN
+// ////////////////////////////
 
 /**
- * Class decorator that mixes in methods from other classes.
+ * Class decorator that mixes prototype members and decorator metadata from
+ * other classes into the decorated class.
  *
- * Copies all prototype properties from the mixin classes onto the
- * decorated class. Useful for composing behavior from multiple sources.
+ * Copies own prototype descriptors (methods, getters, setters) from each
+ * mixin onto the target's prototype, then replays `@reactive` / `@computed`
+ * decorator metadata so mixed-in reactivity works on target instances.
  *
- * @param mixins - Classes whose prototypes will be mixed in
- * @returns A class decorator function
+ * ### Limitations
+ *
+ * - **`@reactive` field initializers don't carry across.** TC39 field
+ *   decorators only run on instances of the declaring class, so a mixin's
+ *   `@reactive count = 0` installs a reactive accessor on target instances
+ *   but starts `undefined`. Declare reactive state on the target class, or
+ *   use {@link compose} for native-JS inheritance where field initializers
+ *   do run.
+ * - **Types don't flow automatically.** Add `interface Target extends Mixin {}`
+ *   declaration merging next to the target class for type-safe access to
+ *   mixed-in members. Or use {@link compose}, which propagates types through
+ *   `extends` natively.
+ * - **Chaining order matters.** `@classMixin(A, B) class X {}` and
+ *   `@classMixin(A) @classMixin(B) class X {}` resolve same-key conflicts
+ *   differently — the combined form applies mixins in one pass (later wins
+ *   among mixins; base wins over all), while the stacked form runs as two
+ *   separate passes. Prefer the combined form.
+ *
+ * @see {@link compose} for the functional-mixin alternative.
  *
  * @example
  * ```ts
  * class Timestamped {
- *   createdAt = Date.now();
+ *   @reactive createdAt: number;
+ *
+ *   touch() { this.createdAt = Date.now(); }
  * }
  *
- * class Serializable {
- *   toJSON() { return JSON.stringify(this); }
- * }
+ * interface Model extends Timestamped {}
  *
- * @classMixin(Timestamped, Serializable)
+ * @classMixin(Timestamped)
  * class Model {
- *   name: string;
+ *   @reactive name: string;
  * }
  *
- * const model = new Model();
- * model.toJSON(); // Works - mixed in from Serializable
+ * const m = new Model();
+ * m.touch();       // mixed-in method
+ * m.name = 'foo';  // target reactive field
  * ```
  */
 export function classMixin(...mixins: Constructor[]) {
-  return (target: Constructor) => {
-    if (mixins?.length) {
-      applyClassMixins(target, mixins);
-    }
+  return function classMixinDecorator<T extends Constructor>(
+    target: T,
+    context: ClassDecoratorContext<T>
+  ): void {
+    if (!mixins?.length) return;
+
+    // Defer mixin application until after the class body has been fully
+    // decorated. Calling `applyClassMixins` synchronously here would run
+    // before TS attaches `target[Symbol.metadata]`, so `applyClassMixins`
+    // would see an empty metadata bag for `target` and fail to dedup
+    // against base's own `@reactive` / `@computed` declarations.
+    //
+    // A class decorator's `addInitializer` callback runs after metadata
+    // attachment — by the time this fires, `this[Symbol.metadata]` is
+    // populated with all of base's decorator entries and the standard
+    // metadata read in `applyClassMixins` is correct.
+    //
+    // Consumers writing their own class decorator that calls
+    // `applyClassMixins` synchronously can pass `context.metadata` as the
+    // optional third argument to get the same effect without deferring.
+    context.addInitializer(function mixinInitializer() {
+      applyClassMixins(this as unknown as Constructor, mixins);
+    });
   };
 }
-
-function trackTargetIfNeeded(target: object): void {
-  if (!itemMap.has(target)) {
-    itemMap.set(target, new Set());
-  }
-}
-
-function checkTargetObserved(target: object, key: string): boolean {
-  trackTargetIfNeeded(target);
-
-  return itemMap.get(target).has(key);
-}
-
-function setTargetObserved(target: object, key: string): void {
-  trackTargetIfNeeded(target);
-  itemMap.get(target).add(key);
-}
-
-// ////////////////////////////
-// COMPUTED
-// ////////////////////////////
-
-function computedIfNeeded(
-  target: object,
-  key: string,
-  descriptor: PropertyDescriptor,
-  options?: DecoratorOptionType
-): boolean {
-  const pl = getIntegration();
-
-  if (pl && !checkTargetObserved(target, key)) {
-    define(target, key, {
-      ...descriptor,
-      get: descriptor.get.bind(target),
-      set: descriptor.set?.bind(target),
-      enumerable: true,
-      ...options?.descriptors,
-      cache: true,
-    });
-    setTargetObserved(target, key);
-
-    return true;
-  }
-
-  return false;
-}
-
-function decorateComputed(
-  target: object,
-  key: string,
-  descriptor: PropertyDescriptor,
-  options?: DecoratorOptionType
-): PropertyDescriptor {
-  if (typeof descriptor.get === 'function') {
-    const newDescriptor: PropertyDescriptor = {
-      ...descriptor,
-      enumerable: true,
-      configurable: true,
-      get: function computedGetter(this: Record<string, unknown>) {
-        computedIfNeeded(this, key, descriptor, options);
-
-        return this[key];
-      },
-      set: function computedSetter(this: Record<string, unknown>, val: unknown) {
-        computedIfNeeded(this, key, descriptor, options);
-        this[key] = val;
-      },
-    };
-
-    return newDescriptor;
-  }
-
-  return descriptor;
-}
-
-/**
- * Decorator that creates a cached computed property from a getter.
- *
- * When applied to a getter, the computed value is cached and only recalculated
- * when its reactive dependencies change. This provides efficient derived state
- * that automatically stays in sync with source data.
- *
- * The decorator lazily initializes the computed property on first access,
- * so it works correctly with class inheritance and instance creation.
- *
- * @param target - The class prototype
- * @param key - The property name
- * @param descriptor - The property descriptor containing the getter
- * @returns Modified property descriptor with caching behavior
- *
- * @example
- * ```ts
- * import { reactive, computed } from '@madronejs/core';
- *
- * class ShoppingCart {
- *   @reactive items: Array<{ price: number }> = [];
- *
- *   @computed get total() {
- *     return this.items.reduce((sum, item) => sum + item.price, 0);
- *   }
- *
- *   @computed get isEmpty() {
- *     return this.items.length === 0;
- *   }
- * }
- *
- * const cart = new ShoppingCart();
- * cart.items.push({ price: 10 });
- * console.log(cart.total); // 10 (computed once)
- * console.log(cart.total); // 10 (cached, no recalculation)
- * ```
- */
-export function computed(target: object, key: string, descriptor: PropertyDescriptor): PropertyDescriptor {
-  return decorateComputed(target, key, descriptor);
-}
-
-/**
- * Creates a configured computed decorator with custom options.
- *
- * @param descriptorOverrides - Options to customize the computed behavior
- * @returns A computed decorator with the specified configuration
- *
- * @example
- * ```ts
- * class Example {
- *   @computed.configure({ cache: false })
- *   get uncached() {
- *     return Date.now(); // Recalculates every access
- *   }
- * }
- * ```
- */
-computed.configure = function configureComputed(descriptorOverrides: DecoratorDescriptorType) {
-  return (target: object, key: string, descriptor: PropertyDescriptor) => decorateComputed(
-    target,
-    key,
-    descriptor,
-    { descriptors: descriptorOverrides }
-  );
-};
 
 // ////////////////////////////
 // REACTIVE
 // ////////////////////////////
 
-function reactiveIfNeeded(target: object, key: string, options?: DecoratorOptionType): boolean {
-  const pl = getIntegration();
+export type ReactiveFieldDecorator = <This, Value>(
+  value: undefined,
+  context: ClassFieldDecoratorContext<This, Value>
+) => void;
 
-  if (pl && !checkTargetObserved(target, key)) {
-    setTargetObserved(target, key);
-    define(target, key, {
-      ...Object.getOwnPropertyDescriptor(target, key),
-      enumerable: true,
-      ...options?.descriptors,
-    });
+export interface ReactiveDecorator extends ReactiveFieldDecorator {
+  /**
+   * Decorator variant that creates a shallow reactive property.
+   *
+   * Only the property itself is reactive — nested objects and arrays are not
+   * wrapped. Use this for large collections where deep tracking is unnecessary.
+   *
+   * @example
+   * ```ts
+   * class Cache {
+   *   @reactive.shallow data = { nested: { value: 1 } };
+   * }
+   * ```
+   */
+  shallow: ReactiveFieldDecorator,
 
-    return true;
-  }
-
-  return false;
+  /**
+   * Creates a configured reactive decorator with custom descriptor options.
+   *
+   * @param descriptorOverrides - Options to customize the reactive behavior
+   *
+   * @example
+   * ```ts
+   * class Example {
+   *   @reactive.configure({ deep: false, enumerable: false })
+   *   hiddenData = { secret: true };
+   * }
+   * ```
+   */
+  configure: (descriptorOverrides: DecoratorDescriptorType) => ReactiveFieldDecorator,
 }
 
-function decorateReactive(target: object, key: string, options?: DecoratorOptionType): void {
-  if (typeof target === 'function') {
-    // handle the static case
-    reactiveIfNeeded(target, key);
-  } else {
-    // handle the prototype case
-    Object.defineProperty(target, key, {
-      configurable: true,
-      enumerable: true,
-      get(this: Record<string, unknown>) {
-        if (reactiveIfNeeded(this, key, options)) {
-          return this[key];
-        }
+function createReactiveDecorator(options?: DecoratorOptionType): ReactiveFieldDecorator {
+  return function reactiveDecorator(_value, context): void {
+    const key = context.name;
 
-        return undefined;
-      },
-      set(this: Record<string, unknown>, val: unknown) {
-        if (reactiveIfNeeded(this, key, options)) {
-          this[key] = val;
-        }
-      },
+    recordMeta(context.metadata, { kind: 'reactive', key, options });
+
+    context.addInitializer(function addReactiveInitializer() {
+      const instance = this as object;
+
+      if (!markInitialized(instance, key)) return;
+
+      // Under useDefineForClassFields, field initialization has already
+      // assigned the value as a plain data property. Capture it.
+      const initialValue = (instance as Record<string | symbol, unknown>)[key as string];
+
+      if (getIntegration()) {
+        // Integration active — install the reactive accessor on the instance.
+        define(instance, key as string, reactiveDescriptor(initialValue, options));
+      } else {
+        // No integration yet (e.g. `Madrone.use(...)` hasn't run). Defer:
+        // stash the initial value, drop the instance-own data prop, and
+        // install a prototype-level lazy accessor that retries on first
+        // read/write. Once an integration is registered, access triggers
+        // the real reactive install.
+        deferReactiveInstall(instance, key, initialValue, options);
+      }
     });
-  }
+  };
 }
 
 /**
- * Decorator that makes a class property reactive.
+ * Decorator that makes a class field reactive.
  *
- * When the property value changes, any computed properties or watchers
- * that depend on it will automatically update. By default, reactivity
- * is deep - nested objects and arrays will also be reactive.
- *
- * The decorator lazily initializes reactivity on first access, making
- * it efficient for classes with many properties that may not all be used.
- *
- * @param target - The class prototype (or constructor for static properties)
- * @param key - The property name
+ * When the field changes, computed properties and watchers that depend on it
+ * will automatically update. Reactivity is deep by default — nested objects
+ * and arrays are also wrapped.
  *
  * @example
  * ```ts
@@ -276,62 +207,102 @@ function decorateReactive(target: object, key: string, options?: DecoratorOption
  *     return `Hello, ${this.name}!`;
  *   }
  * }
- *
- * const user = new User();
- *
- * watch(
- *   () => user.name,
- *   (name) => console.log(`Name changed to ${name}`)
- * );
- *
- * user.name = 'Alice'; // Triggers watcher, updates greeting
- * user.preferences.theme = 'light'; // Deep reactivity works
  * ```
  */
-export function reactive(target: object, key: string): void {
-  return decorateReactive(target, key);
+export const reactive: ReactiveDecorator = Object.assign(
+  createReactiveDecorator(),
+  {
+    shallow: createReactiveDecorator({ descriptors: { deep: false } }),
+    configure: (descriptorOverrides: DecoratorDescriptorType) => createReactiveDecorator({ descriptors: descriptorOverrides }),
+  }
+);
+
+// ////////////////////////////
+// COMPUTED
+// ////////////////////////////
+
+export type ComputedGetterDecorator = <This, Value>(
+  getter: (this: This) => Value,
+  context: ClassGetterDecoratorContext<This, Value>
+) => ((this: This) => Value) | void;
+
+export interface ComputedDecorator extends ComputedGetterDecorator {
+  /**
+   * Creates a configured computed decorator with custom descriptor options.
+   *
+   * @example
+   * ```ts
+   * class Example {
+   *   @computed.configure({ cache: false })
+   *   get uncached() {
+   *     return Date.now();
+   *   }
+   * }
+   * ```
+   */
+  configure: (descriptorOverrides: DecoratorDescriptorType) => ComputedGetterDecorator,
+}
+
+function createComputedDecorator(options?: DecoratorOptionType): ComputedGetterDecorator {
+  return function computedDecorator<This, Value>(
+    getter: (this: This) => Value,
+    context: ClassGetterDecoratorContext<This, Value>
+  ): (this: This) => Value {
+    const key = context.name;
+    const typedGetter = getter as unknown as (this: object) => unknown;
+
+    recordMeta(context.metadata, {
+      kind: 'computed', key, options, getter: typedGetter,
+    });
+
+    // Replace the prototype's getter with a lazy wrapper. Integration setup
+    // is deferred until the first access — if no integration is registered
+    // yet (e.g. a class is instantiated before `Madrone.use(...)` runs), the
+    // wrapper falls back to the original getter with no caching. The first
+    // access *after* an integration is registered installs a real cached
+    // reactive computed on the instance (via `define`), and subsequent
+    // accesses hit the instance accessor directly instead of this wrapper.
+    return function lazyComputedGetter(this: This): Value {
+      const instance = this as unknown as object;
+
+      if (!getIntegration()) {
+        return getter.call(this);
+      }
+
+      if (markInitialized(instance, key)) {
+        // TC39 getter decorators only receive the getter; if the class
+        // paired it with an un-decorated setter, pull it off the descriptor
+        // so writes flow through the reactive Computed wrapper.
+        const existing = findAccessor(instance, key);
+        const setter = existing?.set as ((val: unknown) => void) | undefined;
+
+        define(instance, key as string, computedDescriptor(typedGetter, setter, options));
+      }
+
+      return (instance as Record<string | symbol, unknown>)[key as string] as Value;
+    };
+  };
 }
 
 /**
- * Decorator variant that creates a shallow reactive property.
+ * Decorator that creates a cached computed property from a getter.
  *
- * Only the property itself is reactive, not nested objects or arrays.
- * Use this when you don't need deep reactivity and want better performance,
- * or when dealing with large objects where deep tracking is unnecessary.
- *
- * @param target - The class prototype
- * @param key - The property name
+ * Cached values are only recalculated when their reactive dependencies change.
  *
  * @example
  * ```ts
- * class Cache {
- *   // Only triggers when `data` is reassigned, not when nested values change
- *   @reactive.shallow data = { nested: { value: 1 } };
- * }
+ * class ShoppingCart {
+ *   @reactive items: Array<{ price: number }> = [];
  *
- * const cache = new Cache();
- * cache.data.nested.value = 2; // Does NOT trigger reactivity
- * cache.data = { nested: { value: 3 } }; // DOES trigger reactivity
- * ```
- */
-reactive.shallow = function configureReactive(target: object, key: string): void {
-  return decorateReactive(target, key, { descriptors: { deep: false } });
-};
-
-/**
- * Creates a configured reactive decorator with custom options.
- *
- * @param descriptorOverrides - Options to customize the reactive behavior
- * @returns A reactive decorator with the specified configuration
- *
- * @example
- * ```ts
- * class Example {
- *   @reactive.configure({ deep: false, enumerable: false })
- *   hiddenData = { secret: true };
+ *   @computed get total() {
+ *     return this.items.reduce((sum, item) => sum + item.price, 0);
+ *   }
  * }
  * ```
  */
-reactive.configure = function configureReactive(descriptorOverrides: DecoratorDescriptorType) {
-  return (target: object, key: string) => decorateReactive(target, key, { descriptors: descriptorOverrides });
-};
+export const computed: ComputedDecorator = Object.assign(
+  createComputedDecorator(),
+  {
+    configure: (descriptorOverrides: DecoratorDescriptorType) => createComputedDecorator({ descriptors: descriptorOverrides }),
+  }
+);
