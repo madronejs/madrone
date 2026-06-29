@@ -217,6 +217,21 @@ export function applyClassMixins(
 
   for (const { entry, originProto } of resolved.values()) {
     if (entry.kind === 'reactive') {
+      // The prototype merge above may have copied a getter-only @computed
+      // accessor for this key down from a deeper mixin (a multi-level chain
+      // where an ancestor declared it @computed and a nearer mixin overrode it
+      // @reactive). This key resolved to @reactive in the metadata, which is
+      // authoritative here - base's own keys are already excluded from
+      // `resolved`, so any descriptor present is a merge artifact, not a
+      // base-declared accessor. Drop it first; otherwise installLazyReactive's
+      // "leave an existing own accessor alone" guard preserves the stale
+      // getter-only and writes throw.
+      const merged = Object.getOwnPropertyDescriptor(base.prototype, entry.key);
+
+      if (merged && !isMixinInstalled(merged)) {
+        delete (base.prototype as Record<string | symbol, unknown>)[entry.key];
+      }
+
       installLazyReactive(base.prototype, entry.key, entry.options);
       baseMeta.push(entry);
     } else {
