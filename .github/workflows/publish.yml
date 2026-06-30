@@ -14,7 +14,7 @@ on:
 
 permissions:
   contents: write   # to create the tag + release
-  id-token: write   # for npm provenance
+  id-token: write   # for npm provenance + trusted publishing (OIDC)
 
 jobs:
   publish:
@@ -32,6 +32,10 @@ jobs:
       - run: corepack enable
 
       - run: pnpm install --frozen-lockfile
+
+      # Trusted publishing (OIDC) needs npm >= 11.5.1; Node 22 ships npm 10.x.
+      - name: Upgrade npm for trusted publishing
+        run: npm install -g npm@latest
 
       - name: Verify
         run: pnpm all   # build-types + lint + test-ci
@@ -52,11 +56,11 @@ jobs:
         if: ${{ inputs.dry_run }}
         run: npm publish --access public --tag "${{ inputs.dist_tag }}" --provenance --dry-run
 
+      # Auth comes from the GitHub OIDC token, not a stored secret: the package
+      # must have madronejs/madrone -> publish.yml registered as a trusted publisher on npm.
       - name: Publish
         if: ${{ !inputs.dry_run }}
         run: npm publish --access public --tag "${{ inputs.dist_tag }}" --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Tag + GitHub release
         if: ${{ !inputs.dry_run }}
