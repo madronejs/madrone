@@ -177,17 +177,17 @@ describe('Reactive', () => {
     });
 
     it('allows .catch() and .finally() on nested Promises', async () => {
-      let finallyCalled = false;
+      let isFinallyCalled = false;
       const state = Reactive({
         promise: Promise.reject(new Error('test error')),
       });
 
       const result = await state.promise
         .catch((error) => error.message)
-        .finally(() => { finallyCalled = true; });
+        .finally(() => { isFinallyCalled = true; });
 
       expect(result).toBe('test error');
-      expect(finallyCalled).toBe(true);
+      expect(isFinallyCalled).toBe(true);
     });
   });
 
@@ -274,17 +274,17 @@ describe('Reactive', () => {
     });
 
     it('provides keysChanged flag in onDelete', () => {
-      let keysChanged = false;
+      let isKeysChanged = false;
       const obj = { a: 1 };
       const state = Reactive<{ a?: number }>(obj, {
         onDelete: (opts) => {
-          keysChanged = opts.keysChanged;
+          isKeysChanged = opts.keysChanged;
         },
       });
 
       delete state.a;
 
-      expect(keysChanged).toBe(true);
+      expect(isKeysChanged).toBe(true);
     });
   });
 

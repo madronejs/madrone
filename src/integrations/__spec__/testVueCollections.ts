@@ -135,11 +135,7 @@ export default function testVueCollections(name, integration, options) {
       const store = Madrone.auto({
         values: new Set([1, 2, 3]),
         get doubled() {
-          const result: number[] = [];
-
-          for (const v of this.values) {
-            result.push(v * 2);
-          }
+          const result: number[] = Array.from(this.values, (v) => v * 2);
 
           return result;
         },
@@ -595,8 +591,8 @@ export default function testVueCollections(name, integration, options) {
         get totalSize() {
           let size = 0;
 
-          for (const key of Object.keys(this.queues)) {
-            size += this.queues[key].size;
+          for (const value of Object.values(this.queues)) {
+            size += value.size;
           }
 
           return size;

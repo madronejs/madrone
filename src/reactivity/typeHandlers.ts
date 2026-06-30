@@ -38,12 +38,12 @@ const optionGet = (options: ReactiveOptions, target, key, receiver) => {
 const optionSet = (options: ReactiveOptions, target, key, value) => {
   const curr = target[key];
   const isArray = Array.isArray(target);
-  let valueChanged = false;
-  let keysChanged = false;
+  let isValueChanged = false;
+  let isKeysChanged = false;
 
   if (!(key in target)) {
     targetChanged(target, KEYS_SYMBOL);
-    keysChanged = true;
+    isKeysChanged = true;
 
     if (isArray) {
       targetChanged(target, 'length');
@@ -52,13 +52,13 @@ const optionSet = (options: ReactiveOptions, target, key, value) => {
 
   if (curr !== value || isArray) {
     targetChanged(target, key);
-    valueChanged = true;
+    isValueChanged = true;
   }
 
   // Only allocate options object if callback exists and something changed
-  if ((keysChanged || valueChanged) && options?.onSet) {
+  if ((isKeysChanged || isValueChanged) && options?.onSet) {
     options.onSet(makeOptions({
-      name: options.name, target, key, value, keysChanged, valueChanged,
+      name: options.name, target, key, value, keysChanged: isKeysChanged, valueChanged: isValueChanged,
     }));
   }
 };
@@ -235,11 +235,11 @@ const setHandler = (options: ReactiveOptions) => ({
     // Handle clear - triggers change
     if (key === 'clear') {
       return () => {
-        const hadValues = target.size > 0;
+        const hasValues = target.size > 0;
 
         target.clear();
 
-        if (hadValues) {
+        if (hasValues) {
           targetChanged(target, KEYS_SYMBOL);
           options?.onDelete?.(makeOptions({
             name: options.name,
@@ -417,11 +417,11 @@ const mapHandler = (options: ReactiveOptions) => ({
     if (key === 'clear') {
       return () => {
         const keys = [...target.keys()];
-        const hadValues = target.size > 0;
+        const hasValues = target.size > 0;
 
         target.clear();
 
-        if (hadValues) {
+        if (hasValues) {
           targetChanged(target, KEYS_SYMBOL);
 
           for (const k of keys) {
@@ -448,7 +448,7 @@ const mapHandler = (options: ReactiveOptions) => ({
           key,
         }));
 
-        for (const [mapKey, value] of target.entries()) {
+        for (const [mapKey, value] of target) {
           cb.call(thisArg, wrapIfDeep(value, options), mapKey, receiver);
         }
       };

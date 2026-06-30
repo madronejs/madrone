@@ -10,7 +10,7 @@ function makeClass() {
 
     @reactive static _getterSetter: any = 'test';
     @computed static get getterSetter() {
-      (Foo as any).test?.();
+      (this as any).test?.();
       return `${this._getterSetter} computed`;
     }
 
@@ -65,7 +65,7 @@ export default function testClass(name, integration) {
       Foo.getterSetter = 'test2';
       expect(Foo.getterSetter).toEqual('test2 computed');
       await new Promise((resolve) => {
-        setTimeout(resolve);
+        setTimeout(resolve, 0);
       });
       expect(calls).toEqual(1);
     });
@@ -228,7 +228,7 @@ describe('reactive classes', () => {
     fooInstance.name = 'test2';
     expect(fooInstance.summary).toEqual('test2 10');
     await new Promise((resolve) => {
-      setTimeout(resolve);
+      setTimeout(resolve, 0);
     });
     expect(calls).toEqual(1);
   });
@@ -248,7 +248,7 @@ describe('reactive classes', () => {
     fooInstance.unsetVal = true;
     expect(fooInstance.unsetVal).toEqual(true);
     await new Promise((resolve) => {
-      setTimeout(resolve);
+      setTimeout(resolve, 0);
     });
     expect(calls).toEqual(1);
   });
@@ -268,7 +268,7 @@ describe('reactive classes', () => {
     expect(calls).toEqual(0);
     fooInstance2.unsetVal = true;
     await new Promise((resolve) => {
-      setTimeout(resolve);
+      setTimeout(resolve, 0);
     });
     expect(calls).toEqual(0);
   });
@@ -287,7 +287,7 @@ describe('reactive classes', () => {
     expect(calls).toEqual(0);
     fooInstance.notReactive = true;
     await new Promise((resolve) => {
-      setTimeout(resolve);
+      setTimeout(resolve, 0);
     });
     expect(calls).toEqual(0);
   });
@@ -335,13 +335,13 @@ describe('reactive classes', () => {
     expect(calls).toEqual(0);
     object.val.one = { ...object.val.one };
     await new Promise((resolve) => {
-      setTimeout(resolve);
+      setTimeout(resolve, 0);
     });
     expect(calls).toEqual(0);
 
     object.val = { ...object.val };
     await new Promise((resolve) => {
-      setTimeout(resolve);
+      setTimeout(resolve, 0);
     });
     expect(calls).toEqual(1);
   });
@@ -403,11 +403,11 @@ describe('class mixins', () => {
     expect(instance.fullName).toEqual('undefined undefined');
     instance.fName = 'first';
     await new Promise((resolve) => {
-      setTimeout(resolve);
+      setTimeout(resolve, 0);
     });
     instance.lName = 'last';
     await new Promise((resolve) => {
-      setTimeout(resolve);
+      setTimeout(resolve, 0);
     });
     expect(instance.fullName).toEqual('first last');
     expect(changes).toEqual(['first undefined', 'first last']);

@@ -178,15 +178,17 @@ class ObservableItem<T> {
   }
 
   setDirty() {
-    if (this.alive && !this.dirty) {
-      this.dirty = true;
-      trackerChanged(this, OBSERVER_SYMBOL);
-      // store the previous value for the onChange
-      this.prev = this.cachedVal;
-      this.cachedVal = undefined;
-      this.callHook(OBSERVER_HOOK.onImmediateChange);
-      schedule(() => this.notifyChange());
+    if (!(this.alive && !this.dirty)) {
+      return;
     }
+
+    this.dirty = true;
+    trackerChanged(this, OBSERVER_SYMBOL);
+    // store the previous value for the onChange
+    this.prev = this.cachedVal;
+    this.cachedVal = undefined;
+    this.callHook(OBSERVER_HOOK.onImmediateChange);
+    schedule(() => this.notifyChange());
   }
 
   private notifyChange() {
