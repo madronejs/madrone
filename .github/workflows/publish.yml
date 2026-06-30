@@ -1,0 +1,72 @@
+name: Publish to npm
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Build and pack only; do not publish"
+        type: boolean
+        default: true
+      dist_tag:
+        description: "npm dist-tag"
+        type: string
+        default: latest
+
+permissions:
+  contents: write   # to create the tag + release
+  id-token: write   # for npm provenance + trusted publishing (OIDC)
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - run: corepack enable
+
+      - run: pnpm install --frozen-lockfile
+
+      # Trusted publishing (OIDC) needs npm >= 11.5.1; Node 22 ships npm 10.x.
+      - name: Upgrade npm for trusted publishing
+        run: npm install -g npm@latest
+
+      - name: Verify
+        run: pnpm all   # build-types + lint + test-ci
+
+      - name: Build artifacts
+        run: pnpm build-all
+
+      - name: Guard against republishing an existing version
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          VER=$(node -p "require('./package.json').version")
+          if npm view "$NAME@$VER" version >/dev/null 2>&1; then
+            echo "::error::$NAME@$VER is already published"; exit 1
+          fi
+          echo "VER=$VER" >> "$GITHUB_ENV"
+
+      - name: Publish (dry run)
+        if: ${{ inputs.dry_run }}
+        run: npm publish --access public --tag "${{ inputs.dist_tag }}" --provenance --dry-run
+
+      # Auth comes from the GitHub OIDC token, not a stored secret: the package
+      # must have madronejs/madrone -> publish.yml registered as a trusted publisher on npm.
+      - name: Publish
+        if: ${{ !inputs.dry_run }}
+        run: npm publish --access public --tag "${{ inputs.dist_tag }}" --provenance
+
+      - name: Tag + GitHub release
+        if: ${{ !inputs.dry_run }}
+        run: |
+          git tag "v$VER"
+          git push origin "v$VER"
+          gh release create "v$VER" --title "v$VER" --generate-notes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
