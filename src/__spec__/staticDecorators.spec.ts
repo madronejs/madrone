@@ -72,7 +72,7 @@ describe('static @computed', () => {
       @computed static get derived() {
         calls += 1;
 
-        return Cached.source * 10;
+        return this.source * 10;
       }
     }
 
@@ -92,7 +92,7 @@ describe('static @computed', () => {
       @reactive static b = 2;
 
       @computed static get sum() {
-        return Tracked.a + Tracked.b;
+        return this.a + this.b;
       }
     }
 
@@ -115,7 +115,7 @@ describe('static @computed', () => {
       @reactive static _val: string = 'init';
 
       @computed static get val() {
-        return Paired._val;
+        return this._val;
       }
 
       static set val(v: string) {

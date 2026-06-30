@@ -221,13 +221,13 @@ describe('array', () => {
       get: () => {
         counter += 1;
 
-        let returnVal = false;
+        let isReturnVal = false;
 
         for (const { value } of tracked) {
-          if (value) returnVal = true;
+          if (value) isReturnVal = true;
         }
 
-        return returnVal;
+        return isReturnVal;
       },
     });
 

@@ -23,7 +23,7 @@ describe('decorator metadata under native `extends`', () => {
     }
 
     const parentKeys = (getMadroneMeta(Parent) ?? []).map((e) => e.key);
-    const childKeys = (getMadroneMeta(Child) ?? []).map((e) => e.key).toSorted();
+    const childKeys = (getMadroneMeta(Child) ?? []).map((e) => e.key).toSorted((a, b) => String(a).localeCompare(String(b)));
 
     expect(parentKeys).toEqual(['a']);
     expect(childKeys).toEqual(['a', 'b']);
@@ -163,8 +163,8 @@ describe('decorator metadata under native `extends`', () => {
       }
     }
 
-    const parentKeys = (getMadroneMeta(Parent) ?? []).map((e) => e.key).toSorted();
-    const childKeys = (getMadroneMeta(Child) ?? []).map((e) => e.key).toSorted();
+    const parentKeys = (getMadroneMeta(Parent) ?? []).map((e) => e.key).toSorted((a, b) => String(a).localeCompare(String(b)));
+    const childKeys = (getMadroneMeta(Child) ?? []).map((e) => e.key).toSorted((a, b) => String(a).localeCompare(String(b)));
 
     expect(parentKeys).toEqual(['doubled', 'val']);
     expect(childKeys).toEqual(['doubled', 'tripled', 'val']);

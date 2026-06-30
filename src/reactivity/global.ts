@@ -82,32 +82,34 @@ export const addReactive = <T extends object>(target: T, proxy: T): void => {
 };
 
 const doTasksIfNeeded = (): void => {
-  if (SCHEDULER_ID === null) {
-    SCHEDULER_ID = Symbol('scheduler');
-    queueMicrotask(() => {
-      try {
-        // Process until queue is truly empty, including tasks added during execution
-        while (TASK_QUEUE.length > 0) {
-          const queue = TASK_QUEUE;
+  if (SCHEDULER_ID !== null) {
+    return;
+  }
 
-          TASK_QUEUE = [];
+  SCHEDULER_ID = Symbol('scheduler');
+  queueMicrotask(() => {
+    try {
+      // Process until queue is truly empty, including tasks added during execution
+      while (TASK_QUEUE.length > 0) {
+        const queue = TASK_QUEUE;
 
-          for (const task of queue) {
-            try {
-              task();
-            } catch (error) {
-              // Log error but continue processing other tasks
-              // eslint-disable-next-line no-console
-              console.error('Unhandled error in scheduled task:', error);
-            }
+        TASK_QUEUE = [];
+
+        for (const task of queue) {
+          try {
+            task();
+          } catch (error) {
+            // Log error but continue processing other tasks
+            // eslint-disable-next-line no-console
+            console.error('Unhandled error in scheduled task:', error);
           }
         }
-      } finally {
-        // Always reset scheduler ID so future tasks can be scheduled
-        SCHEDULER_ID = null;
       }
-    });
-  }
+    } finally {
+      // Always reset scheduler ID so future tasks can be scheduled
+      SCHEDULER_ID = null;
+    }
+  });
 };
 
 /**

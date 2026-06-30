@@ -263,11 +263,11 @@ function createComputedDecorator(options?: DecoratorOptionType): ComputedGetterD
     // reactive computed on the instance (via `define`), and subsequent
     // accesses hit the instance accessor directly instead of this wrapper.
     return function lazyComputedGetter(this: This): Value {
-      const instance = this as unknown as object;
-
       if (!getIntegration()) {
         return getter.call(this);
       }
+
+      const instance = this as unknown as object;
 
       if (markInitialized(instance, key)) {
         // TC39 getter decorators only receive the getter; if the class
