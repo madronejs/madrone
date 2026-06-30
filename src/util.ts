@@ -208,7 +208,9 @@ export function applyClassMixins(
   const resolved = new Map<string | symbol, { entry: MetaEntry, originProto: object }>();
 
   for (const mixin of mixins) {
-    for (const entry of getMadroneMeta(mixin) ?? []) {
+    const entries = getMadroneMeta(mixin) ?? [];
+
+    for (const entry of entries) {
       resolved.set(entry.key, { entry, originProto: mixin.prototype });
     }
   }
@@ -268,9 +270,9 @@ export function getDefaultDescriptors(
   const descriptors = Object.getOwnPropertyDescriptors(obj);
   const newDefaults = { configurable: true, enumerable: false, ...defaults };
 
-  for (const key of Object.keys(descriptors)) {
+  for (const descriptor of Object.values(descriptors)) {
     for (const [descKey, descValue] of Object.entries(newDefaults)) {
-      (descriptors[key] as AnyObject)[descKey] = descValue;
+      (descriptor as AnyObject)[descKey] = descValue;
     }
   }
 

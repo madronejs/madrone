@@ -440,17 +440,17 @@ describe('Observer', () => {
   describe('hooks', () => {
     describe('onGet', () => {
       it('calls onGet when value is accessed', () => {
-        let getCalled = false;
+        let isGetCalled = false;
         const obs = Observer({
           get: () => 'value',
           onGet: () => {
-            getCalled = true;
+            isGetCalled = true;
           },
         });
 
-        expect(getCalled).toBe(false);
+        expect(isGetCalled).toBe(false);
         expect(obs.value).toEqual('value');
-        expect(getCalled).toBe(true);
+        expect(isGetCalled).toBe(true);
       });
 
       it('calls onGet on every access (cached)', () => {
@@ -560,7 +560,7 @@ describe('Observer', () => {
     });
 
     it('calls onSet hook when value is set', () => {
-      let setCalled = false;
+      let isSetCalled = false;
       let receivedObs = null;
       const data = Reactive({ value: 1 });
       const obs = Observer({
@@ -569,14 +569,14 @@ describe('Observer', () => {
           data.value = val;
         },
         onSet: (o) => {
-          setCalled = true;
+          isSetCalled = true;
           receivedObs = o;
         },
       });
 
-      expect(setCalled).toBe(false);
+      expect(isSetCalled).toBe(false);
       obs.value = 42;
-      expect(setCalled).toBe(true);
+      expect(isSetCalled).toBe(true);
       expect(receivedObs).toBe(obs);
     });
 

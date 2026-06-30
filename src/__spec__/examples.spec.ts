@@ -31,7 +31,7 @@ describe('examples', () => {
     expect(person.greeting).toEqual("Hi, I'm Not Greg");
 
     await new Promise((resolve) => {
-      setTimeout(resolve);
+      setTimeout(resolve, 0);
     });
     expect(newVals).toEqual(["Hi, I'm Not Greg"]);
     expect(oldVals).toEqual(["Hi, I'm Greg"]);

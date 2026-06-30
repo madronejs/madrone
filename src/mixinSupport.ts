@@ -50,6 +50,7 @@ const initializedMap = new WeakMap<object, Set<string | symbol>>();
  * if the key had already been initialized. Used by decorators and mixin
  * helpers to avoid redefining a reactive property twice.
  */
+// eslint-disable-next-line unicorn/consistent-boolean-name -- action that mutates state and returns whether it occurred; an is/has name would imply a pure predicate
 export function markInitialized(target: object, key: string | symbol): boolean {
   let set = initializedMap.get(target);
 
@@ -207,6 +208,7 @@ const protoLazyInstalled = new WeakMap<object, Set<string | symbol>>();
  * prototype tracking keeps the accessor from being reinstalled for every
  * instance constructed before an integration is available.
  */
+// eslint-disable-next-line unicorn/consistent-boolean-name -- action that mutates state and returns whether it occurred; an is/has name would imply a pure predicate
 function claimProtoLazySlot(proto: object, key: string | symbol): boolean {
   let keys = protoLazyInstalled.get(proto);
 
