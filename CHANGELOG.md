@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **`@classMixin`**: A `@reactive` property overriding a deeper ancestor's `@computed` is no longer left getter-only on leaf classes composed through more than one mixin level (writes previously threw `TypeError: Cannot set property X which has only a getter`).
+
 ## [2.0.0] - 2026-04-20
 
 ### Breaking
