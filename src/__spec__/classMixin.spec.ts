@@ -238,4 +238,67 @@ describe('classMixin', () => {
       stop();
     });
   });
+
+  describe('multi-level chains: @reactive overriding a deeper @computed', () => {
+    // A two-level mixin chain: GrandParent declares a getter-only @computed,
+    // Parent overrides it as a writable @reactive, and Leaf composes Parent.
+    // The prototype merge copies GrandParent's getter-only accessor down onto
+    // each descendant prototype; the metadata replay must still install the
+    // @reactive override on the leaf, or writes to leaf instances throw
+    // "Cannot set property ... which has only a getter".
+    it('keeps the property writable on a leaf that inherits the override without redeclaring', () => {
+      class GrandParent {
+        @computed get amountTransferred(): number { return 0; }
+      }
+
+      @classMixin(GrandParent)
+      class Parent {
+        @reactive amountTransferred: number;
+      }
+      interface Parent extends GrandParent {}
+
+      @classMixin(Parent)
+      class Leaf {}
+      interface Leaf extends Parent {}
+
+      const leaf = new Leaf();
+      const write = () => {
+        leaf.amountTransferred = 5;
+      };
+
+      expect(write).not.toThrow();
+      expect(leaf.amountTransferred).toEqual(5);
+    });
+
+    it('wires the inherited override into the reactive graph on the leaf', async () => {
+      class GrandParent {
+        @computed get progress(): number { return 0; }
+      }
+
+      @classMixin(GrandParent)
+      class Parent {
+        @reactive progress: number;
+      }
+      interface Parent extends GrandParent {}
+
+      @classMixin(Parent)
+      class Leaf {}
+      interface Leaf extends Parent {}
+
+      const leaf = new Leaf();
+      const seen: number[] = [];
+      const stop = watch(() => leaf.progress, (val) => {
+        seen.push(val);
+      });
+
+      leaf.progress = 1;
+      await Promise.resolve();
+      leaf.progress = 2;
+      await Promise.resolve();
+
+      expect(leaf.progress).toEqual(2);
+      expect(seen).toEqual([1, 2]);
+      stop();
+    });
+  });
 });
