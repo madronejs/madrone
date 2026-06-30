@@ -9,6 +9,7 @@
   "globals": "https://github.com/sindresorhus/globals/releases",
   "happy-dom": "https://github.com/capricorn86/happy-dom/releases",
   "lodash": "https://github.com/lodash/lodash/releases",
+  "tsc-alias": "https://github.com/justkey007/tsc-alias/releases",
   "typedoc": "https://github.com/TypeStrong/typedoc/releases",
   "typescript": "https://github.com/microsoft/TypeScript/releases",
   "typescript-eslint": "https://github.com/typescript-eslint/typescript-eslint/releases",
