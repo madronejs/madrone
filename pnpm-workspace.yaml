@@ -4,4 +4,6 @@ minimumReleaseAge: 1440
 
 minimumReleaseAgeExclude: null
 
+# semver override (package.json) -> 7.x: @babel/core needs semver@6.3.1, which trips
+# no-downgrade (lost provenance, no newer 6.x). 6.x API is a subset of 7.x. Drop when Babel uses 7.x.
 trustPolicy: no-downgrade
