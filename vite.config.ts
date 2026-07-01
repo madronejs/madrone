@@ -2,12 +2,8 @@ import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 import babel from '@rolldown/plugin-babel';
 
-// Vite 8 swapped esbuild for Oxc, which does not yet lower TC39 standard
-// decorators (oxc-project/oxc#15373). madrone is a decorator framework, so we
-// run a targeted Babel pass to transpile them to runtime calls. transform-typescript
-// runs first (allowDeclareFields) to strip `declare` ambient class fields - otherwise
-// the decorator transform injects initializers into them and Oxc rejects the result.
-// The `code: '@'` filter limits Babel to files that actually contain `@` (decorators).
+// Oxc (Vite 8) can't lower TC39 decorators, so lower them with Babel.
+// transform-typescript runs first to strip `declare` fields, which Oxc otherwise rejects.
 const decoratorLoweringBabelConfig = () => ({
   plugins: [
     ['@babel/plugin-transform-typescript', { allowDeclareFields: true }],
