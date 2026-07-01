@@ -4,10 +4,4 @@ minimumReleaseAge: 1440
 
 minimumReleaseAgeExclude: null
 
-# @babel/core@7.29 (decorator-lowering pass for Vite 8, see vite.config.ts) transitively
-# requires semver@^6.3.1, which fails trustPolicy:no-downgrade because semver@6.3.1 lost the
-# provenance attestations earlier 6.x versions had, and no newer 6.x exists. The pnpm.overrides
-# `semver` -> 7.x in package.json resolves it (semver's 6.x API is a subset of 7.x). Drop both
-# when Babel moves to semver 7.x, or when the Vite Babel pass is removed once Oxc lowers
-# TC39 decorators (oxc-project/oxc#15373).
 trustPolicy: no-downgrade
