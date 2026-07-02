@@ -165,6 +165,12 @@ export function applyClassMixins(
   mixins: Constructor[],
   baseMetadata?: DecoratorMetadata,
 ): void {
+  // Snapshot the leaf's own prototype members before the merge below overwrites
+  // them, so an undecorated override can be kept out of the reactive replay.
+  const baseProtoOwnKeys = new Set(
+    Reflect.ownKeys(base.prototype).filter((key) => key !== 'constructor'),
+  );
+
   // Build the merged descriptor map for the prototype merge, but strip any
   // lazy-mixin accessors that came from a mixin's prototype. They belong to
   // that mixin's own installation — re-copying them onto `base.prototype`
@@ -216,6 +222,9 @@ export function applyClassMixins(
   }
 
   for (const key of baseOwnKeys) resolved.delete(key);
+
+  // A member the leaf declares itself wins over a mixed-in reactive/computed.
+  for (const key of baseProtoOwnKeys) resolved.delete(key);
 
   for (const { entry, originProto } of resolved.values()) {
     if (entry.kind === 'reactive') {

@@ -301,4 +301,78 @@ describe('classMixin', () => {
       stop();
     });
   });
+
+  describe('multi-level chains: a plain member overriding a deeper @reactive', () => {
+    // Inverse of #76: a leaf's undecorated method/getter override of a base
+    // @reactive, through more than one mixin level, must win over the replay.
+    it('keeps a leaf plain-method override of a base @reactive field through two mixin levels', () => {
+      class GrandParent {
+        @reactive transform: (x: number) => number;
+      }
+
+      @classMixin(GrandParent)
+      class Parent {}
+      interface Parent extends GrandParent {}
+
+      @classMixin(Parent)
+      class Leaf {
+        transform(x: number) {
+          return x * 2;
+        }
+      }
+      interface Leaf extends Parent {}
+
+      const leaf = new Leaf();
+
+      expect(typeof leaf.transform).toEqual('function');
+      expect(leaf.transform(21)).toEqual(42);
+    });
+
+    it('keeps a leaf plain-getter override of a base @reactive field through two mixin levels', () => {
+      class GrandParent {
+        @reactive label: string;
+      }
+
+      @classMixin(GrandParent)
+      class Parent {}
+      interface Parent extends GrandParent {}
+
+      @classMixin(Parent)
+      class Leaf {
+        get label(): string {
+          return 'leaf';
+        }
+      }
+      interface Leaf extends Parent {}
+
+      const leaf = new Leaf();
+
+      expect(leaf.label).toEqual('leaf');
+    });
+
+    it('still installs the reactive when the leaf does NOT redeclare (preserves #76)', () => {
+      class GrandParent {
+        @computed get amount(): number {
+          return 0;
+        }
+      }
+
+      @classMixin(GrandParent)
+      class Parent {
+        @reactive amount: number;
+      }
+      interface Parent extends GrandParent {}
+
+      @classMixin(Parent)
+      class Leaf {}
+      interface Leaf extends Parent {}
+
+      const leaf = new Leaf();
+
+      expect(() => {
+        leaf.amount = 5;
+      }).not.toThrow();
+      expect(leaf.amount).toEqual(5);
+    });
+  });
 });
