@@ -143,6 +143,18 @@ describe('compile-changelog', () => {
     expect(error.stderr).toContain('already has a section for 1.0.0');
   });
 
+  it('--dry-run previews as the next patch version when the current one is already released', () => {
+    writeFixture({ version: '1.0.0' });
+    writeFragment('a.md', 'type: Fixed\ntext: something');
+
+    const stdout = run('--dry-run');
+
+    expect(stdout).toContain('1.0.0 is already released; previewing as 1.0.1');
+    expect(stdout).toContain('## [1.0.1]');
+    expect(readFileSync(join(root, 'CHANGELOG.md'), 'utf8')).toBe(BASE_CHANGELOG);
+    expect(readdirSync(unreleasedDir)).toEqual(['a.md']);
+  });
+
   it('fails on an unknown type', () => {
     writeFragment('a.md', 'type: Improved\ntext: something');
 

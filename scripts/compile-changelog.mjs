@@ -68,11 +68,16 @@ const fragments = files.map((name) => ({
   ...parseFragment(name, readFileSync(join(UNRELEASED_DIR, name), 'utf8')),
 }));
 
-const { version } = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+const pkgVersion = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).version;
 const changelog = readFileSync(CHANGELOG_PATH, 'utf8');
+let version = pkgVersion;
 
 if (changelog.includes(`## [${version}]`)) {
-  fail(`CHANGELOG.md already has a section for ${version}; bump the version in package.json first`);
+  if (!dryRun) fail(`CHANGELOG.md already has a section for ${version}; bump the version in package.json first`);
+
+  // preview against the next patch version so --dry-run works without a bump
+  version = version.replace(/\d+$/, (patch) => Number(patch) + 1);
+  console.log(`--dry-run: ${pkgVersion} is already released; previewing as ${version}\n`);
 }
 
 const date = new Date().toISOString().slice(0, 10);
