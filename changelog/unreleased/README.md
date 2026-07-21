@@ -1,6 +1,6 @@
 # Unreleased changelog fragments
 
-Each notable change gets its own markdown file in this folder. At release time the fragments are compiled into `CHANGELOG.md` and deleted (see `scripts/compile-changelog.mjs` and the "Release PR" GitHub workflow).
+Each notable change gets its own markdown file in this folder. At release time the fragments are compiled into `CHANGELOG.md` and deleted — see [RELEASING.md](../../RELEASING.md) for the full release process.
 
 ## Format
 
