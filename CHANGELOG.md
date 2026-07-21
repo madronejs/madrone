@@ -5,12 +5,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Fixed
-
-- **Reactivity**: Object/array proxy `set` and `deleteProperty` traps now apply the mutation *before* notifying observers, matching the Map/Set handlers and Vue's own ordering. Previously, observers that ran synchronously on notification (e.g. Vue `flush: 'sync'` watchers via the `MadroneVue3` integration) read the pre-write value and could settle permanently stale, missing single in-place writes until an unrelated change re-dirtied them. Failed writes (frozen targets, non-writable properties) no longer emit notifications.
-
 ## [2.0.4] - 2026-07-02
 
 ### Fixed
