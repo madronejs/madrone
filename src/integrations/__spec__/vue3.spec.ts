@@ -1,5 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import {
+  describe, it, expect, beforeAll, afterAll,
+} from 'vitest';
 import * as Vue from 'vue3';
+import Madrone from '../../index';
 import MadroneVue3 from '../MadroneVue3';
 import MadroneVue from '../vue';
 import testAll from './testAll';
@@ -14,6 +17,46 @@ const vueOptions = {
 testAll('Vue3', integration);
 testVue('Vue3', integration, vueOptions);
 testVueCollections('Vue3', integration, vueOptions);
+
+describe('Vue3 sync watchers', () => {
+  beforeAll(() => {
+    Madrone.use(integration);
+  });
+  afterAll(() => {
+    Madrone.unuse(integration);
+  });
+
+  it('a flush:sync watcher reads the written value on an in-place write', () => {
+    const state = Madrone.auto({ name: 'Event 1' });
+    const seen: string[] = [];
+    const stop = Vue.watch(() => state.name, (val) => {
+      seen.push(val);
+    }, { flush: 'sync' });
+
+    state.name = 'Event 2';
+
+    expect(seen).toEqual(['Event 2']);
+    stop();
+  });
+
+  it('a flush:sync watcher on a Vue computed does not go permanently stale', () => {
+    const state = Madrone.auto({ name: 'a' });
+    const signature = Vue.computed(() => state.name);
+    const seen: string[] = [];
+    const stop = Vue.watch(signature, (val) => {
+      seen.push(val);
+    }, { flush: 'sync' });
+
+    state.name = 'b';
+
+    // Pre-fix, the sync watcher re-evaluated the computed mid-set-trap, read the
+    // old value, and settled clean — leaving the computed stale even after the
+    // write landed, with no later notification to recover it.
+    expect(seen).toEqual(['b']);
+    expect(signature.value).toBe('b');
+    stop();
+  });
+});
 
 describe('MadroneVue pre-configured module', () => {
   it('exports a valid integration', () => {

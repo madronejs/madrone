@@ -254,6 +254,65 @@ describe('Reactive', () => {
     });
   });
 
+  describe('notification ordering', () => {
+    it('applies the write before calling onSet', () => {
+      let seenDuringHook = null;
+      const state = Reactive<{ name: string }>({ name: 'old' }, {
+        onSet: ({ target, key }) => {
+          seenDuringHook = target[key];
+        },
+      });
+
+      state.name = 'new';
+
+      expect(seenDuringHook).toBe('new');
+    });
+
+    it('removes the key before calling onDelete', () => {
+      let presentDuringHook = null;
+      const state = Reactive<{ a?: number }>({ a: 1 }, {
+        onDelete: ({ target, key }) => {
+          presentDuringHook = key in target;
+        },
+      });
+
+      delete state.a;
+
+      expect(presentDuringHook).toBe(false);
+    });
+
+    it('does not notify when the write fails', () => {
+      let setCount = 0;
+      const frozen = Object.freeze({ name: 'old' });
+      const state = Reactive<{ name: string }>(frozen, {
+        onSet: () => {
+          setCount += 1;
+        },
+      });
+
+      // In strict mode a set trap returning false throws
+      expect(() => {
+        state.name = 'new';
+      }).toThrow(TypeError);
+      expect(setCount).toBe(0);
+    });
+
+    it('does not notify when the delete fails', () => {
+      let deleteCount = 0;
+      const sealed = Object.seal({ a: 1 });
+      const state = Reactive<{ a?: number }>(sealed, {
+        onDelete: () => {
+          deleteCount += 1;
+        },
+      });
+
+      expect(() => {
+        delete state.a;
+      }).toThrow(TypeError);
+      expect(deleteCount).toBe(0);
+    });
+  });
+
   describe('onDelete callback', () => {
     it('calls onDelete when property is deleted', () => {
       let deleteCount = 0;

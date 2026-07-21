@@ -35,13 +35,23 @@ const optionGet = (options: ReactiveOptions, target, key, receiver) => {
   }
 };
 
+// Write first, then notify: observers woken synchronously (e.g. Vue sync watchers
+// via the Vue3 integration's onSet) must read the already-written value, and a
+// failed write must not notify at all. Pre-write state is captured for change
+// detection. This matches the Map/Set handlers below, which also mutate before
+// calling targetChanged.
 const optionSet = (options: ReactiveOptions, target, key, value) => {
+  const wasPresent = key in target;
   const curr = target[key];
   const isArray = Array.isArray(target);
+  const didSet = Reflect.set(target, key, value);
+
+  if (!didSet) return false;
+
   let isValueChanged = false;
   let isKeysChanged = false;
 
-  if (!(key in target)) {
+  if (!wasPresent) {
     targetChanged(target, KEYS_SYMBOL);
     isKeysChanged = true;
 
@@ -61,9 +71,15 @@ const optionSet = (options: ReactiveOptions, target, key, value) => {
       name: options.name, target, key, value, keysChanged: isKeysChanged, valueChanged: isValueChanged,
     }));
   }
+
+  return true;
 };
 
 const optionDelete = (options: ReactiveOptions, target, key) => {
+  const didDelete = Reflect.deleteProperty(target, key);
+
+  if (!didDelete) return false;
+
   targetChanged(target, key);
   targetChanged(target, KEYS_SYMBOL);
 
@@ -73,6 +89,8 @@ const optionDelete = (options: ReactiveOptions, target, key) => {
       name: options.name, target, key, keysChanged: true,
     }));
   }
+
+  return true;
 };
 
 const optionHasOwnKeys = (options: ReactiveOptions, target, key?) => {
@@ -110,14 +128,8 @@ function defaultHandlers(options: ReactiveOptions) {
 
       return value;
     },
-    set: (target: object, propertyKey: PropertyKey, value: unknown) => {
-      optionSet(options, target, propertyKey, value);
-      return Reflect.set(target, propertyKey, value);
-    },
-    deleteProperty: (...args: Parameters<typeof Reflect.deleteProperty>) => {
-      optionDelete(options, ...args);
-      return Reflect.deleteProperty(...args);
-    },
+    set: (target: object, propertyKey: PropertyKey, value: unknown) => optionSet(options, target, propertyKey, value),
+    deleteProperty: (target: object, propertyKey: PropertyKey) => optionDelete(options, target, propertyKey),
     has: (target, key) => {
       optionHasOwnKeys(options, target);
       return Reflect.has(target, key);
