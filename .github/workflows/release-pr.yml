@@ -1,0 +1,60 @@
+name: Release PR
+
+# Compiles changelog fragments from changelog/unreleased/ into CHANGELOG.md,
+# bumps the version, and opens a "chore: release X.Y.Z" PR against main.
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump (none = use the version already in package.json)"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - none
+        default: patch
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Bump version
+        if: ${{ inputs.bump != 'none' }}
+        run: npm version "${{ inputs.bump }}" --no-git-tag-version
+
+      - name: Compile changelog fragments
+        run: node scripts/compile-changelog.mjs
+
+      - name: Create release PR
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VER=$(node -p "require('./package.json').version")
+          BRANCH="release/v$VER"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add package.json CHANGELOG.md changelog/unreleased
+          git commit -m "chore: release $VER"
+          git push --force -u origin "$BRANCH"
+
+          if [ -z "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
+            gh pr create \
+              --title "chore: release $VER" \
+              --body "Compiled changelog fragments from \`changelog/unreleased/\` into \`CHANGELOG.md\` and bumped the version to $VER. After merging, run the **Publish to npm** workflow." \
+              --base main \
+              --head "$BRANCH"
+          fi

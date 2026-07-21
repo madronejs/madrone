@@ -53,6 +53,7 @@
     "build": "vite build",
     "build-types": "tsc -p ./tsconfig.types.json && tsc-alias -p tsconfig.types.json",
     "build-all": "pnpm cleanup && pnpm build && pnpm build-types",
+    "changelog:compile": "node scripts/compile-changelog.mjs",
     "check-updates": "pnpm -r -l outdated",
     "check-upgrade": "pnpm -r -i --latest update",
     "all": "pnpm build-types && pnpm lint && pnpm test-ci"
