@@ -68,3 +68,8 @@ Tests use Vitest and are colocated in `__spec__` directories:
 ## Changelog
 
 All notable changes are documented in `CHANGELOG.md` following the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
+
+Changes are written as fragment files in `changelog/unreleased/` (one entry per file, see the README there for the format) rather than edited into `CHANGELOG.md` directly.
+When a change in a PR is notable, add a fragment file for it.
+At release time the "Release PR" GitHub workflow (or `pnpm changelog:compile` locally) compiles the fragments into `CHANGELOG.md`, deletes them, and opens a `chore: release X.Y.Z` PR.
+The full release process is documented in `RELEASING.md`.
