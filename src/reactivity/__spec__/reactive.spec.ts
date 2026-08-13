@@ -349,34 +349,34 @@ describe('Reactive', () => {
 
   describe('onHas callback', () => {
     it('calls onHas when checking property existence with "in"', () => {
-      let hasCount = 0;
+      let onHasCallCount = 0;
       const obj = { a: 1 };
       const state = Reactive(obj, {
         onHas: () => {
-          hasCount += 1;
+          onHasCallCount += 1;
         },
       });
 
       expect('a' in state).toBe(true);
-      expect(hasCount).toBe(1);
+      expect(onHasCallCount).toBe(1);
 
       expect('b' in state).toBe(false);
-      expect(hasCount).toBe(2);
+      expect(onHasCallCount).toBe(2);
     });
 
     it('calls onHas when using Object.keys', () => {
-      let hasCount = 0;
+      let onHasCallCount = 0;
       const obj = { a: 1, b: 2 };
       const state = Reactive(obj, {
         onHas: () => {
-          hasCount += 1;
+          onHasCallCount += 1;
         },
       });
 
       const keys = Object.keys(state);
 
       expect(keys).toEqual(['a', 'b']);
-      expect(hasCount).toBe(1);
+      expect(onHasCallCount).toBe(1);
     });
   });
 

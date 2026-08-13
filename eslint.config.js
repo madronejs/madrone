@@ -215,9 +215,15 @@ export default [
     // False positive against this codebase.
     'unicorn/no-nonstandard-builtin-properties': 'off', // Symbol.metadata is the standard TC39 decorator-metadata symbol
     'unicorn/no-invalid-argument-count': 'off', // misfires on spread arguments
+    'unicorn/prefer-simple-condition-first': 'off', // proxy-trap guards are ordered cheapest-to-costliest on purpose
 
     // Consumer compat - a library must not emit ES2025 runtime APIs its consumers may lack.
     'unicorn/prefer-iterator-to-array': 'off', // Iterator#toArray() is not yet universal in browsers
+    'unicorn/prefer-iterator-helpers': 'off', // same reason - Iterator#reduce() et al. are ES2025
+
+    // Comment-style opinion - expanding every one-line `/** ... */` to three lines fights the
+    // house rule that a doc comment is a single concise line.
+    'unicorn/single-line-block-comment-style': 'off',
 
     // Core reactivity behavior - changing the existence check (`in` vs Object.hasOwn) alters prototype-chain semantics.
     'unicorn/no-computed-property-existence-check': 'off',

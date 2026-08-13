@@ -532,7 +532,7 @@ describe('Observer', () => {
       const obs = Observer({
         get: () => `${data.firstName} ${data.lastName}`,
         set: (val: string) => {
-          const [first, last] = val.split(' ');
+          const [first, last] = val.split(' ', 2);
 
           data.firstName = first;
           data.lastName = last;
