@@ -1,9 +1,14 @@
-approveBuilds: esbuild
+allowBuilds:
+  esbuild: true
 
 minimumReleaseAge: 1440
-
-minimumReleaseAgeExclude: null
 
 # semver override (package.json) -> 7.x: @babel/core needs semver@6.3.1, which trips
 # no-downgrade (lost provenance, no newer 6.x). 6.x API is a subset of 7.x. Drop when Babel uses 7.x.
 trustPolicy: no-downgrade
+
+# overrides should be reviewed and removed when dependent packages are updated
+overrides:
+  mimimatch: '>9.0.7'
+  rollup: 4.59.0
+  semver: 7.8.0

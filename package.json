@@ -91,16 +91,8 @@
     "vue3": "npm:vue@~3.5.41"
   },
   "engines": {
-    "node": "^22.14 || ^24.14",
-    "pnpm": ">=10"
+    "node": "^24.15 || ^26",
+    "pnpm": ">=11"
   },
-  "packageManager": "pnpm@10.30.3",
-  "comment": "overrides should be reviewed and removed when dependent packages are updated",
-  "pnpm": {
-    "overrides": {
-      "mimimatch": ">9.0.7",
-      "rollup": "4.59.0",
-      "semver": "7.8.0"
-    }
-  }
+  "packageManager": "pnpm@11.21.0"
 }
