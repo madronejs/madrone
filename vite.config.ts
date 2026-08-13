@@ -6,7 +6,7 @@ import babel from '@rolldown/plugin-babel';
 // transform-typescript runs first to strip `declare` fields, which Oxc otherwise rejects.
 const decoratorLoweringBabelConfig = () => ({
   plugins: [
-    ['@babel/plugin-transform-typescript', { allowDeclareFields: true }],
+    '@babel/plugin-transform-typescript',
     ['@babel/plugin-proposal-decorators', { version: '2023-11' }],
   ],
 });
@@ -24,8 +24,8 @@ export default defineConfig({
   build: {
     lib: {
       entry: {
-        core: resolve(__dirname, 'src/index.ts'),
-        vue: resolve(__dirname, 'src/integrations/vue.ts'),
+        core: resolve(import.meta.dirname, 'src/index.ts'),
+        vue: resolve(import.meta.dirname, 'src/integrations/vue.ts'),
       },
       name: 'madrone',
     },
@@ -45,7 +45,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': resolve(__dirname, './src'),
+      '@': resolve(import.meta.dirname, './src'),
       // Alias 'vue' to 'vue3' package for testing (users will have 'vue' installed)
       vue: 'vue3',
     },
