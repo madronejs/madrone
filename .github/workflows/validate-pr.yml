@@ -51,7 +51,11 @@ jobs:
         shell: bash
         run: |
           pnpm install --frozen-lockfile
-          # pnpm build-types
+
+      - name: Type Check
+        shell: bash
+        run: |
+          pnpm build-types
 
       - name: ESLint
         shell: bash
