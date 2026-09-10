@@ -178,7 +178,7 @@ class ObservableItem<T> {
   }
 
   setDirty() {
-    if (!(this.alive && !this.dirty)) {
+    if (!this.alive || this.dirty) {
       return;
     }
 
