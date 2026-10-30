@@ -200,7 +200,6 @@ export default [
 
     'unicorn/no-null': 'off',
     'unicorn/no-useless-undefined': 'off',
-    'unicorn/prevent-abbreviations': 'off',
     'unicorn/no-this-assignment': 'off',
     'unicorn/prefer-dom-node-remove': 'off',
 
@@ -210,7 +209,7 @@ export default [
     'unicorn/no-top-level-side-effects': 'off', // index.ts registration + framework bootstrap
     'unicorn/no-undeclared-class-members': 'off', // mixin specs add members dynamically (the point of the test)
     'unicorn/prefer-private-class-fields': 'off', // madrone uses the `_`-prefix convention (no-underscore-dangle is off)
-    'unicorn/name-replacements': 'off', // naming opinion - reverses the deliberate `prevent-abbreviations: off`
+    'unicorn/name-replacements': 'off', // naming opinion - abbreviations are allowed
 
     // False positive against this codebase.
     'unicorn/no-nonstandard-builtin-properties': 'off', // Symbol.metadata is the standard TC39 decorator-metadata symbol
