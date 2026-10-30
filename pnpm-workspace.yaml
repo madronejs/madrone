@@ -1,3 +1,4 @@
+engineStrict: true # fail installation if Node is outside package.json `engines`
 minimumReleaseAge: 1440
 
 # semver override -> 7.x: eslint-plugin-import needs semver@6.3.1, which trips

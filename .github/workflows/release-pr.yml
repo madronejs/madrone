@@ -24,11 +24,13 @@ jobs:
   release-pr:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version-file: '.nvmrc'
+          # the runner's cached Node can trail lts/* and fail engineStrict
+          check-latest: true
 
       - name: Bump version
         if: ${{ inputs.bump != 'none' }}
