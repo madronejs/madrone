@@ -204,11 +204,11 @@ const setHandler = (options: ReactiveOptions) => ({
     // Handle add - triggers change
     if (key === 'add') {
       return (value: unknown) => {
-        const hadValue = target.has(value);
+        const wasPresent = target.has(value);
 
         target.add(value);
 
-        if (!hadValue) {
+        if (!wasPresent) {
           targetChanged(target, KEYS_SYMBOL);
           options?.onSet?.(makeOptions({
             name: options.name,
@@ -226,10 +226,10 @@ const setHandler = (options: ReactiveOptions) => ({
     // Handle delete - triggers change
     if (key === 'delete') {
       return (value: unknown) => {
-        const hadValue = target.has(value);
-        const deleted = target.delete(value);
+        const wasPresent = target.has(value);
+        const wasDeleted = target.delete(value);
 
-        if (hadValue) {
+        if (wasPresent) {
           targetChanged(target, KEYS_SYMBOL);
           options?.onDelete?.(makeOptions({
             name: options.name,
@@ -240,7 +240,7 @@ const setHandler = (options: ReactiveOptions) => ({
           }));
         }
 
-        return deleted;
+        return wasDeleted;
       };
     }
 
@@ -379,23 +379,23 @@ const mapHandler = (options: ReactiveOptions) => ({
     // Handle set - triggers change
     if (key === 'set') {
       return (mapKey: unknown, value: unknown) => {
-        const hadKey = target.has(mapKey);
+        const wasPresent = target.has(mapKey);
         const oldValue = target.get(mapKey);
 
         target.set(mapKey, value);
 
-        if (!hadKey) {
+        if (!wasPresent) {
           targetChanged(target, KEYS_SYMBOL);
         }
 
-        if (!hadKey || oldValue !== value) {
+        if (!wasPresent || oldValue !== value) {
           targetChanged(target, mapKey as string | symbol);
           options?.onSet?.(makeOptions({
             name: options.name,
             target,
             key: mapKey as PropertyKey,
             value,
-            keysChanged: !hadKey,
+            keysChanged: !wasPresent,
             valueChanged: oldValue !== value,
           }));
         }
@@ -407,10 +407,10 @@ const mapHandler = (options: ReactiveOptions) => ({
     // Handle delete - triggers change
     if (key === 'delete') {
       return (mapKey: unknown) => {
-        const hadKey = target.has(mapKey);
-        const deleted = target.delete(mapKey);
+        const wasPresent = target.has(mapKey);
+        const wasDeleted = target.delete(mapKey);
 
-        if (hadKey) {
+        if (wasPresent) {
           targetChanged(target, KEYS_SYMBOL);
           targetChanged(target, mapKey as string | symbol);
           options?.onDelete?.(makeOptions({
@@ -421,7 +421,7 @@ const mapHandler = (options: ReactiveOptions) => ({
           }));
         }
 
-        return deleted;
+        return wasDeleted;
       };
     }
 
