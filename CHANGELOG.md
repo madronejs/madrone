@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-10-30
+
+### Changed
+
+- **Engines**: Raised the required Node version to `^24.22.1 || ^26.12.1` (was `^22.14 || ^24.14`) and the required pnpm version to `>=12` (was `>=10`). Node 22 is no longer supported.
+- Updated development dependencies (Babel 8, ESLint 10.13, Vite 8.3, Vitest 5.0, typescript-eslint 8.72, eslint-plugin-unicorn 79, happy-dom 21) and moved the repo to pnpm 12. Dev/build tooling only - no changes to the published API or runtime behavior.
+
 ## [2.0.5] - 2026-07-21
 
 ### Added
