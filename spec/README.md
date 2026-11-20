@@ -10,11 +10,10 @@ pnpm spec:check                # every spec/MC*.tla
 pnpm spec:check MCReactivity   # one
 ```
 
-Only Node is needed.
-The script downloads the pinned TLA+ tools jar and checks its SHA-256.
-If no Java 11+ is on the `PATH`, it also downloads a pinned Temurin JRE the same way.
-Both are cached in `node_modules/.cache/tlaplus`.
-Set `TLA_JAVA=/path/to/java` to pick a Java, or `TLA_DOWNLOAD_JAVA=1` to always use the pinned one.
+It needs Node and Java 11+ (any distribution, e.g. `apt install openjdk-21-jre-headless` or `brew install openjdk`).
+The script does not install Java; it stops with instructions if it can't find one.
+Set `TLA_JAVA=/path/to/java` to use a Java that isn't on the `PATH`.
+The script downloads the pinned TLA+ tools jar, checks its SHA-256, and caches it in `node_modules/.cache/tlaplus`.
 A run takes about 30 seconds.
 
 ## What is checked
@@ -36,8 +35,15 @@ When changing the rules in `src/reactivity/global.ts` or `Observer.ts`, update t
 
 ## CI
 
+The spec only needs checking when it or the rules it models change, so a job can be limited to those paths:
+
 ```yaml
-- uses: actions/setup-java@v4   # optional: the script downloads a JRE without it
+on:
+  pull_request:
+    paths: ['spec/**', 'src/reactivity/global.ts', 'src/reactivity/Observer.ts', 'scripts/tla.mjs']
+
+# in the job's steps, after installing Node and dependencies:
+- uses: actions/setup-java@v4
   with:
     distribution: temurin
     java-version: '21'
