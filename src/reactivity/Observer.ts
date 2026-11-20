@@ -13,7 +13,6 @@ import {
 } from './global';
 
 const GLOBAL_STACK: Array<ObservableItem<unknown>> = [];
-const RUNNING_OBSERVERS = new WeakSet<ObservableItem<unknown>>();
 
 /**
  * Returns the currently running Observer, if any.
@@ -39,7 +38,7 @@ export function getCurrentObserver(): ObservableItem<unknown> | undefined {
  * @internal
  */
 export function isObserverRunning(obs: ObservableItem<unknown>): boolean {
-  return RUNNING_OBSERVERS.has(obs);
+  return obs.running;
 }
 
 /**
@@ -149,6 +148,8 @@ class ObservableItem<T> {
   prev: T;
   /** Whether to cache the computed value */
   cache: boolean;
+  /** Whether the getter is running, collecting dependencies */
+  running = false;
   /** What dependencies hold when the observer is weak */
   readonly ref?: WeakRef<ObservableItem<T>>;
   private cachedVal: T;
@@ -177,13 +178,13 @@ class ObservableItem<T> {
 
   private wrap<CBType>(cb: () => CBType): CBType {
     GLOBAL_STACK.push(this);
-    RUNNING_OBSERVERS.add(this);
+    this.running = true;
 
     try {
       return cb();
     } finally {
       GLOBAL_STACK.pop();
-      RUNNING_OBSERVERS.delete(this);
+      this.running = false;
     }
   }
 
@@ -210,18 +211,24 @@ class ObservableItem<T> {
   run(): T {
     if (!this.alive) return undefined;
 
-    const val = this.wrap(() => {
-      if ((this.cache && this.dirty) || !this.cache) {
-        // Clear old dependencies before re-running to prevent stale deps
-        observerClearAll(this);
+    // A cached value is current, so there is no getter to run and nothing to collect
+    if (this.cache && !this.dirty) {
+      dependTracker(this, OBSERVER_SYMBOL);
+      this.callHook(OBSERVER_HOOK.onGet);
 
-        try {
-          this.cachedVal = this.get();
-        } finally {
-          // Always reset dirty to prevent infinite retry loops on persistent errors.
-          // If the getter throws, we'll rethrow but won't be stuck dirty.
-          this.dirty = false;
-        }
+      return this.cachedVal;
+    }
+
+    const val = this.wrap(() => {
+      // Clear old dependencies before re-running to prevent stale deps
+      observerClearAll(this);
+
+      try {
+        this.cachedVal = this.get();
+      } finally {
+        // Always reset dirty to prevent infinite retry loops on persistent errors.
+        // If the getter throws, we'll rethrow but won't be stuck dirty.
+        this.dirty = false;
       }
 
       return this.cachedVal;
