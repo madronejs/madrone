@@ -9,7 +9,7 @@
  */
 
 import {
-  OBSERVER_SYMBOL, dependTracker, observerClearAll, schedule, trackerChanged,
+  OBSERVER_SYMBOL, dependTracker, observerClearAll, observerSweep, schedule, trackerChanged,
 } from './global';
 
 const GLOBAL_STACK: Array<ObservableItem<unknown>> = [];
@@ -25,20 +25,6 @@ const GLOBAL_STACK: Array<ObservableItem<unknown>> = [];
  */
 export function getCurrentObserver(): ObservableItem<unknown> | undefined {
   return GLOBAL_STACK.at(-1);
-}
-
-/**
- * Checks if an Observer is currently running (on the execution stack).
- *
- * Used to prevent clearing dependencies for an observer that is still
- * collecting dependencies during its getter execution.
- *
- * @param obs - The observer to check
- * @returns true if the observer is currently running
- * @internal
- */
-export function isObserverRunning(obs: ObservableItem<unknown>): boolean {
-  return obs.running;
 }
 
 /**
@@ -148,8 +134,8 @@ class ObservableItem<T> {
   prev: T;
   /** Whether to cache the computed value */
   cache: boolean;
-  /** Whether the getter is running, collecting dependencies */
-  running = false;
+  /** Counts the getter's runs, to tell which dependencies the latest one read */
+  epoch = 0;
   /** What dependencies hold when the observer is weak */
   readonly ref?: WeakRef<ObservableItem<T>>;
   private cachedVal: T;
@@ -178,13 +164,11 @@ class ObservableItem<T> {
 
   private wrap<CBType>(cb: () => CBType): CBType {
     GLOBAL_STACK.push(this);
-    this.running = true;
 
     try {
       return cb();
     } finally {
       GLOBAL_STACK.pop();
-      this.running = false;
     }
   }
 
@@ -225,16 +209,17 @@ class ObservableItem<T> {
       return this.cachedVal;
     }
 
-    const val = this.wrap(() => {
-      // Clear old dependencies before re-running to prevent stale deps
-      observerClearAll(this);
+    this.epoch += 1;
 
+    const val = this.wrap(() => {
       try {
         this.cachedVal = this.get();
       } finally {
         // Always reset dirty to prevent infinite retry loops on persistent errors.
         // If the getter throws, we'll rethrow but won't be stuck dirty.
         this.dirty = false;
+        // Drop the dependencies this run didn't read, even when the getter threw
+        observerSweep(this);
       }
 
       return this.cachedVal;

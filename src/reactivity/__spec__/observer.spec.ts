@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { delay } from '@/test/util';
 import Observer from '../Observer';
 import Reactive from '../Reactive';
+import { getObservers } from '../global';
 
 describe('Observer', () => {
   it('caches values if nothing observed', () => {
@@ -293,6 +294,49 @@ describe('Observer', () => {
       state2.value = 200;
       expect(obs2.value).toEqual(200);
       expect(recomputeCount).toEqual(2);
+    });
+
+    it('drops the dependencies a throwing run did not reach', () => {
+      const state = Reactive({ fail: false, before: 1, after: 2 });
+      const obs = Observer({
+        get: () => {
+          const { before } = state;
+
+          if (state.fail) throw new Error('fail');
+
+          return before + state.after;
+        },
+      });
+
+      expect(obs.value).toEqual(3);
+      state.fail = true;
+      expect(() => obs.value).toThrow('fail');
+      expect(getObservers(state).get('after').has(obs)).toBe(false);
+      expect(getObservers(state).get('before').has(obs)).toBe(true);
+    });
+
+    it('keeps the other sources read under the same key when one of them changes', () => {
+      const items = Array.from({ length: 3 }, (_, i) => Reactive({ value: i }));
+      let runs = 0;
+      const obs = Observer({
+        get: () => {
+          runs += 1;
+
+          return items.reduce((sum, item) => sum + item.value, 0);
+        },
+      });
+
+      expect(obs.value).toEqual(3);
+      items[0].value = 10;
+      expect(obs.value).toEqual(13);
+
+      for (const item of items) {
+        expect(getObservers(item).get('value')).toEqual(new Set([obs]));
+      }
+
+      items[2].value = 20;
+      expect(obs.value).toEqual(31);
+      expect(runs).toEqual(3);
     });
   });
 

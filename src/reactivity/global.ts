@@ -11,7 +11,7 @@
  * @internal
  */
 
-import { getCurrentObserver, isObserverRunning, ObservableItem } from './Observer';
+import { getCurrentObserver, ObservableItem } from './Observer';
 
 // constants
 /** Symbol used to track when an object's keys change */
@@ -35,10 +35,13 @@ const PROXY_TO_OBSERVERS = new WeakMap<
 /** Size at which an observer set is next swept for collected weak observers */
 const SWEEP_AT = new WeakMap<Set<ObserverEntry>, number>();
 const MIN_SWEEP_SIZE = 64;
-/** Mapping from observer to the proxies it depends on */
+/**
+ * Mapping from observer to the proxies it depends on, each with the run of the observer
+ * that last read it, so a run only has to drop what it didn't read again.
+ */
 const OBSERVER_TO_PROXIES = new WeakMap<
   ObservableItem<unknown>,
-  Map<DependencyKey, Set<object>>
+  Map<DependencyKey, Map<object, number>>
 >();
 /** Queue of tasks waiting to be executed */
 let TASK_QUEUE: (() => void)[] = [];
@@ -122,7 +125,7 @@ const setHeldStrongly = (obs: ObservableItem<unknown>, isStrong: boolean): void 
   if (!proxies) return;
 
   for (const [key, trackers] of proxies) {
-    for (const trk of trackers) {
+    for (const trk of trackers.keys()) {
       const observerSet = PROXY_TO_OBSERVERS.get(trk)?.get(key);
 
       if (observerSet?.delete(from)) observerSet.add(to);
@@ -218,35 +221,38 @@ export const schedule = (task: () => void): void => {
   doTasksIfNeeded();
 };
 
-/**
- * Clear a specific dependency key for an observer
- * @param obs the observable to clear dependencies for
- * @param key the key to clear
- */
-export const observerClear = (
+const dropStale = (
   obs: ObservableItem<unknown>,
+  trackers: Map<object, number>,
+  trk: object,
   key: DependencyKey
 ): void => {
-  const proxies = OBSERVER_TO_PROXIES.get(obs);
-  const trackers = proxies?.get(key);
-
-  if (trackers) {
-    for (const trk of trackers) {
-      dropDependency(obs, trk, key);
-    }
-
-    trackers.clear();
-    proxies.delete(key);
-
-    if (proxies.size === 0) {
-      OBSERVER_TO_PROXIES.delete(obs);
-    }
-  }
+  dropDependency(obs, trk, key);
+  trackers.delete(trk);
 };
 
 /**
- * Clear ALL dependencies for an observer.
- * Called before re-running to ensure stale dependencies are removed.
+ * Drops the dependencies an observer's latest run didn't read again.
+ * @param obs the observable that just ran
+ */
+export const observerSweep = (obs: ObservableItem<unknown>): void => {
+  const proxies = OBSERVER_TO_PROXIES.get(obs);
+
+  if (!proxies) return;
+
+  for (const [key, trackers] of proxies) {
+    for (const [trk, epoch] of trackers) {
+      if (epoch !== obs.epoch) dropStale(obs, trackers, trk, key);
+    }
+
+    if (trackers.size === 0) proxies.delete(key);
+  }
+
+  if (proxies.size === 0) OBSERVER_TO_PROXIES.delete(obs);
+};
+
+/**
+ * Clear ALL dependencies for an observer, when it is disposed.
  * @param obs the observable to clear all dependencies for
  */
 export const observerClearAll = (obs: ObservableItem<unknown>): void => {
@@ -255,7 +261,7 @@ export const observerClearAll = (obs: ObservableItem<unknown>): void => {
   if (!proxies) return;
 
   for (const [key, trackers] of proxies) {
-    for (const trk of trackers) {
+    for (const trk of trackers.keys()) {
       dropDependency(obs, trk, key);
     }
   }
@@ -280,17 +286,19 @@ export const dependTracker = (trk: object, key: DependencyKey): void => {
     OBSERVER_TO_PROXIES.set(current, trackers);
   }
 
-  let trackerSet = trackers.get(key);
+  let trackerMap = trackers.get(key);
 
-  if (!trackerSet) {
-    trackerSet = new Set();
-    trackers.set(key, trackerSet);
-  } else if (trackerSet.has(trk)) {
-    // already depending on it: the source has this observer's entry too
-    return;
+  if (!trackerMap) {
+    trackerMap = new Map();
+    trackers.set(key, trackerMap);
   }
 
-  trackerSet.add(trk);
+  const isTracked = trackerMap.has(trk);
+
+  // mark it read in this run; a tracked dependency's source already has our entry
+  trackerMap.set(trk, current.epoch);
+
+  if (isTracked) return;
 
   let observers = PROXY_TO_OBSERVERS.get(trk);
 
@@ -346,15 +354,8 @@ export const trackerChanged = (trk: object, key: DependencyKey): void => {
       const obs = observerOf(entry);
 
       if (obs) {
-        // tell the observer it needs to run again
+        // tell the observer it needs to run again; its next run drops what it stops reading
         obs.setDirty();
-
-        // Only clear the dependency if the observer is NOT currently running.
-        // If it's running, it's in the middle of collecting new dependencies
-        // and we don't want to clear dependencies that were just registered.
-        if (!isObserverRunning(obs)) {
-          observerClear(obs, key);
-        }
       } else {
         observerSet.delete(entry);
       }
