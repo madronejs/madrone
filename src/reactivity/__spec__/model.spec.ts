@@ -1,0 +1,261 @@
+/**
+ * Model-based test: random programs of writes, computed reads, watchers, releases and
+ * garbage collections run against the real reactivity system and against a reference
+ * model that recomputes everything from scratch. Any divergence is a bug in the
+ * dependency tracking, caching, weak/strong holding or scheduling.
+ *
+ * The same rules are written as a TLA+ spec in spec/Reactivity.tla.
+ */
+import fc from 'fast-check';
+import { describe, it, expect } from 'vitest';
+import { collect } from '@/test/collect';
+import Computed from '../Computed';
+import Reactive from '../Reactive';
+import Watcher from '../Watcher';
+import type { ObservableItem } from '../Observer';
+
+const SOURCES = 3;
+// several sources share key names, like every @reactive atom uses `value`
+const KEYS = ['value', 'a', 'b'] as const;
+// indexes wrap around what exists, so a small range keeps ops hitting the same few items
+const MAX_INDEX = 4;
+
+type Key = typeof KEYS[number];
+type Read = { kind: 'source', source: number, key: Key } | { kind: 'computed', index: number };
+/** A computed reads `cond`, then sums `odd` or `even` depending on its parity */
+type Program = { cond: Read, odd: Read[], even: Read[] };
+type WatcherRecord = { target: Read, seen: number, stop?: () => void };
+
+type Op = | { op: 'write', source: number, key: Key, value: number }
+  | { op: 'create', program: Program, isWeak: boolean }
+  | { op: 'read', index: number }
+  | { op: 'watch', target: Read, isKept: boolean }
+  | { op: 'unwatch', index: number }
+  | { op: 'release', index: number }
+  | { op: 'flush' }
+  | { op: 'gc' };
+
+const sourceReadArb = fc.record({
+  kind: fc.constant('source' as const),
+  source: fc.nat(SOURCES - 1),
+  key: fc.constantFrom(...KEYS),
+});
+const computedReadArb = fc.record({ kind: fc.constant('computed' as const), index: fc.nat(MAX_INDEX) });
+const readArb = fc.oneof(
+  { weight: 3, arbitrary: sourceReadArb },
+  { weight: 2, arbitrary: computedReadArb }
+) as fc.Arbitrary<Read>;
+const readsArb = fc.array(readArb, { maxLength: 3 });
+
+// without strictNullChecks fc.record's fields come out optional, hence the cast
+const opArb = fc.oneof(
+  {
+    weight: 6,
+    arbitrary: fc.record({
+      op: fc.constant('write' as const),
+      source: fc.nat(SOURCES - 1),
+      key: fc.constantFrom(...KEYS),
+      value: fc.integer({ min: 0, max: 5 }),
+    }),
+  },
+  {
+    weight: 3,
+    arbitrary: fc.record({
+      op: fc.constant('create' as const),
+      program: fc.record({ cond: readArb, odd: readsArb, even: readsArb }),
+      isWeak: fc.boolean(),
+    }),
+  },
+  { weight: 4, arbitrary: fc.record({ op: fc.constant('read' as const), index: fc.nat(MAX_INDEX) }) },
+  { weight: 3, arbitrary: fc.record({ op: fc.constant('watch' as const), target: readArb, isKept: fc.boolean() }) },
+  { weight: 1, arbitrary: fc.record({ op: fc.constant('unwatch' as const), index: fc.nat(MAX_INDEX) }) },
+  { weight: 3, arbitrary: fc.record({ op: fc.constant('release' as const), index: fc.nat(MAX_INDEX) }) },
+  { weight: 2, arbitrary: fc.constant({ op: 'flush' as const }) },
+  { weight: 3, arbitrary: fc.constant({ op: 'gc' as const }) }
+) as fc.Arbitrary<Op>;
+
+const flush = () => new Promise((resolve) => {
+  setTimeout(resolve, 0);
+});
+
+const sum = (reads: Array<() => number>) => reads.reduce((total, read) => total + read(), 0);
+
+async function runProgram(ops: Op[]) {
+  // reference model: plain state, and each computed's program over earlier computeds
+  const model = Array.from({ length: SOURCES }, () => ({ value: 0, a: 0, b: 0 }));
+  const programs: Program[] = [];
+
+  function evalComputed(index: number): number {
+    const { cond, odd, even } = programs[index];
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    const branch = evalRead(cond) % 2 ? odd : even;
+
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    return branch.reduce((total, read) => total + evalRead(read), 0);
+  }
+
+  function evalRead(read: Read): number {
+    return read.kind === 'source' ? model[read.source][read.key] : evalComputed(read.index);
+  }
+
+  // the real thing; `held` is what the test (the "owner") still references
+  const sources = Array.from({ length: SOURCES }, () => Reactive({ value: 0, a: 0, b: 0 }));
+  const held: Array<ObservableItem<number> | undefined> = [];
+  // a watcher whose disposer was dropped must keep firing, so only kept ones get a `stop`
+  const watchers: Array<WatcherRecord | undefined> = [];
+
+  // a computed can only read computeds that existed and were held when it was created
+  const resolve = (read: Read): Read | undefined => {
+    if (read.kind === 'source') return read;
+
+    if (held.length === 0) return undefined;
+
+    const index = read.index % held.length;
+
+    return held[index] ? { kind: 'computed', index } : undefined;
+  };
+  // capture the computed itself, not the `held` slot, so releasing it doesn't break readers
+  const reader = (read: Read): (() => number) => {
+    if (read.kind === 'source') {
+      const source = sources[read.source];
+
+      return () => source[read.key];
+    }
+
+    const cp = held[read.index];
+
+    return () => cp.value;
+  };
+  const resolveAll = (reads: Read[]) => reads.map((read) => resolve(read)).filter(Boolean);
+  const readerAll = (reads: Read[]) => reads.map((read) => reader(read));
+
+  const create = (step: Extract<Op, { op: 'create' }>) => {
+    const cond = resolve(step.program.cond) ?? { kind: 'source', source: 0, key: 'value' };
+    const program = { cond, odd: resolveAll(step.program.odd), even: resolveAll(step.program.even) };
+    const readCond = reader(program.cond);
+    const readOdd = readerAll(program.odd);
+    const readEven = readerAll(program.even);
+
+    programs.push(program);
+    held.push(Computed<number>({
+      weak: step.isWeak,
+      get: () => sum(readCond() % 2 ? readOdd : readEven),
+    }));
+  };
+
+  const watch = (step: Extract<Op, { op: 'watch' }>) => {
+    const target = resolve(step.target);
+
+    if (!target) return;
+
+    const watcher: WatcherRecord = { target, seen: undefined };
+    const stop = Watcher(reader(target), (value) => {
+      watcher.seen = value;
+    }, { immediate: true });
+
+    if (step.isKept) watcher.stop = stop;
+
+    watchers.push(watcher);
+  };
+
+  // Ops run in a synchronous function: a suspended async function keeps its locals alive
+  // across `await`, which would root the very objects the gc steps should collect.
+  const apply = (step: Op): void => {
+    switch (step.op) {
+      case 'write': {
+        sources[step.source][step.key] = step.value;
+        model[step.source][step.key] = step.value;
+        break;
+      }
+      case 'create': {
+        create(step);
+        break;
+      }
+      case 'read': {
+        const index = step.index % Math.max(held.length, 1);
+
+        if (held[index]) expect(held[index].value, `computed ${index}`).toEqual(evalComputed(index));
+
+        break;
+      }
+      case 'watch': {
+        watch(step);
+        break;
+      }
+      case 'unwatch': {
+        const index = step.index % Math.max(watchers.length, 1);
+
+        watchers[index]?.stop?.();
+
+        if (watchers[index]?.stop) watchers[index] = undefined;
+
+        break;
+      }
+      case 'release': {
+        if (held.length > 0) held[step.index % held.length] = undefined;
+
+        break;
+      }
+      default: {
+        throw new Error(`unknown op ${step.op}`);
+      }
+    }
+  };
+
+  for (const step of ops) {
+    if (step.op === 'flush') {
+      await flush();
+    } else if (step.op === 'gc') {
+      await collect();
+    } else {
+      apply(step);
+    }
+  }
+
+  // Collect, then change every source: a watcher (or anything it reads) that was wrongly
+  // collected misses this change, whatever order the program did things in.
+  await collect();
+
+  for (const index of sources.keys()) {
+    for (const key of KEYS) {
+      apply({
+        op: 'write', source: index, key, value: model[index][key] + 1,
+      });
+    }
+  }
+
+  // once changes have been delivered, every live watcher has seen the current value
+  await flush();
+
+  for (const [index, watcher] of watchers.entries()) {
+    if (watcher) expect(watcher.seen, `watcher ${index}`).toEqual(evalRead(watcher.target));
+  }
+
+  for (const [index, cp] of held.entries()) {
+    if (cp) expect(cp.value, `computed ${index}`).toEqual(evalComputed(index));
+  }
+}
+
+describe('reactivity model', () => {
+  it('matches a from-scratch model for random programs', async () => {
+    // a watcher on a weak computed nothing else references, after a gc (regression)
+    const unreferencedComputedWatched: Op[] = [
+      {
+        op: 'create',
+        program: { cond: { kind: 'source', source: 0, key: 'a' }, odd: [], even: [{ kind: 'source', source: 0, key: 'value' }] },
+        isWeak: true,
+      },
+      { op: 'watch', target: { kind: 'computed', index: 0 }, isKept: false },
+      { op: 'release', index: 0 },
+      { op: 'gc' },
+      {
+        op: 'write', source: 0, key: 'value', value: 3,
+      },
+    ];
+
+    await fc.assert(fc.asyncProperty(fc.array(opArb, { maxLength: 40 }), runProgram), {
+      numRuns: 300,
+      examples: [[unreferencedComputedWatched]],
+    });
+  }, 120_000);
+});
