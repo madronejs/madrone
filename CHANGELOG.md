@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2026-11-20
+
+### Changed
+
+- **`lastAccessed()`**: Accesses made in the same synchronous run now share one timestamp (the time of the first), so the clock is read once per run instead of on every property access.
+- **Reactivity**: Reading reactive properties and computeds, and re-running computeds and watchers, is faster: dependencies are kept across runs and only the ones a run didn't read again are dropped, cached computed reads skip dependency bookkeeping, and the proxy get trap does fewer lookups.
+- **Reactivity**: Reactive proxies created with the same options now share one proxy handler, reducing the memory used by each reactive object and `@reactive` property.
+
+### Fixed
+
+- **Reactivity**: A computed whose getter throws now rethrows that error on later reads until one of its dependencies changes, instead of returning `undefined`. Computeds and watchers that read it while it was throwing (catching the error or not) now update once it recovers; previously they never heard about the recovery and kept a stale value.
+- **Reactivity**: Objects with `@computed` or `auto()` computed properties can now be garbage collected once they are no longer referenced, even if their computeds read reactive state that lives longer. Previously the long-lived state kept every such object reachable, leaking memory.
+- **`watch()`**: A disposed watcher no longer keeps its getter, handler, or anything they reference alive while something still holds its disposer.
+- **`watch()`**: When the watched getter throws on its first run, the watcher is now disposed before the error propagates. Previously the caller got no disposer, but the watcher stayed subscribed and its handler fired once the getter stopped throwing.
+
 ## [2.1.0] - 2026-10-30
 
 ### Changed
