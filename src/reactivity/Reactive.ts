@@ -58,15 +58,13 @@ export default function Reactive<T extends object>(target: T, options?: Reactive
   // this is already a proxied target... don't need to track it again
   if (isReactive(target)) return target;
 
-  const opts = options || {};
-  const newOptions = { ...opts, deep: opts?.deep ?? true };
   const type = Reactive.getStringType(target);
 
   // make sure we're looking at something we can observe
   // if not, return the original
   if (!Reactive.hasHandler(type)) return target;
 
-  const proxy = new Proxy(target, Reactive.typeHandler(type, newOptions)) as T;
+  const proxy = new Proxy(target, Reactive.typeHandler(type, options)) as T;
 
   addReactive(target, proxy);
 
@@ -121,4 +119,4 @@ Reactive.hasHandler = (type: string): boolean => !!typeHandlers[type];
  * Gets the Proxy handler for the given type.
  * @internal
  */
-Reactive.typeHandler = (type: string, hooks: ReactiveOptions): ProxyHandler<object> => typeHandlers[type]?.(hooks);
+Reactive.typeHandler = (type: string, hooks?: ReactiveOptions): ProxyHandler<object> => typeHandlers[type]?.(hooks);

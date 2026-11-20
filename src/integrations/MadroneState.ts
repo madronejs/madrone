@@ -72,6 +72,8 @@ export function describeComputed<T = unknown>(
       ...config,
       get: config.get as () => T,
       name,
+      // the object this property is defined on holds it
+      weak: true,
       onImmediateChange: options?.computed?.onImmediateChange,
       onChange: options?.computed?.onChange,
       onGet: options?.computed?.onGet,
@@ -105,6 +107,38 @@ export function describeComputed<T = unknown>(
   };
 }
 
+const NO_INTEGRATION_OPTIONS = {};
+const PROPERTY_OPTIONS = new WeakMap<object, Map<string, ReactiveOptions>>();
+
+// One options object per integration, name and depth, so every instance's atom shares a proxy handler.
+function propertyOptions(name: string, deep: boolean | undefined, options?: MadroneStateOptions): ReactiveOptions {
+  const owner = options ?? NO_INTEGRATION_OPTIONS;
+  const key = `${deep}:${name}`;
+  let byKey = PROPERTY_OPTIONS.get(owner);
+
+  if (!byKey) {
+    byKey = new Map();
+    PROPERTY_OPTIONS.set(owner, byKey);
+  }
+
+  let reactiveOptions = byKey.get(key);
+
+  if (!reactiveOptions) {
+    reactiveOptions = {
+      name,
+      onGet: options?.reactive?.onGet,
+      onHas: options?.reactive?.onHas,
+      onSet: options?.reactive?.onSet,
+      onDelete: options?.reactive?.onDelete,
+      needsProxy: options?.reactive?.needsProxy,
+      deep,
+    };
+    byKey.set(key, reactiveOptions);
+  }
+
+  return reactiveOptions;
+}
+
 /**
  * Creates a property descriptor for a reactive property.
  *
@@ -124,15 +158,7 @@ export function describeProperty(
   type Atom = { value: unknown };
 
   const tg: Atom = { value: config.value };
-  const atom = Reactive<Atom>(tg, {
-    name,
-    onGet: options?.reactive?.onGet,
-    onHas: options?.reactive?.onHas,
-    onSet: options?.reactive?.onSet,
-    onDelete: options?.reactive?.onDelete,
-    needsProxy: options?.reactive?.needsProxy,
-    deep: config.deep ?? options?.reactive?.deep,
-  });
+  const atom = Reactive<Atom>(tg, propertyOptions(name, config.deep ?? options?.reactive?.deep, options));
 
   return {
     configurable: config.configurable,

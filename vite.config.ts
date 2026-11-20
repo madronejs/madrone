@@ -42,6 +42,8 @@ export default defineConfig({
   },
   test: {
     environment: 'happy-dom',
+    // for specs that check an object can be garbage collected
+    execArgv: ['--expose-gc'],
   },
   resolve: {
     alias: {
