@@ -12,7 +12,8 @@ import {
   OBSERVER_SYMBOL, dependTracker, observerClearAll, observerSweep, schedule, trackerChanged,
 } from './global';
 
-const GLOBAL_STACK: Array<ObservableItem<unknown>> = [];
+/** The observer whose getter is running, if any */
+let CURRENT: ObservableItem<unknown> | undefined;
 
 /**
  * Returns the currently running Observer, if any.
@@ -24,7 +25,7 @@ const GLOBAL_STACK: Array<ObservableItem<unknown>> = [];
  * @internal
  */
 export function getCurrentObserver(): ObservableItem<unknown> | undefined {
-  return GLOBAL_STACK.at(-1);
+  return CURRENT;
 }
 
 /**
@@ -170,12 +171,14 @@ class ObservableItem<T> {
   }
 
   private wrap<CBType>(cb: () => CBType): CBType {
-    GLOBAL_STACK.push(this);
+    const previous = CURRENT;
+
+    CURRENT = this;
 
     try {
       return cb();
     } finally {
-      GLOBAL_STACK.pop();
+      CURRENT = previous;
     }
   }
 

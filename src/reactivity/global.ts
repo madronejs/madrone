@@ -274,9 +274,11 @@ export const observerClearAll = (obs: ObservableItem<unknown>): void => {
  * @param trk the trackable item we're depending on
  * @param key the key to depend on
  */
-export const dependTracker = (trk: object, key: DependencyKey): void => {
-  const current = getCurrentObserver();
-
+export const dependTracker = (
+  trk: object,
+  key: DependencyKey,
+  current: ObservableItem<unknown> | undefined = getCurrentObserver()
+): void => {
   if (!current) return;
 
   let trackers = OBSERVER_TO_PROXIES.get(current);
@@ -332,13 +334,15 @@ export const dependTracker = (trk: object, key: DependencyKey): void => {
  * @param key the key to depend on
  */
 export const dependTarget = (target: object, key: string | symbol): void => {
+  const current = getCurrentObserver();
+
   // most reads happen outside any observer: skip the proxy lookup for them
-  if (!getCurrentObserver()) return;
+  if (!current) return;
 
   const trk = getReactive(target);
 
   if (trk) {
-    dependTracker(trk, key);
+    dependTracker(trk, key, current);
   }
 };
 
