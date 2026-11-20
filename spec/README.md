@@ -15,7 +15,7 @@ The script downloads the pinned TLA+ tools jar and checks its SHA-256.
 If no Java 11+ is on the `PATH`, it also downloads a pinned Temurin JRE the same way.
 Both are cached in `node_modules/.cache/tlaplus`.
 Set `TLA_JAVA=/path/to/java` to pick a Java, or `TLA_DOWNLOAD_JAVA=1` to always use the pinned one.
-A run takes about 25 seconds.
+A run takes about 30 seconds.
 
 ## What is checked
 
@@ -28,7 +28,7 @@ A run takes about 25 seconds.
 | `InUseIsLive`, `InUseIsReachable` | Nothing owned, watched or queued was or can be collected. |
 | `UnusedIsCollectible` | A weak computed nothing uses is not kept alive by its sources. |
 
-Each property was checked to fail when the rule it guards is broken: dropping the strong-dependent rule (the weak computed regression) breaks `InUseIsReachable`, not propagating dirtiness breaks `WatchersDelivered`, keeping dependencies a run didn't read breaks `DepsExact`, not depending on a computed whose read threw breaks `DepsExact`, and keeping the old cache when a getter throws breaks `NoStaleRead`.
+Each property was checked to fail when the rule it guards is broken: dropping the strong-dependent rule (the weak computed regression) breaks `InUseIsReachable`, not propagating dirtiness breaks `WatchersDelivered`, keeping dependencies a run didn't read breaks `DepsExact`, not depending on a computed whose read threw breaks `DepsExact`, keeping the old cache when a getter throws breaks `NoStaleRead`, and a disposed watcher keeping its getter breaks `UnusedIsCollectible`.
 
 The spec checks the design, not the TypeScript.
 `src/reactivity/__spec__/model.spec.ts` runs random programs against the code and a reference model to check the code follows the same rules.

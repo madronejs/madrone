@@ -61,6 +61,10 @@ VARIABLES
 
 vars == <<val, weak, cache, dirty, deps, owned, live, created, kept, disposed, pending, seen>>
 
+\* What an observer still references: dispose() drops a watcher's getter and hooks, so a
+\* disposer someone still holds doesn't keep what the watcher read
+Holds(o) == IF o \in disposed THEN {} ELSE Captures(o)
+
 -----------------------------------------------------------------------------
 (* Evaluation. With useCache = FALSE this is what everything should be,    *)
 (* recomputed from scratch; with useCache = TRUE it is what the code       *)
@@ -146,7 +150,7 @@ HeldStrongly(o) ==
 \* Strong references out of x: its observer sets, its tracked deps, its closure
 Refs(x) ==
   {o \in live : x \in deps[o] /\ HeldStrongly(o)}
-  \cup (IF x \in Observers THEN deps[x] \cup Captures(x) ELSE {})
+  \cup (IF x \in Observers THEN deps[x] \cup Holds(x) ELSE {})
 
 Roots == Sources \cup owned \cup (kept \cap created) \cup pending
 
@@ -260,7 +264,7 @@ NoStaleRead == \A c \in live \cap Computeds : ~dirty[c] => cache[c] = Value(c)
 DepsExact == \A c \in live \cap Computeds : ~dirty[c] => deps[c] = ReadSet(c)
 
 \* Nothing live references something that was collected
-NoDangling == \A o \in live : Captures(o) \cup deps[o] \subseteq Sources \cup live
+NoDangling == \A o \in live : Holds(o) \cup deps[o] \subseteq Sources \cup live
 
 \* Once queued changes are delivered, every watcher has seen its target's current value
 WatchersDelivered ==
@@ -269,13 +273,11 @@ WatchersDelivered ==
 (* What should stay alive: what owners, watchers and the task queue use,   *)
 (* subscribed computeds created strong (their sources keep them by        *)
 (* design), and everything those read or capture.                          *)
-\* A kept disposer keeps its watcher's getter (and what it captures), even once disposed
-Users == owned \cup (created \ disposed) \cup (kept \cap created) \cup pending
-         \cup {c \in Computeds \ weak : deps[c] # {}}
+Users == owned \cup (created \ disposed) \cup pending \cup {c \in Computeds \ weak : deps[c] # {}}
 
 RECURSIVE Needed(_)
 Needed(S) ==
-  LET next == S \cup UNION {(deps[x] \cup Captures(x)) \cap Observers : x \in S \cap live}
+  LET next == S \cup UNION {(deps[x] \cup Holds(x)) \cap Observers : x \in S \cap live}
   IN IF next = S THEN S ELSE Needed(next)
 
 \* Nothing in use was collected (a watcher whose disposer was dropped included)

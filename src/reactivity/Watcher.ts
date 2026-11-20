@@ -75,6 +75,8 @@ export default function Watcher<T>(
     handler(val);
   }
 
-  // return disposer to stop watching
-  return () => obs.dispose();
+  // Return a disposer to stop watching. Bound rather than an arrow: an arrow would share
+  // this function's closure context with the onChange hook and so keep `handler` (and
+  // whatever it captures) alive for as long as anyone holds the disposer.
+  return obs.dispose.bind(obs);
 }

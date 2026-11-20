@@ -163,6 +163,10 @@ class ObservableItem<T> {
     this.cachedVal = undefined;
     this.cachedError = undefined;
     this.prev = undefined;
+    // Drop the getter and hooks so whatever they capture (a watcher's handler, the objects
+    // its getter reads) can be collected even while something still holds the disposer
+    this.get = undefined;
+    this.hooks = {} as typeof this.hooks;
   }
 
   private wrap<CBType>(cb: () => CBType): CBType {

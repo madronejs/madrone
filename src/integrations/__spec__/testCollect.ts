@@ -141,6 +141,34 @@ export default function testCollect(integrationName, integration) {
       expect(seen).toEqual(['B', 'C']);
     });
 
+    test('a disposed watcher whose disposer is still held does not keep what it read', async () => {
+      const source = Madrone.auto({ label: 'a' });
+      const seen: string[] = [];
+      const watchOnce = () => {
+        const owner = Madrone.auto({
+          get text() {
+            return source.label;
+          },
+        });
+        const stop = Madrone.watch(() => owner.text, (val) => {
+          seen.push(val);
+        });
+
+        stop();
+
+        return { stop, ref: new WeakRef(owner) };
+      };
+      const { stop, ref } = watchOnce();
+
+      await collect();
+      expect(ref.deref()).toBeUndefined();
+      source.label = 'b';
+      await collect();
+      expect(seen).toEqual([]);
+      // stopping again is harmless
+      stop();
+    });
+
     test('a computed that was watched can be collected once its watcher is disposed', async () => {
       const source = Madrone.auto({ label: 'a' });
       const watchOnce = () => {
