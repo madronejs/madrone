@@ -117,7 +117,7 @@ function defaultHandlers(options: ReactiveOptions) {
       // 3. needsProxy allows it (function call, usually returns true)
       // 4. property is configurable (expensive getOwnPropertyDescriptor)
       if (
-        options?.deep
+        (options.deep ?? true)
         && value
         && typeof value === 'object'
         && needsProxy({ target, key: prop, value })
@@ -138,7 +138,6 @@ function defaultHandlers(options: ReactiveOptions) {
       optionHasOwnKeys(options, target);
       return Reflect.ownKeys(target);
     },
-    getPrototypeOf: (target) => Object.getPrototypeOf(target),
   };
 }
 
@@ -153,7 +152,7 @@ const arrayHandler = (options) => ({
  * Wraps a value in a Reactive proxy if deep mode is enabled and the value is an object
  */
 const wrapIfDeep = <T>(value: T, options: ReactiveOptions): T => {
-  if (options?.deep && value && typeof value === 'object') {
+  if ((options?.deep ?? true) && value && typeof value === 'object') {
     return Reactive(value as object, options) as T;
   }
   return value;
@@ -539,9 +538,33 @@ const mapHandler = (options: ReactiveOptions) => ({
   },
 });
 
+type HandlerFactory = (options: ReactiveOptions) => ProxyHandler<any>;
+
+const DEFAULT_OPTIONS: ReactiveOptions = Object.freeze({});
+const HANDLERS = new WeakMap<ReactiveOptions, Map<HandlerFactory, ProxyHandler<any>>>();
+
+// Proxies made with the same options object share one handler, so a proxy costs no closures of its own.
+const cached = (factory: HandlerFactory) => (options: ReactiveOptions = DEFAULT_OPTIONS): ProxyHandler<any> => {
+  let byFactory = HANDLERS.get(options);
+
+  if (!byFactory) {
+    byFactory = new Map();
+    HANDLERS.set(options, byFactory);
+  }
+
+  let handler = byFactory.get(factory);
+
+  if (!handler) {
+    handler = factory(options);
+    byFactory.set(factory, handler);
+  }
+
+  return handler;
+};
+
 export default Object.freeze({
-  object: objectHandler,
-  array: arrayHandler,
-  set: setHandler,
-  map: mapHandler,
+  object: cached(objectHandler),
+  array: cached(arrayHandler),
+  set: cached(setHandler),
+  map: cached(mapHandler),
 });
