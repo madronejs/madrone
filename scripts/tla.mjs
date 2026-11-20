@@ -15,7 +15,7 @@
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import {
-  existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync,
+  mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync,
 } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -35,12 +35,21 @@ function fail(message) {
   process.exit(1);
 }
 
-function sha256(file) {
-  return createHash('sha256').update(readFileSync(file)).digest('hex');
+function sha256(data) {
+  return createHash('sha256').update(data).digest('hex');
+}
+
+/** Whether `file` exists with the expected hash (one read, so there is no check-then-use race) */
+function isCached(file, expectedSha256) {
+  try {
+    return sha256(readFileSync(file)) === expectedSha256;
+  } catch {
+    return false;
+  }
 }
 
 async function download(url, file, expectedSha256) {
-  if (existsSync(file) && sha256(file) === expectedSha256) return;
+  if (isCached(file, expectedSha256)) return;
 
   console.log(`Downloading ${url}`);
 
@@ -48,15 +57,18 @@ async function download(url, file, expectedSha256) {
 
   if (!res.ok) fail(`download failed (${res.status}): ${url}`);
 
+  const data = Buffer.from(await res.arrayBuffer());
+  const actual = sha256(data);
+
+  // verify before anything touches the disk
+  if (actual !== expectedSha256) fail(`checksum mismatch for ${url}: expected ${expectedSha256}, got ${actual}`);
+
+  // write to a temporary file and rename it, so a reader never sees a partial jar
+  const temporary = `${file}.${process.pid}.tmp`;
+
   mkdirSync(path.dirname(file), { recursive: true });
-  writeFileSync(file, Buffer.from(await res.arrayBuffer()));
-
-  const actual = sha256(file);
-
-  if (actual !== expectedSha256) {
-    rmSync(file);
-    fail(`checksum mismatch for ${url}: expected ${expectedSha256}, got ${actual}`);
-  }
+  writeFileSync(temporary, data);
+  renameSync(temporary, file);
 }
 
 function javaMajor(java) {
