@@ -77,8 +77,11 @@ export const toRaw = <T extends object>(targetOrProxy: T): T => (
 /** Gets all dependencies for an observer */
 export const getDependencies = (observer: ObservableItem<unknown>) => OBSERVER_TO_PROXIES.get(observer);
 
-/** Gets all observers watching a given proxy; a weak observer appears as its WeakRef */
-export const getObservers = (tracker: object) => PROXY_TO_OBSERVERS.get(getProxy(tracker));
+/**
+ * Gets all observers watching a reactive object (its proxy or target) or an observer;
+ * a weak observer appears as its WeakRef
+ */
+export const getObservers = (tracker: object) => PROXY_TO_OBSERVERS.get(getProxy(tracker) ?? tracker);
 
 /**
  * How many strong observers depend on each weak observer. While a weak observer has any,

@@ -14,6 +14,10 @@
 (* A computed in Throws throws when its condition is 1. An error is cached *)
 (* like a value (Err): reading it rethrows, and a reader in Catches counts *)
 (* it as 0, otherwise it propagates and the reader stops reading there.    *)
+(* A watcher either sees an error as a value or lets it through: then its  *)
+(* handler isn't called, and if its first run throws, it is disposed and   *)
+(* its creator gets the error instead of a disposer. A watcher whose       *)
+(* disposer is kept may also call it from its own getter.                  *)
 (*                                                                         *)
 (* Code this models:                                                       *)
 (*   src/reactivity/global.ts   dependencies, holding, change propagation  *)
@@ -57,9 +61,11 @@ VARIABLES
   kept,      \* watchers whose disposer is still referenced
   disposed,  \* watchers that were disposed
   pending,   \* watchers with a change scheduled (the task queue references them)
-  seen       \* the value each watcher's handler last received
+  seen,      \* the value each watcher's handler last received
+  catching,  \* watchers that see an error as a value rather than letting it through
+  failed     \* watchers whose creation threw, so their creator has no disposer
 
-vars == <<val, weak, cache, dirty, deps, owned, live, created, kept, disposed, pending, seen>>
+vars == <<val, weak, cache, dirty, deps, owned, live, created, kept, disposed, pending, seen, catching, failed>>
 
 \* What an observer still references: dispose() drops a watcher's getter and hooks, so a
 \* disposer someone still holds doesn't keep what the watcher read
@@ -177,6 +183,8 @@ Init ==
   /\ disposed = {}
   /\ pending = {}
   /\ seen = [w \in Watchers |-> NoValue]
+  /\ catching = {}
+  /\ failed = {}
 
 \* Writing a different value notifies (optionSet); writing the same one doesn't
 Write(s, v) ==
@@ -185,25 +193,37 @@ Write(s, v) ==
   /\ LET H == Hit(Dependents(s), {}) IN
        /\ dirty' = [c \in Computeds |-> dirty[c] \/ c \in H]
        /\ pending' = pending \cup ((H \cap Watchers) \ disposed)
-  /\ UNCHANGED <<weak, cache, deps, owned, live, created, kept, disposed, seen>>
+  /\ UNCHANGED <<weak, cache, deps, owned, live, created, kept, disposed, seen, catching, failed>>
 
 \* An owner reads its computed
 Read(c) ==
   /\ c \in owned
   /\ RunUpdates(c, <<>>)
-  /\ UNCHANGED <<val, weak, owned, live, created, kept, disposed, pending, seen>>
+  /\ UNCHANGED <<val, weak, owned, live, created, kept, disposed, pending, seen, catching, failed>>
 
 (* Creating a watcher runs it once (immediate). Its creator must be able to *)
-(* reach the target, and may or may not keep the disposer.                  *)
-CreateWatcher(w, isKept) ==
+(* reach the target, and may or may not keep the disposer. If the first run *)
+(* lets an error through, Watcher disposes it and rethrows: the creator     *)
+(* gets no disposer and the handler never runs.                             *)
+CreateWatcher(w, isKept, isCatching) ==
   /\ w \notin created
   /\ Target[w] \in Sources \cup owned
   /\ created' = created \cup {w}
   /\ live' = live \cup {w}
-  /\ kept' = IF isKept THEN kept \cup {w} ELSE kept
-  /\ seen' = [seen EXCEPT ![w] = ImplValue(Target[w])]
-  /\ RunUpdates(Target[w], w :> {Target[w]})
-  /\ UNCHANGED <<val, weak, owned, disposed, pending>>
+  /\ catching' = IF isCatching THEN catching \cup {w} ELSE catching
+  /\ IF ImplValue(Target[w]) = Err /\ ~isCatching
+       THEN /\ failed' = failed \cup {w}
+            /\ disposed' = disposed \cup {w}
+            /\ RunUpdates(Target[w], w :> {})
+            /\ UNCHANGED <<kept, seen>>
+       ELSE /\ kept' = IF isKept THEN kept \cup {w} ELSE kept
+            /\ seen' = [seen EXCEPT ![w] = ImplValue(Target[w])]
+            /\ RunUpdates(Target[w], w :> {Target[w]})
+            /\ UNCHANGED <<failed, disposed>>
+  /\ UNCHANGED <<val, weak, owned, pending>>
+
+\* The handler gets the target's value, unless it is an error the watcher lets through
+Handled(w, v) == IF v = Err /\ w \notin catching THEN seen[w] ELSE v
 
 \* The scheduled change runs: a disposed watcher does nothing (notifyChange)
 Deliver(w) ==
@@ -211,33 +231,44 @@ Deliver(w) ==
   /\ pending' = pending \ {w}
   /\ IF w \in disposed
        THEN UNCHANGED <<cache, dirty, deps, seen>>
-       ELSE /\ seen' = [seen EXCEPT ![w] = ImplValue(Target[w])]
+       ELSE /\ seen' = [seen EXCEPT ![w] = Handled(w, ImplValue(Target[w]))]
             /\ RunUpdates(Target[w], w :> {Target[w]})
-  /\ UNCHANGED <<val, weak, owned, live, created, kept, disposed>>
+  /\ UNCHANGED <<val, weak, owned, live, created, kept, disposed, catching, failed>>
+
+(* The scheduled change runs and the getter calls the watcher's own         *)
+(* disposer before reading the target. The run still reads it and hands     *)
+(* the handler its value, but the disposed watcher keeps no dependencies.   *)
+StopInRun(w) ==
+  /\ w \in (pending \cap kept) \ disposed
+  /\ pending' = pending \ {w}
+  /\ disposed' = disposed \cup {w}
+  /\ seen' = [seen EXCEPT ![w] = Handled(w, ImplValue(Target[w]))]
+  /\ RunUpdates(Target[w], w :> {})
+  /\ UNCHANGED <<val, weak, owned, live, created, kept, catching, failed>>
 
 Dispose(w) ==
   /\ w \in kept \ disposed
   /\ disposed' = disposed \cup {w}
   /\ deps' = [deps EXCEPT ![w] = {}]
-  /\ UNCHANGED <<val, weak, cache, dirty, owned, live, created, kept, pending, seen>>
+  /\ UNCHANGED <<val, weak, cache, dirty, owned, live, created, kept, pending, seen, catching, failed>>
 
 \* The owner (the object a computed is defined on) is no longer referenced
 Release(c) ==
   /\ c \in owned
   /\ owned' = owned \ {c}
-  /\ UNCHANGED <<val, weak, cache, dirty, deps, live, created, kept, disposed, pending, seen>>
+  /\ UNCHANGED <<val, weak, cache, dirty, deps, live, created, kept, disposed, pending, seen, catching, failed>>
 
 \* Anything not reachable through strong references may be collected
 GC ==
   /\ live \cap Reachable # live
   /\ live' = live \cap Reachable
-  /\ UNCHANGED <<val, weak, cache, dirty, deps, owned, created, kept, disposed, pending, seen>>
+  /\ UNCHANGED <<val, weak, cache, dirty, deps, owned, created, kept, disposed, pending, seen, catching, failed>>
 
 Next ==
   \/ \E s \in Sources, v \in {0, 1} : Write(s, v)
   \/ \E c \in Computeds : Read(c)
-  \/ \E w \in Watchers, isKept \in BOOLEAN : CreateWatcher(w, isKept)
-  \/ \E w \in Watchers : Deliver(w) \/ Dispose(w)
+  \/ \E w \in Watchers, isKept, isCatching \in BOOLEAN : CreateWatcher(w, isKept, isCatching)
+  \/ \E w \in Watchers : Deliver(w) \/ StopInRun(w) \/ Dispose(w)
   \/ \E c \in Computeds : Release(c)
   \/ GC
 
@@ -256,6 +287,7 @@ TypeOK ==
   /\ live \subseteq Observers
   /\ kept \cup disposed \cup pending \subseteq created
   /\ seen \in [Watchers -> {0, 1, NoValue, Err}]
+  /\ catching \cup failed \subseteq created
 
 \* A clean computed's cache is what it would compute now
 NoStaleRead == \A c \in live \cap Computeds : ~dirty[c] => cache[c] = Value(c)
@@ -266,9 +298,17 @@ DepsExact == \A c \in live \cap Computeds : ~dirty[c] => deps[c] = ReadSet(c)
 \* Nothing live references something that was collected
 NoDangling == \A o \in live : Holds(o) \cup deps[o] \subseteq Sources \cup live
 
-\* Once queued changes are delivered, every watcher has seen its target's current value
+(* Once queued changes are delivered, every watcher has seen its target's  *)
+(* current value (unless that is an error it lets through)                 *)
 WatchersDelivered ==
-  pending = {} => \A w \in created \ disposed : seen[w] = Value(Target[w])
+  pending = {} => \A w \in created \ disposed :
+    (w \in catching \/ Value(Target[w]) # Err) => seen[w] = Value(Target[w])
+
+\* The handler of a watcher whose creation threw never runs
+FailedWatchersSilent == \A w \in failed : seen[w] = NoValue
+
+\* A disposed watcher is subscribed to nothing, however it was disposed
+DisposedUnsubscribed == \A w \in disposed : deps[w] = {}
 
 (* What should stay alive: what owners, watchers and the task queue use,   *)
 (* subscribed computeds created strong (their sources keep them by        *)

@@ -2,16 +2,21 @@
  * Model-based test: random programs of writes, computed reads, watchers, releases and
  * garbage collections run against the real reactivity system and against a reference
  * model that recomputes everything from scratch. Any divergence is a bug in the
- * dependency tracking, caching, weak/strong holding or scheduling.
+ * dependency tracking, caching, weak/strong holding or scheduling. Watchers may let
+ * their target's error through (so creating one can throw) and may stop themselves from
+ * inside their own getter, and no disposed observer may stay subscribed to anything.
  *
  * The same rules are written as a TLA+ spec in spec/Reactivity.tla.
  */
 import fc from 'fast-check';
-import { describe, it, expect } from 'vitest';
+import {
+  describe, it, expect, vi,
+} from 'vitest';
 import { collect } from '@/test/collect';
 import Computed from '../Computed';
 import Reactive from '../Reactive';
 import Watcher from '../Watcher';
+import { getObservers } from '../global';
 import type { ObservableItem } from '../Observer';
 
 const SOURCES = 3;
@@ -30,13 +35,26 @@ type Read = { kind: 'source', source: number, key: Key } | { kind: 'computed', i
 type Program = { cond: Read, odd: Read[], even: Read[], isThrowing: boolean, isCatching: boolean };
 /** What reading something gives: a value, or that it threw */
 type Outcome = number | 'error';
-type WatcherRecord = { target: Read, seen: Outcome, stop?: () => void };
+/**
+ * `isCatching` watchers see an error as a value; the others let it through, so the
+ * scheduler logs it and their handler isn't called. `isStopping` makes the getter call
+ * the watcher's own disposer on its next run, before reading the target.
+ */
+type WatcherRecord = {
+  target: Read,
+  seen: Outcome,
+  isCatching: boolean,
+  stop?: () => void,
+  isStopping?: boolean,
+  isStopped?: boolean,
+};
 
 type Op = | { op: 'write', source: number, key: Key, value: number }
   | { op: 'create', program: Program, isWeak: boolean }
   | { op: 'read', index: number }
-  | { op: 'watch', target: Read, isKept: boolean }
+  | { op: 'watch', target: Read, isKept: boolean, isCatching: boolean }
   | { op: 'unwatch', index: number }
+  | { op: 'stopInRun', index: number }
   | { op: 'release', index: number }
   | { op: 'flush' }
   | { op: 'gc' };
@@ -76,8 +94,14 @@ const opArb = fc.oneof(
     }),
   },
   { weight: 4, arbitrary: fc.record({ op: fc.constant('read' as const), index: fc.nat(MAX_INDEX) }) },
-  { weight: 3, arbitrary: fc.record({ op: fc.constant('watch' as const), target: readArb, isKept: fc.boolean() }) },
+  {
+    weight: 3,
+    arbitrary: fc.record({
+      op: fc.constant('watch' as const), target: readArb, isKept: fc.boolean(), isCatching: fc.boolean(),
+    }),
+  },
   { weight: 1, arbitrary: fc.record({ op: fc.constant('unwatch' as const), index: fc.nat(MAX_INDEX) }) },
+  { weight: 1, arbitrary: fc.record({ op: fc.constant('stopInRun' as const), index: fc.nat(MAX_INDEX) }) },
   { weight: 3, arbitrary: fc.record({ op: fc.constant('release' as const), index: fc.nat(MAX_INDEX) }) },
   { weight: 2, arbitrary: fc.constant({ op: 'flush' as const }) },
   { weight: 3, arbitrary: fc.constant({ op: 'gc' as const }) }
@@ -140,6 +164,8 @@ async function runProgram(ops: Op[]) {
   const held: Array<ObservableItem<number> | undefined> = [];
   // a watcher whose disposer was dropped must keep firing, so only kept ones get a `stop`
   const watchers: Array<WatcherRecord | undefined> = [];
+  // watchers whose creation threw: the caller has no disposer, so their handler must never run
+  const failed: WatcherRecord[] = [];
 
   // a computed can only read computeds that existed and were held when it was created
   const resolve = (read: Read): Read | undefined => {
@@ -203,11 +229,32 @@ async function runProgram(ops: Op[]) {
     if (!target) return;
 
     const read = reader(target);
-    const watcher: WatcherRecord = { target, seen: undefined };
-    // watchers see errors as a value, so a throwing target doesn't throw out of the scheduler
-    const stop = Watcher(() => outcome(read), (value) => {
-      watcher.seen = value;
-    }, { immediate: true });
+    const watcher: WatcherRecord = { target, seen: undefined, isCatching: step.isCatching };
+    const get = () => {
+      if (watcher.isStopping) {
+        watcher.isStopped = true;
+        watcher.stop();
+      }
+
+      return watcher.isCatching ? outcome(read) : read();
+    };
+    const expected = evalRead(target);
+    let stop: () => void;
+
+    try {
+      stop = Watcher(get, (value) => {
+        watcher.seen = value;
+      }, { immediate: true });
+    } catch {
+      expect(expected, 'only a watcher that lets an error through throws').toEqual(ERROR);
+      expect(step.isCatching).toEqual(false);
+      watcher.seen = undefined;
+      failed.push(watcher);
+
+      return;
+    }
+
+    expect(step.isCatching || expected !== ERROR, 'a watcher that lets an error through throws').toEqual(true);
 
     if (step.isKept) watcher.stop = stop;
 
@@ -244,6 +291,14 @@ async function runProgram(ops: Op[]) {
         watchers[index]?.stop?.();
 
         if (watchers[index]?.stop) watchers[index] = undefined;
+
+        break;
+      }
+      case 'stopInRun': {
+        // only a watcher whose disposer is kept can call it from its getter
+        const watcher = watchers[step.index % Math.max(watchers.length, 1)];
+
+        if (watcher?.stop) watcher.isStopping = true;
 
         break;
       }
@@ -284,7 +339,35 @@ async function runProgram(ops: Op[]) {
   await flush();
 
   for (const [index, watcher] of watchers.entries()) {
-    if (watcher) expect(watcher.seen, `watcher ${index}`).toEqual(evalRead(watcher.target));
+    const expected = watcher && !watcher.isStopped ? evalRead(watcher.target) : undefined;
+
+    // a watcher that lets an error through doesn't call its handler with it
+    if (expected !== undefined && (expected !== ERROR || watcher.isCatching)) {
+      expect(watcher.seen, `watcher ${index}`).toEqual(expected);
+    }
+  }
+
+  for (const watcher of failed) expect(watcher.seen, 'a watcher whose creation threw').toBeUndefined();
+
+  // no disposed observer is still subscribed to a source or a computed
+  const visited = new Set<object>();
+  const queue: object[] = [...sources];
+
+  while (queue.length > 0) {
+    const observerSets = [...(getObservers(queue.pop())?.values() ?? [])];
+    // collected weak observers deref to undefined
+    const subscribed = observerSets
+      .flatMap((entries) => [...entries])
+      .map((entry) => (entry instanceof WeakRef ? entry.deref() : entry))
+      .filter(Boolean);
+
+    for (const obs of subscribed) {
+      expect(obs.alive, 'a subscribed observer').toEqual(true);
+
+      if (!visited.has(obs)) queue.push(obs);
+
+      visited.add(obs);
+    }
   }
 
   for (const [index, cp] of held.entries()) {
@@ -294,6 +377,9 @@ async function runProgram(ops: Op[]) {
 
 describe('reactivity model', () => {
   it('matches a from-scratch model for random programs', async () => {
+    // watchers that let an error through make the scheduler log it
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
     // a watcher on a weak computed nothing else references, after a gc (regression)
     const unreferencedComputedWatched: Op[] = [
       {
@@ -307,7 +393,9 @@ describe('reactivity model', () => {
         },
         isWeak: true,
       },
-      { op: 'watch', target: { kind: 'computed', index: 0 }, isKept: false },
+      {
+        op: 'watch', target: { kind: 'computed', index: 0 }, isKept: false, isCatching: true,
+      },
       { op: 'release', index: 0 },
       { op: 'gc' },
       {
@@ -315,9 +403,35 @@ describe('reactivity model', () => {
       },
     ];
 
-    await fc.assert(fc.asyncProperty(fc.array(opArb, { maxLength: 40 }), runProgram), {
-      numRuns: 300,
-      examples: [[unreferencedComputedWatched]],
-    });
+    // a watcher on a throwing computed that lets the error through, so creating it throws;
+    // the ending's writes make the computed recover (regression)
+    const watcherThrowsOnCreate: Op[] = [
+      {
+        op: 'write', source: 0, key: 'a', value: 1,
+      },
+      {
+        op: 'create',
+        program: {
+          cond: { kind: 'source', source: 0, key: 'a' },
+          odd: [],
+          even: [],
+          isThrowing: true,
+          isCatching: false,
+        },
+        isWeak: false,
+      },
+      {
+        op: 'watch', target: { kind: 'computed', index: 0 }, isKept: false, isCatching: false,
+      },
+    ];
+
+    try {
+      await fc.assert(fc.asyncProperty(fc.array(opArb, { maxLength: 40 }), runProgram), {
+        numRuns: 300,
+        examples: [[unreferencedComputedWatched], [watcherThrowsOnCreate]],
+      });
+    } finally {
+      consoleError.mockRestore();
+    }
   }, 120_000);
 });
