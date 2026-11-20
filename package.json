@@ -54,6 +54,7 @@
     "build-types": "tsc -p ./tsconfig.types.json && tsc-alias -p tsconfig.types.json",
     "build-all": "pnpm cleanup && pnpm build && pnpm build-types",
     "changelog:compile": "node scripts/compile-changelog.mjs",
+    "spec:check": "node scripts/tla.mjs",
     "check-updates": "pnpm -r --long outdated",
     "check-upgrade": "pnpm -r -i --latest update",
     "all": "pnpm build-types && pnpm lint && pnpm test-ci"

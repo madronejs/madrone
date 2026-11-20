@@ -17,6 +17,7 @@ pnpm lint              # Run ESLint on src/
 pnpm build             # Build library with Vite
 pnpm build-types       # Generate TypeScript declarations
 pnpm build-all         # Clean, build, and generate types
+pnpm spec:check        # Model-check the TLA+ specs in spec/ (downloads TLA+ tools and a JRE if needed)
 ```
 
 Run a single test file:
