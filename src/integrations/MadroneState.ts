@@ -72,6 +72,8 @@ export function describeComputed<T = unknown>(
       ...config,
       get: config.get as () => T,
       name,
+      // the object this property is defined on holds it
+      weak: true,
       onImmediateChange: options?.computed?.onImmediateChange,
       onChange: options?.computed?.onChange,
       onGet: options?.computed?.onGet,

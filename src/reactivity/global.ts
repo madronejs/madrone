@@ -20,6 +20,8 @@ export const KEYS_SYMBOL = Symbol('keys');
 export const OBSERVER_SYMBOL = Symbol('computed');
 
 type DependencyKey = string | symbol | ObservableItem<unknown>;
+/** A weak observer is held through its WeakRef, so a long-lived dependency does not keep it alive */
+type ObserverEntry = ObservableItem<unknown> | WeakRef<ObservableItem<unknown>>;
 
 /** Mapping from target object to its reactive proxy */
 const TARGET_TO_PROXY = new WeakMap<object, object>();
@@ -28,8 +30,11 @@ const PROXY_TO_TARGET = new WeakMap<object, object>();
 /** Mapping from reactive proxy to the observers that depend on it */
 const PROXY_TO_OBSERVERS = new WeakMap<
   object,
-  Map<DependencyKey, Set<ObservableItem<unknown>>>
+  Map<DependencyKey, Set<ObserverEntry>>
 >();
+/** Size at which an observer set is next swept for collected weak observers */
+const SWEEP_AT = new WeakMap<Set<ObserverEntry>, number>();
+const MIN_SWEEP_SIZE = 64;
 /** Mapping from observer to the proxies it depends on */
 const OBSERVER_TO_PROXIES = new WeakMap<
   ObservableItem<unknown>,
@@ -69,8 +74,26 @@ export const toRaw = <T extends object>(targetOrProxy: T): T => (
 /** Gets all dependencies for an observer */
 export const getDependencies = (observer: ObservableItem<unknown>) => OBSERVER_TO_PROXIES.get(observer);
 
-/** Gets all observers watching a given proxy */
+/** Gets all observers watching a given proxy; a weak observer appears as its WeakRef */
 export const getObservers = (tracker: object) => PROXY_TO_OBSERVERS.get(getProxy(tracker));
+
+const entryOf = (obs: ObservableItem<unknown>): ObserverEntry => obs.ref ?? obs;
+
+const observerOf = (entry: ObserverEntry): ObservableItem<unknown> | undefined => (
+  entry instanceof WeakRef ? entry.deref() : entry
+);
+
+// A source that never changes never clears its set, so drop the entries of collected
+// observers whenever the set has doubled since the last sweep.
+const sweepIfNeeded = (observerSet: Set<ObserverEntry>): void => {
+  if (observerSet.size < (SWEEP_AT.get(observerSet) ?? MIN_SWEEP_SIZE)) return;
+
+  for (const entry of observerSet) {
+    if (!observerOf(entry)) observerSet.delete(entry);
+  }
+
+  SWEEP_AT.set(observerSet, Math.max(MIN_SWEEP_SIZE, observerSet.size * 2));
+};
 
 /**
  * Registers a target/proxy pair in the tracking system.
@@ -140,7 +163,7 @@ export const observerClear = (
 
   if (trackers) {
     for (const trk of trackers) {
-      PROXY_TO_OBSERVERS.get(trk)?.get(key)?.delete(obs);
+      PROXY_TO_OBSERVERS.get(trk)?.get(key)?.delete(entryOf(obs));
     }
 
     trackers.clear();
@@ -164,7 +187,7 @@ export const observerClearAll = (obs: ObservableItem<unknown>): void => {
 
   for (const [key, trackers] of proxies) {
     for (const trk of trackers) {
-      PROXY_TO_OBSERVERS.get(trk)?.get(key)?.delete(obs);
+      PROXY_TO_OBSERVERS.get(trk)?.get(key)?.delete(entryOf(obs));
     }
   }
 
@@ -203,7 +226,11 @@ export const dependTracker = (trk: object, key: DependencyKey): void => {
   const observerSet = observers.get(key);
   const trackerSet = trackers.get(key);
 
-  observerSet.add(current);
+  if (!observerSet.has(entryOf(current))) {
+    sweepIfNeeded(observerSet);
+    observerSet.add(entryOf(current));
+  }
+
   trackerSet.add(trk);
 };
 
@@ -229,15 +256,23 @@ export const trackerChanged = (trk: object, key: DependencyKey): void => {
   const observers = PROXY_TO_OBSERVERS.get(trk);
 
   if (observers?.get(key)) {
-    for (const obs of observers.get(key)) {
-      // tell the observer it needs to run again
-      obs.setDirty();
+    const observerSet = observers.get(key);
 
-      // Only clear the dependency if the observer is NOT currently running.
-      // If it's running, it's in the middle of collecting new dependencies
-      // and we don't want to clear dependencies that were just registered.
-      if (!isObserverRunning(obs)) {
-        observerClear(obs, key);
+    for (const entry of observerSet) {
+      const obs = observerOf(entry);
+
+      if (obs) {
+        // tell the observer it needs to run again
+        obs.setDirty();
+
+        // Only clear the dependency if the observer is NOT currently running.
+        // If it's running, it's in the middle of collecting new dependencies
+        // and we don't want to clear dependencies that were just registered.
+        if (!isObserverRunning(obs)) {
+          observerClear(obs, key);
+        }
+      } else {
+        observerSet.delete(entry);
       }
     }
   }

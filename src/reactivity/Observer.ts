@@ -90,6 +90,13 @@ export type ObservableOptions<T> = {
   set?: (val: T) => void,
   /** Whether to cache the computed value (default: true) */
   cache?: boolean,
+  /**
+   * Let the reactive values this observer depends on hold it weakly, so it can be
+   * garbage collected with whatever owns it even if they live on. Only for an observer
+   * that something else keeps while it is in use, like an object's computed property:
+   * a weak observer that nothing references stops running its hooks.
+   */
+  weak?: boolean,
 } & ObservableHooksType<T>;
 
 /**
@@ -120,6 +127,7 @@ class ObservableItem<T> {
     this.get = options.get;
     this.set = options.set;
     this.cache = !!(options.cache ?? true);
+    this.ref = options.weak ? new WeakRef(this) : undefined;
     this.alive = true;
     this.dirty = true;
     this.cachedVal = undefined;
@@ -141,6 +149,8 @@ class ObservableItem<T> {
   prev: T;
   /** Whether to cache the computed value */
   cache: boolean;
+  /** What dependencies hold when the observer is weak */
+  readonly ref?: WeakRef<ObservableItem<T>>;
   private cachedVal: T;
 
   private hooks: Record<OBSERVER_HOOK, (obs: ObservableItem<T>) => unknown>;
