@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { delay } from '@/test/util';
 import Observer from '../Observer';
+import Computed from '../Computed';
 import Reactive from '../Reactive';
+import { getObservers } from '../global';
 
 describe('Observer', () => {
   it('caches values if nothing observed', () => {
@@ -294,6 +296,49 @@ describe('Observer', () => {
       expect(obs2.value).toEqual(200);
       expect(recomputeCount).toEqual(2);
     });
+
+    it('drops the dependencies a throwing run did not reach', () => {
+      const state = Reactive({ fail: false, before: 1, after: 2 });
+      const obs = Observer({
+        get: () => {
+          const { before } = state;
+
+          if (state.fail) throw new Error('fail');
+
+          return before + state.after;
+        },
+      });
+
+      expect(obs.value).toEqual(3);
+      state.fail = true;
+      expect(() => obs.value).toThrow('fail');
+      expect(getObservers(state).get('after').has(obs)).toBe(false);
+      expect(getObservers(state).get('before').has(obs)).toBe(true);
+    });
+
+    it('keeps the other sources read under the same key when one of them changes', () => {
+      const items = Array.from({ length: 3 }, (_, i) => Reactive({ value: i }));
+      let runs = 0;
+      const obs = Observer({
+        get: () => {
+          runs += 1;
+
+          return items.reduce((sum, item) => sum + item.value, 0);
+        },
+      });
+
+      expect(obs.value).toEqual(3);
+      items[0].value = 10;
+      expect(obs.value).toEqual(13);
+
+      for (const item of items) {
+        expect(getObservers(item).get('value')).toEqual(new Set([obs]));
+      }
+
+      items[2].value = 20;
+      expect(obs.value).toEqual(31);
+      expect(runs).toEqual(3);
+    });
   });
 
   describe('error handling', () => {
@@ -326,9 +371,9 @@ describe('Observer', () => {
       expect(() => obs.value).toThrow('temporary error');
       expect(callCount).toEqual(1);
 
-      // Subsequent access should return cached value (undefined), not retry
+      // Subsequent access rethrows the cached error, not retry (no dependency changed)
       shouldThrow = false;
-      expect(obs.value).toBeUndefined();
+      expect(() => obs.value).toThrow('temporary error');
       expect(callCount).toEqual(1); // Not called again because dirty was reset
     });
 
@@ -357,6 +402,69 @@ describe('Observer', () => {
       // Now it should work
       expect(obs.value).toEqual('success');
       expect(callCount).toEqual(2);
+    });
+
+    it('rethrows the error on later reads until a dependency changes, without re-running', () => {
+      const tracked = Reactive({ shouldThrow: true });
+      let callCount = 0;
+      const obs = Observer({
+        get: () => {
+          callCount += 1;
+
+          if (tracked.shouldThrow) throw new Error('cached error');
+
+          return 'success';
+        },
+      });
+
+      expect(() => obs.value).toThrow('cached error');
+      expect(() => obs.value).toThrow('cached error');
+      expect(callCount).toEqual(1);
+
+      tracked.shouldThrow = false;
+      expect(obs.value).toEqual('success');
+      expect(callCount).toEqual(2);
+    });
+
+    it('notifies a reader that caught the error once the computed recovers', () => {
+      const tracked = Reactive({ shouldThrow: true });
+      const failing = Observer({
+        get: () => {
+          if (tracked.shouldThrow) throw new Error('fail');
+
+          return 'recovered';
+        },
+      });
+      const reader = Observer({
+        get: () => {
+          try {
+            return failing.value;
+          } catch {
+            return 'caught';
+          }
+        },
+      });
+
+      expect(reader.value).toEqual('caught');
+      tracked.shouldThrow = false;
+      expect(reader.value).toEqual('recovered');
+    });
+
+    it('notifies a reader that let the error through once the computed recovers', () => {
+      const tracked = Reactive({ shouldThrow: true });
+      const failing = Observer({
+        get: () => {
+          if (tracked.shouldThrow) throw new Error('fail');
+
+          return 'recovered';
+        },
+      });
+      const reader = Observer({ get: () => `${failing.value}!` });
+
+      expect(() => reader.value).toThrow('fail');
+      expect(() => reader.value).toThrow('fail');
+      tracked.shouldThrow = false;
+      expect(reader.value).toEqual('recovered!');
     });
 
     it('does not corrupt observer stack on error', () => {
@@ -760,6 +868,45 @@ describe('Observer', () => {
       expect(outerObs.value).toEqual(21); // (10 * 2) + 1
       expect(innerComputeCount).toEqual(2);
       expect(outerComputeCount).toEqual(2);
+    });
+  });
+
+  describe('disposed by its own getter', () => {
+    it('does not stay subscribed to what it read after disposing', () => {
+      const tracked = Reactive({ before: 0, after: 0 });
+      const obs = Observer({
+        get: () => {
+          const value = tracked.before;
+
+          obs.dispose();
+
+          return value + tracked.after;
+        },
+      });
+
+      tracked.after = 2;
+      expect(obs.run()).toEqual(2);
+      expect(getObservers(tracked)?.get('before')?.size ?? 0).toEqual(0);
+      expect(getObservers(tracked)?.get('after')?.size ?? 0).toEqual(0);
+    });
+
+    it('does not leave a weak computed it read held strongly', () => {
+      const source = Reactive({ value: 1 });
+      const weak = Computed({ get: () => source.value, weak: true });
+      const obs = Observer({
+        get: () => {
+          obs.dispose();
+
+          return weak.value;
+        },
+      });
+
+      obs.run();
+
+      const entries = [...getObservers(source).get('value')];
+
+      expect(entries).toHaveLength(1);
+      expect(entries[0]).toBeInstanceOf(WeakRef);
     });
   });
 });

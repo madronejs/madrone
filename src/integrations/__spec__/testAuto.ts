@@ -569,4 +569,36 @@ export default function testAuto(name, integration) {
     expect(watchCount).toEqual(2);
     expect(objArray.value).toEqual(['bar', undefined, 'baz']);
   });
+
+  it('updates a computed that caught an error once the computed it read recovers', async () => {
+    const state = Madrone.auto({
+      isBroken: true,
+      get checked() {
+        if (this.isBroken) throw new Error('broken');
+
+        return 'ok';
+      },
+    });
+    const view = Madrone.auto({
+      get label() {
+        try {
+          return state.checked;
+        } catch {
+          return 'error';
+        }
+      },
+    });
+    const seen: string[] = [];
+
+    Madrone.watch(() => view.label, (val) => {
+      seen.push(val);
+    });
+
+    expect(view.label).toEqual('error');
+    expect(() => state.checked).toThrow('broken');
+    state.isBroken = false;
+    expect(view.label).toEqual('ok');
+    await delay();
+    expect(seen).toEqual(['ok']);
+  });
 }

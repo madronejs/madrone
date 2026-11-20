@@ -1,6 +1,7 @@
 /* eslint-disable max-classes-per-file */
 import { describe, it, expect } from 'vitest';
-import { reactive } from '../index';
+import { reactive, watch } from '../index';
+import { delay } from '@/test/util';
 
 describe('reactive decorator', () => {
   describe('enumerable', () => {
@@ -71,5 +72,22 @@ describe('reactive decorator', () => {
 
       expect(error?.message).toEqual('Cannot redefine property: test');
     });
+  });
+
+  it('supports symbol-keyed fields', async () => {
+    const key = Symbol('count');
+
+    class Test {
+      @reactive [key]: number = 1;
+    }
+
+    const instance = new Test();
+    const seen: number[] = [];
+
+    watch(() => instance[key], (value) => seen.push(value));
+    expect(instance[key]).toEqual(1);
+    instance[key] = 2;
+    await delay();
+    expect(seen).toEqual([2]);
   });
 });

@@ -69,12 +69,22 @@ export default function Watcher<T>(
   });
 
   // run the observer immediately to get the dependencies
-  const val = obs.run();
+  let val: T;
+
+  try {
+    val = obs.run();
+  } catch (error) {
+    // the caller gets no disposer, so don't leave the watcher subscribed
+    obs.dispose();
+    throw error;
+  }
 
   if (options?.immediate) {
     handler(val);
   }
 
-  // return disposer to stop watching
-  return () => obs.dispose();
+  // Return a disposer to stop watching. Bound rather than an arrow: an arrow would share
+  // this function's closure context with the onChange hook and so keep `handler` (and
+  // whatever it captures) alive for as long as anyone holds the disposer.
+  return obs.dispose.bind(obs);
 }

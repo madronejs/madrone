@@ -149,4 +149,21 @@ describe('Watcher', () => {
     expect(newValues).toEqual([true, false]);
     expect(oldValues).toEqual([undefined, true]);
   });
+
+  it('does not stay subscribed when the first run throws', async () => {
+    const state = Reactive({ shouldThrow: true });
+    let calls = 0;
+
+    expect(() => Watcher(() => {
+      if (state.shouldThrow) throw new Error('first run');
+
+      return 'ok';
+    }, () => {
+      calls += 1;
+    })).toThrow('first run');
+
+    state.shouldThrow = false;
+    await delay();
+    expect(calls).toEqual(0);
+  });
 });

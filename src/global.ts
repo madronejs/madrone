@@ -125,6 +125,23 @@ export function getIntegration(): Integration | undefined {
 
 const STATS_ACCESS = new WeakMap<object, number>();
 
+let ACCESS_TIME: number | undefined;
+
+const clearAccessTime = () => {
+  ACCESS_TIME = undefined;
+};
+
+// Date.now() was about half the cost of a property read, so read the clock once per
+// synchronous run: every access in it is stamped with the time of the first one.
+function accessTime(): number {
+  if (ACCESS_TIME === undefined) {
+    ACCESS_TIME = Date.now();
+    queueMicrotask(clearAccessTime);
+  }
+
+  return ACCESS_TIME;
+}
+
 /**
  * Unwraps a reactive proxy to get the underlying raw object.
  *
@@ -166,7 +183,7 @@ export function toRaw<T extends object>(obj: T): T {
  * @internal
  */
 export function objectAccessed(obj: object): void {
-  STATS_ACCESS.set(toRaw(obj), Date.now());
+  STATS_ACCESS.set(toRaw(obj), accessTime());
 }
 
 /**
@@ -174,6 +191,8 @@ export function objectAccessed(obj: object): void {
  *
  * Useful for debugging reactive behavior or implementing features like
  * "last viewed" timestamps without additional tracking code.
+ *
+ * Accesses made in the same synchronous run share the timestamp of the first one.
  *
  * @param obj - The reactive object to check
  * @returns Unix timestamp (milliseconds) of last access, or undefined if never accessed

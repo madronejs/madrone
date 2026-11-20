@@ -108,20 +108,27 @@ export function describeComputed<T = unknown>(
 }
 
 const NO_INTEGRATION_OPTIONS = {};
-const PROPERTY_OPTIONS = new WeakMap<object, Map<string, ReactiveOptions>>();
+const PROPERTY_OPTIONS = new WeakMap<object, Map<string | symbol, Map<boolean | undefined, ReactiveOptions>>>();
 
 // One options object per integration, name and depth, so every instance's atom shares a proxy handler.
+// Keyed by nested maps rather than a string, since a decorated field's name can be a symbol.
 function propertyOptions(name: string, deep: boolean | undefined, options?: MadroneStateOptions): ReactiveOptions {
   const owner = options ?? NO_INTEGRATION_OPTIONS;
-  const key = `${deep}:${name}`;
-  let byKey = PROPERTY_OPTIONS.get(owner);
+  let byName = PROPERTY_OPTIONS.get(owner);
 
-  if (!byKey) {
-    byKey = new Map();
-    PROPERTY_OPTIONS.set(owner, byKey);
+  if (!byName) {
+    byName = new Map();
+    PROPERTY_OPTIONS.set(owner, byName);
   }
 
-  let reactiveOptions = byKey.get(key);
+  let byDeep = byName.get(name);
+
+  if (!byDeep) {
+    byDeep = new Map();
+    byName.set(name, byDeep);
+  }
+
+  let reactiveOptions = byDeep.get(deep);
 
   if (!reactiveOptions) {
     reactiveOptions = {
@@ -133,7 +140,7 @@ function propertyOptions(name: string, deep: boolean | undefined, options?: Madr
       needsProxy: options?.reactive?.needsProxy,
       deep,
     };
-    byKey.set(key, reactiveOptions);
+    byDeep.set(deep, reactiveOptions);
   }
 
   return reactiveOptions;

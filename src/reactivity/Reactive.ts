@@ -6,7 +6,7 @@
 
 import typeHandlers from './typeHandlers';
 import {
-  addReactive, isReactiveTarget, isReactive, getReactive,
+  addReactive, isReactive, getReactive,
 } from './global';
 import { ReactiveOptions } from './interfaces';
 
@@ -53,7 +53,9 @@ import { ReactiveOptions } from './interfaces';
  */
 export default function Reactive<T extends object>(target: T, options?: ReactiveOptions<T>): T {
   // if we've already made an Reactive from the target, return the existing one
-  if (isReactiveTarget(target)) return getReactive(target);
+  const existing = getReactive(target);
+
+  if (existing) return existing;
 
   // this is already a proxied target... don't need to track it again
   if (isReactive(target)) return target;

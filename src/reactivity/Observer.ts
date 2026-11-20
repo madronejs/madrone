@@ -9,11 +9,11 @@
  */
 
 import {
-  OBSERVER_SYMBOL, dependTracker, observerClearAll, schedule, trackerChanged,
+  OBSERVER_SYMBOL, dependTracker, observerClearAll, observerSweep, schedule, trackerChanged,
 } from './global';
 
-const GLOBAL_STACK: Array<ObservableItem<unknown>> = [];
-const RUNNING_OBSERVERS = new WeakSet<ObservableItem<unknown>>();
+/** The observer whose getter is running, if any */
+let CURRENT: ObservableItem<unknown> | undefined;
 
 /**
  * Returns the currently running Observer, if any.
@@ -25,21 +25,7 @@ const RUNNING_OBSERVERS = new WeakSet<ObservableItem<unknown>>();
  * @internal
  */
 export function getCurrentObserver(): ObservableItem<unknown> | undefined {
-  return GLOBAL_STACK.at(-1);
-}
-
-/**
- * Checks if an Observer is currently running (on the execution stack).
- *
- * Used to prevent clearing dependencies for an observer that is still
- * collecting dependencies during its getter execution.
- *
- * @param obs - The observer to check
- * @returns true if the observer is currently running
- * @internal
- */
-export function isObserverRunning(obs: ObservableItem<unknown>): boolean {
-  return RUNNING_OBSERVERS.has(obs);
+  return CURRENT;
 }
 
 /**
@@ -149,9 +135,13 @@ class ObservableItem<T> {
   prev: T;
   /** Whether to cache the computed value */
   cache: boolean;
+  /** Counts the getter's runs, to tell which dependencies the latest one read */
+  epoch = 0;
   /** What dependencies hold when the observer is weak */
   readonly ref?: WeakRef<ObservableItem<T>>;
   private cachedVal: T;
+  /** What the latest run threw, cached like a value (boxed, since anything can be thrown) */
+  private cachedError?: { thrown: unknown };
 
   private hooks: Record<OBSERVER_HOOK, (obs: ObservableItem<T>) => unknown>;
   private get: () => T;
@@ -172,18 +162,23 @@ class ObservableItem<T> {
     this.alive = false;
     this.dirty = false;
     this.cachedVal = undefined;
+    this.cachedError = undefined;
     this.prev = undefined;
+    // Drop the getter and hooks so whatever they capture (a watcher's handler, the objects
+    // its getter reads) can be collected even while something still holds the disposer
+    this.get = undefined;
+    this.hooks = {} as typeof this.hooks;
   }
 
   private wrap<CBType>(cb: () => CBType): CBType {
-    GLOBAL_STACK.push(this);
-    RUNNING_OBSERVERS.add(this);
+    const previous = CURRENT;
+
+    CURRENT = this;
 
     try {
       return cb();
     } finally {
-      GLOBAL_STACK.pop();
-      RUNNING_OBSERVERS.delete(this);
+      CURRENT = previous;
     }
   }
 
@@ -198,7 +193,13 @@ class ObservableItem<T> {
     this.prev = this.cachedVal;
     this.cachedVal = undefined;
     this.callHook(OBSERVER_HOOK.onImmediateChange);
-    schedule(() => this.notifyChange());
+
+    if (this.hooks[OBSERVER_HOOK.onChange]) {
+      schedule(() => this.notifyChange());
+    } else {
+      // nothing will read it, so don't hold a strong reference to the prev
+      this.prev = undefined;
+    }
   }
 
   private notifyChange() {
@@ -210,27 +211,53 @@ class ObservableItem<T> {
   run(): T {
     if (!this.alive) return undefined;
 
-    const val = this.wrap(() => {
-      if ((this.cache && this.dirty) || !this.cache) {
-        // Clear old dependencies before re-running to prevent stale deps
-        observerClearAll(this);
-
+    // A cached result is current, so there is no getter to run and nothing to collect
+    if (this.dirty || !this.cache) {
+      this.epoch += 1;
+      this.wrap(() => {
         try {
           this.cachedVal = this.get();
+          this.cachedError = undefined;
+        } catch (error) {
+          // Cache the error like a value: reads rethrow it until a dependency changes,
+          // instead of re-running a getter that keeps failing or returning a stale value.
+          this.cachedVal = undefined;
+          this.cachedError = { thrown: error };
         } finally {
-          // Always reset dirty to prevent infinite retry loops on persistent errors.
-          // If the getter throws, we'll rethrow but won't be stuck dirty.
           this.dirty = false;
+
+          if (this.alive) {
+            // Drop the dependencies this run didn't read, even when the getter threw
+            observerSweep(this);
+          } else {
+            // Disposed by its own getter: drop what the rest of the run read
+            observerClearAll(this);
+          }
         }
+      });
+
+      // Still give this run's result to the caller, but don't keep it, and don't let the
+      // reader depend on an observer that will never change again
+      if (!this.alive) {
+        const { cachedVal, cachedError } = this;
+
+        this.cachedVal = undefined;
+        this.cachedError = undefined;
+
+        if (cachedError) throw cachedError.thrown;
+
+        return cachedVal;
       }
+    }
 
-      return this.cachedVal;
-    });
-
+    // Whoever is reading depends on this observer even when it threw, so it hears about
+    // the change that lets it recover
     dependTracker(this, OBSERVER_SYMBOL);
     this.callHook(OBSERVER_HOOK.onGet);
 
-    return val;
+    if (this.cachedError) throw this.cachedError.thrown;
+
+    return this.cachedVal;
   }
 
   /** The value of the observer */
