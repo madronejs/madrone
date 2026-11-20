@@ -69,7 +69,15 @@ export default function Watcher<T>(
   });
 
   // run the observer immediately to get the dependencies
-  const val = obs.run();
+  let val: T;
+
+  try {
+    val = obs.run();
+  } catch (error) {
+    // the caller gets no disposer, so don't leave the watcher subscribed
+    obs.dispose();
+    throw error;
+  }
 
   if (options?.immediate) {
     handler(val);

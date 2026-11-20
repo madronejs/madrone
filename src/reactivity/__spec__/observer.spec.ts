@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { delay } from '@/test/util';
 import Observer from '../Observer';
+import Computed from '../Computed';
 import Reactive from '../Reactive';
 import { getObservers } from '../global';
 
@@ -867,6 +868,45 @@ describe('Observer', () => {
       expect(outerObs.value).toEqual(21); // (10 * 2) + 1
       expect(innerComputeCount).toEqual(2);
       expect(outerComputeCount).toEqual(2);
+    });
+  });
+
+  describe('disposed by its own getter', () => {
+    it('does not stay subscribed to what it read after disposing', () => {
+      const tracked = Reactive({ before: 0, after: 0 });
+      const obs = Observer({
+        get: () => {
+          const value = tracked.before;
+
+          obs.dispose();
+
+          return value + tracked.after;
+        },
+      });
+
+      tracked.after = 2;
+      expect(obs.run()).toEqual(2);
+      expect(getObservers(tracked)?.get('before')?.size ?? 0).toEqual(0);
+      expect(getObservers(tracked)?.get('after')?.size ?? 0).toEqual(0);
+    });
+
+    it('does not leave a weak computed it read held strongly', () => {
+      const source = Reactive({ value: 1 });
+      const weak = Computed({ get: () => source.value, weak: true });
+      const obs = Observer({
+        get: () => {
+          obs.dispose();
+
+          return weak.value;
+        },
+      });
+
+      obs.run();
+
+      const entries = [...getObservers(source).get('value')];
+
+      expect(entries).toHaveLength(1);
+      expect(entries[0]).toBeInstanceOf(WeakRef);
     });
   });
 });

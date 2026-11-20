@@ -222,10 +222,29 @@ class ObservableItem<T> {
           this.cachedError = { thrown: error };
         } finally {
           this.dirty = false;
-          // Drop the dependencies this run didn't read, even when the getter threw
-          observerSweep(this);
+
+          if (this.alive) {
+            // Drop the dependencies this run didn't read, even when the getter threw
+            observerSweep(this);
+          } else {
+            // Disposed by its own getter: drop what the rest of the run read
+            observerClearAll(this);
+          }
         }
       });
+
+      // Still give this run's result to the caller, but don't keep it, and don't let the
+      // reader depend on an observer that will never change again
+      if (!this.alive) {
+        const { cachedVal, cachedError } = this;
+
+        this.cachedVal = undefined;
+        this.cachedError = undefined;
+
+        if (cachedError) throw cachedError.thrown;
+
+        return cachedVal;
+      }
     }
 
     // Whoever is reading depends on this observer even when it threw, so it hears about
