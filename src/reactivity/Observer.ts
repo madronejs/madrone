@@ -139,6 +139,8 @@ class ObservableItem<T> {
   /** What dependencies hold when the observer is weak */
   readonly ref?: WeakRef<ObservableItem<T>>;
   private cachedVal: T;
+  /** What the latest run threw, cached like a value (boxed, since anything can be thrown) */
+  private cachedError?: { thrown: unknown };
 
   private hooks: Record<OBSERVER_HOOK, (obs: ObservableItem<T>) => unknown>;
   private get: () => T;
@@ -159,6 +161,7 @@ class ObservableItem<T> {
     this.alive = false;
     this.dirty = false;
     this.cachedVal = undefined;
+    this.cachedError = undefined;
     this.prev = undefined;
   }
 
@@ -201,34 +204,34 @@ class ObservableItem<T> {
   run(): T {
     if (!this.alive) return undefined;
 
-    // A cached value is current, so there is no getter to run and nothing to collect
-    if (this.cache && !this.dirty) {
-      dependTracker(this, OBSERVER_SYMBOL);
-      this.callHook(OBSERVER_HOOK.onGet);
-
-      return this.cachedVal;
+    // A cached result is current, so there is no getter to run and nothing to collect
+    if (this.dirty || !this.cache) {
+      this.epoch += 1;
+      this.wrap(() => {
+        try {
+          this.cachedVal = this.get();
+          this.cachedError = undefined;
+        } catch (error) {
+          // Cache the error like a value: reads rethrow it until a dependency changes,
+          // instead of re-running a getter that keeps failing or returning a stale value.
+          this.cachedVal = undefined;
+          this.cachedError = { thrown: error };
+        } finally {
+          this.dirty = false;
+          // Drop the dependencies this run didn't read, even when the getter threw
+          observerSweep(this);
+        }
+      });
     }
 
-    this.epoch += 1;
-
-    const val = this.wrap(() => {
-      try {
-        this.cachedVal = this.get();
-      } finally {
-        // Always reset dirty to prevent infinite retry loops on persistent errors.
-        // If the getter throws, we'll rethrow but won't be stuck dirty.
-        this.dirty = false;
-        // Drop the dependencies this run didn't read, even when the getter threw
-        observerSweep(this);
-      }
-
-      return this.cachedVal;
-    });
-
+    // Whoever is reading depends on this observer even when it threw, so it hears about
+    // the change that lets it recover
     dependTracker(this, OBSERVER_SYMBOL);
     this.callHook(OBSERVER_HOOK.onGet);
 
-    return val;
+    if (this.cachedError) throw this.cachedError.thrown;
+
+    return this.cachedVal;
   }
 
   /** The value of the observer */

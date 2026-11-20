@@ -370,9 +370,9 @@ describe('Observer', () => {
       expect(() => obs.value).toThrow('temporary error');
       expect(callCount).toEqual(1);
 
-      // Subsequent access should return cached value (undefined), not retry
+      // Subsequent access rethrows the cached error, not retry (no dependency changed)
       shouldThrow = false;
-      expect(obs.value).toBeUndefined();
+      expect(() => obs.value).toThrow('temporary error');
       expect(callCount).toEqual(1); // Not called again because dirty was reset
     });
 
@@ -401,6 +401,69 @@ describe('Observer', () => {
       // Now it should work
       expect(obs.value).toEqual('success');
       expect(callCount).toEqual(2);
+    });
+
+    it('rethrows the error on later reads until a dependency changes, without re-running', () => {
+      const tracked = Reactive({ shouldThrow: true });
+      let callCount = 0;
+      const obs = Observer({
+        get: () => {
+          callCount += 1;
+
+          if (tracked.shouldThrow) throw new Error('cached error');
+
+          return 'success';
+        },
+      });
+
+      expect(() => obs.value).toThrow('cached error');
+      expect(() => obs.value).toThrow('cached error');
+      expect(callCount).toEqual(1);
+
+      tracked.shouldThrow = false;
+      expect(obs.value).toEqual('success');
+      expect(callCount).toEqual(2);
+    });
+
+    it('notifies a reader that caught the error once the computed recovers', () => {
+      const tracked = Reactive({ shouldThrow: true });
+      const failing = Observer({
+        get: () => {
+          if (tracked.shouldThrow) throw new Error('fail');
+
+          return 'recovered';
+        },
+      });
+      const reader = Observer({
+        get: () => {
+          try {
+            return failing.value;
+          } catch {
+            return 'caught';
+          }
+        },
+      });
+
+      expect(reader.value).toEqual('caught');
+      tracked.shouldThrow = false;
+      expect(reader.value).toEqual('recovered');
+    });
+
+    it('notifies a reader that let the error through once the computed recovers', () => {
+      const tracked = Reactive({ shouldThrow: true });
+      const failing = Observer({
+        get: () => {
+          if (tracked.shouldThrow) throw new Error('fail');
+
+          return 'recovered';
+        },
+      });
+      const reader = Observer({ get: () => `${failing.value}!` });
+
+      expect(() => reader.value).toThrow('fail');
+      expect(() => reader.value).toThrow('fail');
+      tracked.shouldThrow = false;
+      expect(reader.value).toEqual('recovered!');
     });
 
     it('does not corrupt observer stack on error', () => {

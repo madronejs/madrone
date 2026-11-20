@@ -11,6 +11,9 @@
 (* Values are bits and a computed's value is the parity of what it reads,  *)
 (* which keeps the state space finite while still letting a computed's     *)
 (* dependencies change with the data (its condition picks a branch).       *)
+(* A computed in Throws throws when its condition is 1. An error is cached *)
+(* like a value (Err): reading it rethrows, and a reader in Catches counts *)
+(* it as 0, otherwise it propagates and the reader stops reading there.    *)
 (*                                                                         *)
 (* Code this models:                                                       *)
 (*   src/reactivity/global.ts   dependencies, holding, change propagation  *)
@@ -19,23 +22,28 @@
 (* src/reactivity/__spec__/model.spec.ts tests the code against the same   *)
 (* rules with random programs.                                             *)
 (***************************************************************************)
-EXTENDS Naturals, FiniteSets, TLC
+EXTENDS Naturals, FiniteSets, Sequences, TLC
 
 CONSTANTS
   Sources,    \* reactive properties (long-lived: they are GC roots)
   Computeds,  \* cached computeds
   Watchers,   \* watchers
   Cond,       \* Cond[c]: the node c reads first; its parity picks the branch
-  Odd,        \* Odd[c]: the nodes c sums when Cond[c] is 1
-  Even,       \* Even[c]: the nodes c sums when Cond[c] is 0
+  Odd,        \* Odd[c]: the nodes c sums, in order, when Cond[c] is 1
+  Even,       \* Even[c]: the nodes c sums, in order, when Cond[c] is 0
+  Throws,     \* computeds whose getter throws when their condition is 1
+  Catches,    \* computeds that catch errors from what they read (counting them as 0)
   Target      \* Target[w]: the node watcher w watches
 
 Nodes == Sources \cup Computeds
 Observers == Computeds \cup Watchers
 NoValue == 2
+Err == 3
+
+Range(seq) == {seq[i] : i \in DOMAIN seq}
 
 \* What an observer's getter closure references, whichever branch it takes
-Captures(o) == IF o \in Computeds THEN {Cond[o]} \cup Odd[o] \cup Even[o] ELSE {Target[o]}
+Captures(o) == IF o \in Computeds THEN {Cond[o]} \cup Range(Odd[o]) \cup Range(Even[o]) ELSE {Target[o]}
 
 VARIABLES
   val,       \* source values
@@ -54,28 +62,43 @@ VARIABLES
 vars == <<val, weak, cache, dirty, deps, owned, live, created, kept, disposed, pending, seen>>
 
 -----------------------------------------------------------------------------
-(* What everything should be: values recomputed from scratch.              *)
+(* Evaluation. With useCache = FALSE this is what everything should be,    *)
+(* recomputed from scratch; with useCache = TRUE it is what the code       *)
+(* computes, where a clean computed answers from its cache.                *)
 
-RECURSIVE Value(_)
-Value(n) ==
+\* What computed c makes of a value it read
+In(c, v) == IF v = Err /\ c \in Catches THEN 0 ELSE v
+
+RECURSIVE Eval(_, _), SumFrom(_, _, _, _, _)
+
+Eval(n, useCache) ==
   IF n \in Sources THEN val[n]
-  ELSE LET branch == IF Value(Cond[n]) = 1 THEN Odd[n] ELSE Even[n]
-       IN Cardinality({m \in branch : Value(m) = 1}) % 2
+  ELSE IF useCache /\ ~dirty[n] THEN cache[n]
+  ELSE LET cv == In(n, Eval(Cond[n], useCache))
+       IN IF cv = Err \/ (cv = 1 /\ n \in Throws) THEN Err
+          ELSE SumFrom(n, IF cv = 1 THEN Odd[n] ELSE Even[n], 1, 0, useCache)
 
-\* What a fresh run of c reads
-ReadSet(c) == {Cond[c]} \cup (IF Value(Cond[c]) = 1 THEN Odd[c] ELSE Even[c])
+\* Sums seq[i..] into acc; the first error that isn't caught ends the run
+SumFrom(c, seq, i, acc, useCache) ==
+  IF i > Len(seq) THEN acc % 2
+  ELSE LET v == In(c, Eval(seq[i], useCache))
+       IN IF v = Err THEN Err ELSE SumFrom(c, seq, i + 1, acc + v, useCache)
 
------------------------------------------------------------------------------
-(* What the implementation computes: clean computeds answer from cache.    *)
+\* What a run of c reads: its condition, then its branch up to an error it doesn't catch
+RECURSIVE ReadFrom(_, _, _, _)
+ReadFrom(c, seq, i, useCache) ==
+  IF i > Len(seq) THEN {}
+  ELSE {seq[i]} \cup (IF In(c, Eval(seq[i], useCache)) = Err THEN {} ELSE ReadFrom(c, seq, i + 1, useCache))
 
-RECURSIVE ImplValue(_)
-ImplValue(n) ==
-  IF n \in Sources THEN val[n]
-  ELSE IF ~dirty[n] THEN cache[n]
-  ELSE LET branch == IF ImplValue(Cond[n]) = 1 THEN Odd[n] ELSE Even[n]
-       IN Cardinality({m \in branch : ImplValue(m) = 1}) % 2
+Reads(c, useCache) ==
+  LET cv == In(c, Eval(Cond[c], useCache))
+  IN {Cond[c]} \cup (IF cv = Err \/ (cv = 1 /\ c \in Throws) THEN {}
+                    ELSE ReadFrom(c, IF cv = 1 THEN Odd[c] ELSE Even[c], 1, useCache))
 
-ImplReadSet(c) == {Cond[c]} \cup (IF ImplValue(Cond[c]) = 1 THEN Odd[c] ELSE Even[c])
+Value(n) == Eval(n, FALSE)
+ReadSet(c) == Reads(c, FALSE)
+ImplValue(n) == Eval(n, TRUE)
+ImplReadSet(c) == Reads(c, TRUE)
 
 \* The computeds that run when n is read: n if dirty, and the dirty ones it reads
 RECURSIVE RunSet(_)
@@ -222,13 +245,13 @@ Spec == Init /\ [][Next]_vars
 TypeOK ==
   /\ val \in [Sources -> {0, 1}]
   /\ weak \subseteq Computeds
-  /\ cache \in [Computeds -> {0, 1, NoValue}]
+  /\ cache \in [Computeds -> {0, 1, NoValue, Err}]
   /\ dirty \in [Computeds -> BOOLEAN]
   /\ deps \in [Observers -> SUBSET Nodes]
   /\ owned \subseteq live
   /\ live \subseteq Observers
   /\ kept \cup disposed \cup pending \subseteq created
-  /\ seen \in [Watchers -> {0, 1, NoValue}]
+  /\ seen \in [Watchers -> {0, 1, NoValue, Err}]
 
 \* A clean computed's cache is what it would compute now
 NoStaleRead == \A c \in live \cap Computeds : ~dirty[c] => cache[c] = Value(c)

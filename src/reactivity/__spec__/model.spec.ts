@@ -22,9 +22,15 @@ const MAX_INDEX = 4;
 
 type Key = typeof KEYS[number];
 type Read = { kind: 'source', source: number, key: Key } | { kind: 'computed', index: number };
-/** A computed reads `cond`, then sums `odd` or `even` depending on its parity */
-type Program = { cond: Read, odd: Read[], even: Read[] };
-type WatcherRecord = { target: Read, seen: number, stop?: () => void };
+/**
+ * A computed reads `cond`, then sums `odd` or `even` depending on its parity. With
+ * `isThrowing` it throws instead when `cond` is odd; with `isCatching` an error from a
+ * computed it reads counts as 0, otherwise the error propagates.
+ */
+type Program = { cond: Read, odd: Read[], even: Read[], isThrowing: boolean, isCatching: boolean };
+/** What reading something gives: a value, or that it threw */
+type Outcome = number | 'error';
+type WatcherRecord = { target: Read, seen: Outcome, stop?: () => void };
 
 type Op = | { op: 'write', source: number, key: Key, value: number }
   | { op: 'create', program: Program, isWeak: boolean }
@@ -46,6 +52,9 @@ const readArb = fc.oneof(
   { weight: 2, arbitrary: computedReadArb }
 ) as fc.Arbitrary<Read>;
 const readsArb = fc.array(readArb, { maxLength: 3 });
+const programArb = fc.record({
+  cond: readArb, odd: readsArb, even: readsArb, isThrowing: fc.boolean(), isCatching: fc.boolean(),
+});
 
 // without strictNullChecks fc.record's fields come out optional, hence the cast
 const opArb = fc.oneof(
@@ -62,7 +71,7 @@ const opArb = fc.oneof(
     weight: 3,
     arbitrary: fc.record({
       op: fc.constant('create' as const),
-      program: fc.record({ cond: readArb, odd: readsArb, even: readsArb }),
+      program: programArb,
       isWeak: fc.boolean(),
     }),
   },
@@ -78,23 +87,51 @@ const flush = () => new Promise((resolve) => {
   setTimeout(resolve, 0);
 });
 
-const sum = (reads: Array<() => number>) => reads.reduce((total, read) => total + read(), 0);
+const ERROR = 'error' as const;
+
+const outcome = (read: () => number): Outcome => {
+  try {
+    return read();
+  } catch {
+    return ERROR;
+  }
+};
 
 async function runProgram(ops: Op[]) {
   // reference model: plain state, and each computed's program over earlier computeds
   const model = Array.from({ length: SOURCES }, () => ({ value: 0, a: 0, b: 0 }));
   const programs: Program[] = [];
 
-  function evalComputed(index: number): number {
-    const { cond, odd, even } = programs[index];
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    const branch = evalRead(cond) % 2 ? odd : even;
+  function evalComputed(index: number): Outcome {
+    const {
+      cond, odd, even, isThrowing, isCatching,
+    } = programs[index];
 
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    return branch.reduce((total, read) => total + evalRead(read), 0);
+    const readIn = (read: Read): Outcome => {
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      const value = evalRead(read);
+
+      return value === ERROR && isCatching ? 0 : value;
+    };
+    const condValue = readIn(cond);
+
+    if (condValue === ERROR || (condValue % 2 && isThrowing)) return ERROR;
+
+    const branch = condValue % 2 ? odd : even;
+    let total = 0;
+
+    for (const read of branch) {
+      const value = readIn(read);
+
+      if (value === ERROR) return ERROR;
+
+      total += value;
+    }
+
+    return total;
   }
 
-  function evalRead(read: Read): number {
+  function evalRead(read: Read): Outcome {
     return read.kind === 'source' ? model[read.source][read.key] : evalComputed(read.index);
   }
 
@@ -130,16 +167,33 @@ async function runProgram(ops: Op[]) {
   const readerAll = (reads: Read[]) => reads.map((read) => reader(read));
 
   const create = (step: Extract<Op, { op: 'create' }>) => {
+    const { isThrowing, isCatching } = step.program;
     const cond = resolve(step.program.cond) ?? { kind: 'source', source: 0, key: 'value' };
-    const program = { cond, odd: resolveAll(step.program.odd), even: resolveAll(step.program.even) };
+    const program = {
+      cond, odd: resolveAll(step.program.odd), even: resolveAll(step.program.even), isThrowing, isCatching,
+    };
     const readCond = reader(program.cond);
     const readOdd = readerAll(program.odd);
     const readEven = readerAll(program.even);
+    // a caught error counts as 0; otherwise it propagates out of this getter
+    const readIn = (read: () => number) => {
+      if (!isCatching) return read();
+
+      const value = outcome(read);
+
+      return value === ERROR ? 0 : value;
+    };
 
     programs.push(program);
     held.push(Computed<number>({
       weak: step.isWeak,
-      get: () => sum(readCond() % 2 ? readOdd : readEven),
+      get: () => {
+        const condValue = readIn(readCond);
+
+        if (condValue % 2 && isThrowing) throw new Error('thrown');
+
+        return (condValue % 2 ? readOdd : readEven).reduce((total, read) => total + readIn(read), 0);
+      },
     }));
   };
 
@@ -148,8 +202,10 @@ async function runProgram(ops: Op[]) {
 
     if (!target) return;
 
+    const read = reader(target);
     const watcher: WatcherRecord = { target, seen: undefined };
-    const stop = Watcher(reader(target), (value) => {
+    // watchers see errors as a value, so a throwing target doesn't throw out of the scheduler
+    const stop = Watcher(() => outcome(read), (value) => {
       watcher.seen = value;
     }, { immediate: true });
 
@@ -174,7 +230,7 @@ async function runProgram(ops: Op[]) {
       case 'read': {
         const index = step.index % Math.max(held.length, 1);
 
-        if (held[index]) expect(held[index].value, `computed ${index}`).toEqual(evalComputed(index));
+        if (held[index]) expect(outcome(() => held[index].value), `computed ${index}`).toEqual(evalComputed(index));
 
         break;
       }
@@ -232,7 +288,7 @@ async function runProgram(ops: Op[]) {
   }
 
   for (const [index, cp] of held.entries()) {
-    if (cp) expect(cp.value, `computed ${index}`).toEqual(evalComputed(index));
+    if (cp) expect(outcome(() => cp.value), `computed ${index}`).toEqual(evalComputed(index));
   }
 }
 
@@ -242,7 +298,13 @@ describe('reactivity model', () => {
     const unreferencedComputedWatched: Op[] = [
       {
         op: 'create',
-        program: { cond: { kind: 'source', source: 0, key: 'a' }, odd: [], even: [{ kind: 'source', source: 0, key: 'value' }] },
+        program: {
+          cond: { kind: 'source', source: 0, key: 'a' },
+          odd: [],
+          even: [{ kind: 'source', source: 0, key: 'value' }],
+          isThrowing: false,
+          isCatching: false,
+        },
         isWeak: true,
       },
       { op: 'watch', target: { kind: 'computed', index: 0 }, isKept: false },
