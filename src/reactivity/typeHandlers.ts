@@ -103,7 +103,7 @@ const optionHasOwnKeys = (options: ReactiveOptions, target, key?) => {
 };
 
 function defaultHandlers(options: ReactiveOptions) {
-  const needsProxy = options.needsProxy || (() => true);
+  const { needsProxy } = options;
 
   return {
     get: (target, prop, receiver) => {
@@ -114,13 +114,13 @@ function defaultHandlers(options: ReactiveOptions) {
       // Check conditions in order of cost (cheapest first)
       // 1. deep mode enabled (property access)
       // 2. value is an object (typeof check)
-      // 3. needsProxy allows it (function call, usually returns true)
-      // 4. property is configurable (expensive getOwnPropertyDescriptor)
+      // 3. needsProxy allows it (only called when configured, since it allocates its argument)
+      // 4. property is configurable (getOwnPropertyDescriptor allocates a descriptor)
       if (
         (options.deep ?? true)
         && value
         && typeof value === 'object'
-        && needsProxy({ target, key: prop, value })
+        && (!needsProxy || needsProxy({ target, key: prop, value }))
         && Object.getOwnPropertyDescriptor(target, prop)?.configurable
       ) {
         return Reactive(value, options);

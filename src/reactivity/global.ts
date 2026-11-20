@@ -332,6 +332,9 @@ export const dependTracker = (trk: object, key: DependencyKey): void => {
  * @param key the key to depend on
  */
 export const dependTarget = (target: object, key: string | symbol): void => {
+  // most reads happen outside any observer: skip the proxy lookup for them
+  if (!getCurrentObserver()) return;
+
   const trk = getReactive(target);
 
   if (trk) {
