@@ -107,17 +107,6 @@ export function describeComputed<T = unknown>(
   };
 }
 
-/**
- * Creates a property descriptor for a reactive property.
- *
- * The descriptor can be used with Object.defineProperty or stored
- * for later use. Creates a Reactive proxy internally to track changes.
- *
- * @param name - Property name (used for debugging)
- * @param config - Reactive property configuration
- * @param options - Optional hooks for lifecycle events
- * @returns A PropertyDescriptor with reactive getter/setter
- */
 const NO_INTEGRATION_OPTIONS = {};
 const PROPERTY_OPTIONS = new WeakMap<object, Map<string, ReactiveOptions>>();
 
@@ -150,6 +139,17 @@ function propertyOptions(name: string, deep: boolean | undefined, options?: Madr
   return reactiveOptions;
 }
 
+/**
+ * Creates a property descriptor for a reactive property.
+ *
+ * The descriptor can be used with Object.defineProperty or stored
+ * for later use. Creates a Reactive proxy internally to track changes.
+ *
+ * @param name - Property name (used for debugging)
+ * @param config - Reactive property configuration
+ * @param options - Optional hooks for lifecycle events
+ * @returns A PropertyDescriptor with reactive getter/setter
+ */
 export function describeProperty(
   name: string,
   config: MadronePropertyDescriptor,

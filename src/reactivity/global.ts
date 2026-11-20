@@ -77,7 +77,19 @@ export const getDependencies = (observer: ObservableItem<unknown>) => OBSERVER_T
 /** Gets all observers watching a given proxy; a weak observer appears as its WeakRef */
 export const getObservers = (tracker: object) => PROXY_TO_OBSERVERS.get(getProxy(tracker));
 
-const entryOf = (obs: ObservableItem<unknown>): ObserverEntry => obs.ref ?? obs;
+/**
+ * How many strong observers depend on each weak observer. While a weak observer has any,
+ * its sources hold it strongly, so a watcher reading a computed whose owner is otherwise
+ * unreferenced stays reachable from the source, as it would if the computed were strong.
+ */
+const STRONG_DEPENDENTS = new WeakMap<ObservableItem<unknown>, number>();
+
+/** Whether the observer's sources currently hold it strongly */
+const isHeldStrongly = (obs: ObservableItem<unknown>): boolean => (
+  !obs.ref || (STRONG_DEPENDENTS.get(obs) ?? 0) > 0
+);
+
+const entryOf = (obs: ObservableItem<unknown>): ObserverEntry => (isHeldStrongly(obs) ? obs : obs.ref);
 
 const observerOf = (entry: ObserverEntry): ObservableItem<unknown> | undefined => (
   entry instanceof WeakRef ? entry.deref() : entry
@@ -93,6 +105,63 @@ const sweepIfNeeded = (observerSet: Set<ObserverEntry>): void => {
   }
 
   SWEEP_AT.set(observerSet, Math.max(MIN_SWEEP_SIZE, observerSet.size * 2));
+};
+
+// Only an observer is depended on under OBSERVER_SYMBOL
+const weakObserverDependency = (trk: object, key: DependencyKey): ObservableItem<unknown> | undefined => (
+  key === OBSERVER_SYMBOL && (trk as ObservableItem<unknown>).ref ? trk as ObservableItem<unknown> : undefined
+);
+
+// Switch how an observer's sources hold it, and pass the change on to the weak observers
+// it depends on, since it is now (or no longer) a strong dependent of theirs.
+const setHeldStrongly = (obs: ObservableItem<unknown>, isStrong: boolean): void => {
+  const from = isStrong ? obs.ref : obs;
+  const to = isStrong ? obs : obs.ref;
+  const proxies = OBSERVER_TO_PROXIES.get(obs);
+
+  if (!proxies) return;
+
+  for (const [key, trackers] of proxies) {
+    for (const trk of trackers) {
+      const observerSet = PROXY_TO_OBSERVERS.get(trk)?.get(key);
+
+      if (observerSet?.delete(from)) observerSet.add(to);
+
+      const dependency = weakObserverDependency(trk, key);
+
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      if (dependency) (isStrong ? addStrongDependent : removeStrongDependent)(dependency);
+    }
+  }
+};
+
+const addStrongDependent = (obs: ObservableItem<unknown>): void => {
+  const count = STRONG_DEPENDENTS.get(obs) ?? 0;
+
+  STRONG_DEPENDENTS.set(obs, count + 1);
+
+  if (count === 0) setHeldStrongly(obs, true);
+};
+
+const removeStrongDependent = (obs: ObservableItem<unknown>): void => {
+  const count = STRONG_DEPENDENTS.get(obs) ?? 0;
+
+  if (count <= 1) {
+    STRONG_DEPENDENTS.delete(obs);
+
+    if (count === 1) setHeldStrongly(obs, false);
+  } else {
+    STRONG_DEPENDENTS.set(obs, count - 1);
+  }
+};
+
+/** Removes the observer's entry from a dependency it no longer tracks */
+const dropDependency = (obs: ObservableItem<unknown>, trk: object, key: DependencyKey): void => {
+  PROXY_TO_OBSERVERS.get(trk)?.get(key)?.delete(entryOf(obs));
+
+  const dependency = weakObserverDependency(trk, key);
+
+  if (dependency && isHeldStrongly(obs)) removeStrongDependent(dependency);
 };
 
 /**
@@ -163,7 +232,7 @@ export const observerClear = (
 
   if (trackers) {
     for (const trk of trackers) {
-      PROXY_TO_OBSERVERS.get(trk)?.get(key)?.delete(entryOf(obs));
+      dropDependency(obs, trk, key);
     }
 
     trackers.clear();
@@ -187,7 +256,7 @@ export const observerClearAll = (obs: ObservableItem<unknown>): void => {
 
   for (const [key, trackers] of proxies) {
     for (const trk of trackers) {
-      PROXY_TO_OBSERVERS.get(trk)?.get(key)?.delete(entryOf(obs));
+      dropDependency(obs, trk, key);
     }
   }
 
@@ -226,12 +295,20 @@ export const dependTracker = (trk: object, key: DependencyKey): void => {
   const observerSet = observers.get(key);
   const trackerSet = trackers.get(key);
 
-  if (!observerSet.has(entryOf(current))) {
+  const entry = entryOf(current);
+
+  if (!observerSet.has(entry)) {
     sweepIfNeeded(observerSet);
-    observerSet.add(entryOf(current));
+    observerSet.add(entry);
   }
 
-  trackerSet.add(trk);
+  if (!trackerSet.has(trk)) {
+    trackerSet.add(trk);
+
+    const dependency = weakObserverDependency(trk, key);
+
+    if (dependency && isHeldStrongly(current)) addStrongDependent(dependency);
+  }
 };
 
 /**
