@@ -273,27 +273,38 @@ export const dependTracker = (trk: object, key: DependencyKey): void => {
 
   if (!current) return;
 
-  if (!OBSERVER_TO_PROXIES.has(current)) {
-    OBSERVER_TO_PROXIES.set(current, new Map());
+  let trackers = OBSERVER_TO_PROXIES.get(current);
+
+  if (!trackers) {
+    trackers = new Map();
+    OBSERVER_TO_PROXIES.set(current, trackers);
   }
 
-  if (!PROXY_TO_OBSERVERS.has(trk)) {
-    PROXY_TO_OBSERVERS.set(trk, new Map());
+  let trackerSet = trackers.get(key);
+
+  if (!trackerSet) {
+    trackerSet = new Set();
+    trackers.set(key, trackerSet);
+  } else if (trackerSet.has(trk)) {
+    // already depending on it: the source has this observer's entry too
+    return;
   }
 
-  const observers = PROXY_TO_OBSERVERS.get(trk);
-  const trackers = OBSERVER_TO_PROXIES.get(current);
+  trackerSet.add(trk);
 
-  if (!observers.has(key)) {
-    observers.set(key, new Set());
+  let observers = PROXY_TO_OBSERVERS.get(trk);
+
+  if (!observers) {
+    observers = new Map();
+    PROXY_TO_OBSERVERS.set(trk, observers);
   }
 
-  if (!trackers.has(key)) {
-    trackers.set(key, new Set());
-  }
+  let observerSet = observers.get(key);
 
-  const observerSet = observers.get(key);
-  const trackerSet = trackers.get(key);
+  if (!observerSet) {
+    observerSet = new Set();
+    observers.set(key, observerSet);
+  }
 
   const entry = entryOf(current);
 
@@ -302,13 +313,9 @@ export const dependTracker = (trk: object, key: DependencyKey): void => {
     observerSet.add(entry);
   }
 
-  if (!trackerSet.has(trk)) {
-    trackerSet.add(trk);
+  const dependency = weakObserverDependency(trk, key);
 
-    const dependency = weakObserverDependency(trk, key);
-
-    if (dependency && isHeldStrongly(current)) addStrongDependent(dependency);
-  }
+  if (dependency && isHeldStrongly(current)) addStrongDependent(dependency);
 };
 
 /**
