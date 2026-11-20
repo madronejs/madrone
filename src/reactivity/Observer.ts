@@ -199,7 +199,13 @@ class ObservableItem<T> {
     this.prev = this.cachedVal;
     this.cachedVal = undefined;
     this.callHook(OBSERVER_HOOK.onImmediateChange);
-    schedule(() => this.notifyChange());
+
+    if (this.hooks[OBSERVER_HOOK.onChange]) {
+      schedule(() => this.notifyChange());
+    } else {
+      // nothing will read it, so don't hold a strong reference to the prev
+      this.prev = undefined;
+    }
   }
 
   private notifyChange() {
