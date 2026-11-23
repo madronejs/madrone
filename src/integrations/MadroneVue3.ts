@@ -62,7 +62,18 @@ export interface MadroneVue3Options {
   reactive: <T extends object>(target: T) => unknown,
   /** Vue's `toRaw()` function from 'vue' */
   toRaw: <T>(proxy: T) => T,
+  /**
+   * `track` from '@vue/reactivity', the copy Vue itself uses. With `trigger`, Madrone records a dependency only while a
+   * Vue effect runs, instead of keeping a `reactive()` counter for every key it has read or written.
+   */
+  // `type` is `never` so Vue's enum-typed signatures fit; Madrone always passes 'get' and 'set'
+  track?: (target: object, type: never, key: unknown) => void,
+  /** `trigger` from '@vue/reactivity'; required with `track` */
+  trigger?: (target: object, type: never, key?: unknown) => void,
 }
+
+type TrackFn = (target: object, type: 'get', key: unknown) => void;
+type TriggerFn = (target: object, type: 'set', key?: unknown) => void;
 
 /**
  * Creates a Vue 3-compatible integration for Madrone.
@@ -91,6 +102,11 @@ export interface MadroneVue3Options {
  * import { MadroneVue3 as createMadroneVue3 } from '@madronejs/core';
  * import { reactive, toRaw } from 'vue';
  * Madrone.use(createMadroneVue3({ reactive, toRaw }));
+ *
+ * // Option 3: track dependencies through Vue's own track/trigger. Install
+ * // @vue/reactivity at the version your vue uses, so both share one copy.
+ * import { track, trigger } from '@vue/reactivity';
+ * Madrone.use(createMadroneVue3({ reactive, toRaw, track, trigger }));
  * ```
  */
 export default function MadroneVue3(options: MadroneVue3Options): Integration {
@@ -143,9 +159,18 @@ export default function MadroneVue3(options: MadroneVue3Options): Integration {
     return keyItem;
   };
 
+  const track = options.track && options.trigger ? options.track as unknown as TrackFn : undefined;
+  const trigger = track ? options.trigger as unknown as TriggerFn : undefined;
+
   // depend on a reactive property
   const depend = (cp, key?: KeyType) => {
     if (FORBIDDEN.has(key)) return;
+
+    if (track) {
+      track(obToRaw(cp), 'get', key);
+
+      return;
+    }
 
     Reflect.get(getOrAdd(cp, key), VALUE);
   };
@@ -153,12 +178,24 @@ export default function MadroneVue3(options: MadroneVue3Options): Integration {
   const notify = (cp, key?: KeyType) => {
     if (FORBIDDEN.has(key)) return;
 
+    if (trigger) {
+      trigger(obToRaw(cp), 'set', key);
+
+      return;
+    }
+
     reactiveSet(getOrAdd(cp, key));
   };
 
   // Notify that a property was deleted from an object
   // Note: For Set/Map, we only notify - we don't clear mappings since the collection still exists
   const notifyDelete = (parent, key: KeyType) => {
+    if (trigger) {
+      notify(parent, key);
+
+      return;
+    }
+
     const rawItem = obToRaw(parent);
     const item = reactiveMappings.get(rawItem);
 
