@@ -1,6 +1,6 @@
 {
   "name": "@madronejs/core",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "Object composition and reactivity framework.",
   "private": false,
   "license": "MIT",
